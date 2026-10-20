@@ -112,6 +112,8 @@ public class Honor {
         if (data.cases == null) data.cases = new ArrayList<>();
         if (data.judges == null) data.judges = new LinkedHashSet<>();
         if (data.antiFarm == null) data.antiFarm = new LinkedHashMap<>();
+        long loadNow = System.currentTimeMillis();
+        for (HonorData.Civ civ : data.civs.values()) Taxes.init(this, civ, loadNow);
     }
 
     public void markDirty() {
@@ -457,6 +459,7 @@ public class Honor {
             }
             if (seconds % 5 == 0) refreshPlayer(p);
         }
+        if (seconds % 60 == 0) Taxes.tick(this);
         if (seconds % Math.max(1, config.compassUpdateSeconds) == 0) Compass.updateAll(this);
         if (seconds % Math.max(1, config.tabRefreshSeconds) == 0) updateTabVisibility();
     }

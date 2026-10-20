@@ -369,14 +369,13 @@ public final class Cmds {
                     if (name.isEmpty() || name.length() > h.config.civNameMaxLength) throw err("Names are 1 to " + h.config.civNameMaxLength + " characters.");
                     if (h.civOf(p.getUuid().toString()) != null) throw err("Leave your current civilization first.");
                     if (h.civByName(name) != null) throw err("That name is taken.");
-                    if (Honor.countEmeralds(p) < h.config.civCreateEmeralds) throw err("You need " + h.config.civCreateEmeralds + " emeralds.");
-                    Honor.takeEmeralds(p, h.config.civCreateEmeralds);
                     Civ civ = new Civ();
                     civ.id = UUID.randomUUID().toString();
                     civ.name = name;
                     civ.leader = p.getUuid().toString();
                     civ.members.add(civ.leader);
                     civ.created = System.currentTimeMillis();
+                    Taxes.init(h, civ, civ.created);
                     h.data.civs.put(civ.id, civ);
                     h.markDirty();
                     h.server.getPlayerManager().broadcast(Text.literal(p.getName().getString() + " founded " + name + " (" + Honor.sideName(h.civSide(civ)) + " civilization).")
@@ -469,6 +468,20 @@ public final class Cmds {
                     broadcastCiv(h, civ, r.name + (civ.guards.contains(r.uuid) ? " is now a guard." : " is no longer a guard."));
                     return 1;
                 })))
+                .then(lit("tax")
+                        .executes(c -> {
+                            say(c, Taxes.status(h(), myCiv(c)));
+                            return 1;
+                        })
+                        .then(lit("pay").executes(c -> {
+                            Honor h = h();
+                            Civ civ = myCiv(c);
+                            String e = Taxes.pay(h, civ, player(c));
+                            if (e != null) throw err(e);
+                            say(c, "Tax paid. " + Taxes.status(h, civ));
+                            broadcastCiv(h, civ, who(c) + " paid the civ tax to the judges.");
+                            return 1;
+                        })))
                 .then(lit("disband").executes(c -> {
                     Honor h = h();
                     ServerPlayerEntity p = player(c);
@@ -495,7 +508,7 @@ public final class Cmds {
                     if (h.data.civs.isEmpty()) say(c, "No civilizations yet.");
                     for (Civ civ : h.data.civs.values()) {
                         say(c, civ.name + "  (" + Honor.sideName(h.civSide(civ)) + ", " + civ.members.size() + " members)  leader "
-                                + h.nameOf(civ.leader));
+                                + h.nameOf(civ.leader) + (Taxes.isLate(h, civ) ? "  [Unpaid]" : ""));
                     }
                     return 1;
                 }));
@@ -503,7 +516,8 @@ public final class Cmds {
 
     private static void info(CommandContext<ServerCommandSource> c, Civ civ) throws CommandSyntaxException {
         Honor h = h();
-        say(c, Text.literal(civ.name + " (" + Honor.sideName(h.civSide(civ)) + ")").formatted(Honor.colorOf(h.civSide(civ))));
+        say(c, Text.literal(civ.name + " (" + Honor.sideName(h.civSide(civ)) + ")" + (Taxes.isLate(h, civ) ? " [Unpaid]" : "")).formatted(Honor.colorOf(h.civSide(civ))));
+        say(c, Taxes.status(h, civ));
         say(c, "Leader: " + h.nameOf(civ.leader));
         List<String> off = new ArrayList<>(), gu = new ArrayList<>(), mem = new ArrayList<>();
         for (String id : civ.officers) off.add(h.nameOf(id));

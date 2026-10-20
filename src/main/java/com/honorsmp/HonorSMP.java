@@ -39,6 +39,7 @@ public class HonorSMP implements ModInitializer {
             r.lastIp = Honor.ipOf(p);
             h.refreshPlayer(p);
             h.updateTabVisibility();
+            Taxes.onLogin(h, p);
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             Honor h = Honor.I;
