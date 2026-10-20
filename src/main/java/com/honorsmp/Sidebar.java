@@ -44,7 +44,7 @@ public final class Sidebar {
         }
         Formatting c = Honor.colorOf(t.side);
         line(p, "hsmp_l2", 2, Text.literal("Tier: ").formatted(Formatting.WHITE).append(Text.literal(t.display).formatted(c)));
-        line(p, "hsmp_l1", 1, Text.literal("Honor: ").formatted(Formatting.WHITE).append(Text.literal(String.valueOf(score)).formatted(c)));
+        line(p, "hsmp_l1", 1, Text.literal("Honor: ").formatted(Formatting.WHITE).append(Text.literal(t == Tier.JUDGE ? "Judge" : String.valueOf(score)).formatted(c)));
         SENT.put(p.getUuid(), key);
     }
 

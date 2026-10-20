@@ -45,6 +45,7 @@ public class HonorSMP implements ModInitializer {
             h.updateTabVisibility();
             Taxes.onLogin(h, p);
             h.bounties.onLogin(p);
+            if (h.isJudge(p)) Cases.deliverPending(h, p);
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             Honor h = Honor.I;

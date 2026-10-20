@@ -31,6 +31,17 @@ final class BountyLoot {
         LootTable[] tables = h.config.bountyLoot;
         LootTable table = tables != null && victimTierIndex >= 0 && victimTierIndex < tables.length ? tables[victimTierIndex] : null;
         if (table == null) table = HonorConfig.defaultBountyLoot()[victimTierIndex];
+        payTable(killer, table, "Bounty loot");
+    }
+
+    /** Judge kill: the judgeLoot pool. */
+    static void payJudge(Honor h, ServerPlayerEntity killer) {
+        LootTable table = h.config.judgeLoot;
+        if (table == null || table.entries == null || table.entries.isEmpty()) table = HonorConfig.defaultJudgeLoot();
+        payTable(killer, table, "Judge loot");
+    }
+
+    private static void payTable(ServerPlayerEntity killer, LootTable table, String label0) {
         List<LootRoller.Drop> drops = LootRoller.roll(table, new java.util.Random());
         DynamicRegistryManager reg = killer.getRegistryManager();
         Random mcRandom = killer.getRandom();
@@ -53,7 +64,7 @@ final class BountyLoot {
             }
         }
         if (names.isEmpty()) return;
-        killer.sendMessage(Text.literal("Bounty loot: " + String.join(", ", names)).formatted(Formatting.GREEN));
+        killer.sendMessage(Text.literal(label0 + ": " + String.join(", ", names)).formatted(Formatting.GREEN));
     }
 
     private static ItemStack build(LootRoller.Drop d, DynamicRegistryManager reg, Random rng) {

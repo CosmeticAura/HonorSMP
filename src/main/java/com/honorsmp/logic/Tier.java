@@ -2,6 +2,8 @@ package com.honorsmp.logic;
 
 /** Honor tiers. rank is 1..3 inside a side (1 = lowest tier of that side), 0 for neutral. */
 public enum Tier {
+    /** Judges: highest honorable rank. Never produced by Tier.of; Honor.tier maps judges to it. */
+    JUDGE("Judge", Side.HONORABLE, 4),
     PARAGON("Paragon", Side.HONORABLE, 3),
     NOBLE("Noble", Side.HONORABLE, 2),
     HONORABLE("Honorable", Side.HONORABLE, 1),
@@ -22,10 +24,10 @@ public enum Tier {
 
     public boolean isHonorable() { return side == Side.HONORABLE; }
     public boolean isDishonored() { return side == Side.DISHONORED; }
-    public boolean isNobleOrHigher() { return this == NOBLE || this == PARAGON; }
+    public boolean isNobleOrHigher() { return this == NOBLE || this == PARAGON || this == JUDGE; }
 
     /** Index 0..2 into a per-tier perk array, or -1 for neutral. */
-    public int perkIndex() { return side == Side.NEUTRAL ? -1 : rank - 1; }
+    public int perkIndex() { return side == Side.NEUTRAL ? -1 : Math.min(rank, 3) - 1; }
 
     public static Tier of(int score, HonorConfig c) {
         if (score >= c.paragonMin) return PARAGON;

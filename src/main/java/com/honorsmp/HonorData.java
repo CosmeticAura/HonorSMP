@@ -16,7 +16,8 @@ public class HonorData {
         return PARSER.fromJson(json, HonorData.class);
     }
 
-    public int version = 1;
+    /** 1 = 1.0/1.1 data, 2 = 1.2.0 (appeals, pending case books). Missing fields always default on load. */
+    public int version = 2;
     public long nextLogId = 1;
     public int nextCaseId = 1;
 
@@ -37,6 +38,8 @@ public class HonorData {
     public long treasuryEmeralds = 0;
     /** Treasury contents as ItemStack codec JSON (replaces treasuryEmeralds, which is only read for migration). */
     public List<com.google.gson.JsonElement> treasury = new ArrayList<>();
+    /** Judge uuid to case ids whose written book is waiting for them to log in. */
+    public Map<String, List<Integer>> pendingBooks = new LinkedHashMap<>();
     /** "killer>victim" to the time of the last counted kill (ms). */
     public Map<String, Long> antiFarm = new LinkedHashMap<>();
 
@@ -114,5 +117,8 @@ public class HonorData {
         public long decidedAt = 0;
         public String decisionReason = "";
         public String note = "";
+        /** APPEAL cases: the honor log entry being appealed (0 = not an appeal) and the player's reason. */
+        public long appealLogId = 0;
+        public String appealReason = "";
     }
 }

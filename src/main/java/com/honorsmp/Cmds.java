@@ -100,6 +100,7 @@ public final class Cmds {
         d.register(honor());
         d.register(civ());
         d.register(bounty());
+        d.register(appeal());
     }
 
     // =============================================================== /honor
@@ -214,6 +215,11 @@ public final class Cmds {
         PlayerRecord r = h.record(p);
         Tier t = h.tier(r);
         HonorConfig k = h.config;
+        if (t == Tier.JUDGE) {
+            say(c, Text.literal("Honor: Judge  ").formatted(Formatting.GOLD).append(Honor.tierText(t)));
+            say(c, "Judges are above the honor system: no automatic honor changes. Use /honor cases to see open cases.");
+            return;
+        }
         say(c, Text.literal("Honor: " + r.score + "  ").formatted(Formatting.YELLOW).append(Honor.tierText(t))
                 .append(Text.literal(" (" + Honor.sideName(t.side) + ")").formatted(Formatting.GRAY)));
         int i = t.perkIndex();
@@ -324,6 +330,35 @@ public final class Cmds {
         h.markDirty();
         h.saveData();
         h.server.getPlayerManager().broadcast(Text.literal("A new season has begun. Everyone's honor is back to 0.").formatted(Formatting.GOLD), false);
+    }
+
+    // =============================================================== /appeal
+
+    private static LiteralArgumentBuilder<ServerCommandSource> appeal() {
+        return lit("appeal").then(arg("text", StringArgumentType.greedyString()).executes(c -> {
+            Honor h = h();
+            ServerPlayerEntity p = player(c);
+            String me = p.getUuid().toString();
+            if (h.isJudge(me)) throw err("Judges have no automatic honor changes to appeal.");
+            List<AppealRules.LogView> logs = new ArrayList<>();
+            for (LogEntry e : h.data.logs) logs.add(new AppealRules.LogView(e.id, e.player, e.delta));
+            List<AppealRules.AppealView> ap = new ArrayList<>();
+            for (Case k : h.data.cases) {
+                if (k.type.equals("APPEAL")) ap.add(new AppealRules.AppealView(k.killer, k.appealLogId, k.status.equals("OPEN")));
+            }
+            AppealRules.Parsed parsed = AppealRules.parse(StringArgumentType.getString(c, "text"), id -> {
+                for (AppealRules.LogView l : logs) if (l.id() == id && l.player().equals(me) && l.delta() != 0) return true;
+                return false;
+            });
+            if (parsed.reason().isEmpty()) throw err("Usage: /appeal <reason> or /appeal <change id> <reason>");
+            AppealRules.Pick pick = AppealRules.pick(me, parsed.logId(), logs, ap);
+            if (pick.error() != null) throw err(pick.error());
+            LogEntry target = null;
+            for (LogEntry e : h.data.logs) if (e.id == pick.logId()) target = e;
+            Case k = Cases.openAppeal(h, p, target, parsed.reason());
+            say(c, "Appeal #" + k.id + " sent to the judges for honor change #" + target.id + " (" + Cases.signed(target.delta) + ").");
+            return 1;
+        }));
     }
 
     // =============================================================== /bounty

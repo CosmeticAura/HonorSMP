@@ -49,6 +49,8 @@ public class HonorConfig {
     // bounties
     /** Loot pools for a dishonored player killing an Honorable, Noble or Paragon player (index = victim tier). */
     public LootTable[] bountyLoot = defaultBountyLoot();
+    /** Loot pool for a dishonored player who kills a judge. rolls is configurable. */
+    public LootTable judgeLoot = defaultJudgeLoot();
     public int minBounty = 4;
     public int compassUpdateSeconds = 5;
 
@@ -82,5 +84,14 @@ public class HonorConfig {
                 LootEntry.book(6, 1, 1, true),
                 LootEntry.item(1, 1, 1, "minecraft:enchanted_golden_apple"))))
         };
+    }
+
+    public static LootTable defaultJudgeLoot() {
+        return new LootTable(5, new java.util.ArrayList<>(java.util.List.of(
+                LootEntry.item(10, 8, 12, "minecraft:diamond"),
+                LootEntry.item(6, 2, 2, "minecraft:netherite_scrap"),
+                LootEntry.item(5, 1, 1, "minecraft:totem_of_undying"),
+                LootEntry.item(3, 1, 1, "minecraft:enchanted_golden_apple"),
+                LootEntry.book(6, 1, 1, true))));
     }
 }

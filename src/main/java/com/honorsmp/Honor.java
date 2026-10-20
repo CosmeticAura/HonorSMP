@@ -119,6 +119,18 @@ public class Honor {
         if (data.logs == null) data.logs = new ArrayList<>();
         if (data.cases == null) data.cases = new ArrayList<>();
         if (data.judges == null) data.judges = new LinkedHashSet<>();
+        if (data.pendingBooks == null) data.pendingBooks = new LinkedHashMap<>();
+        for (HonorData.Case cs : data.cases) {
+            if (cs.damageLog == null) cs.damageLog = new ArrayList<>();
+            if (cs.type == null) cs.type = "KILL";
+            if (cs.status == null) cs.status = "OPEN";
+            if (cs.appealReason == null) cs.appealReason = "";
+            if (cs.note == null) cs.note = "";
+            if (cs.killerGear == null) cs.killerGear = "";
+            if (cs.victimGear == null) cs.victimGear = "";
+            if (cs.dim == null) cs.dim = "";
+        }
+        data.version = 2;
         if (data.antiFarm == null) data.antiFarm = new LinkedHashMap<>();
         long loadNow = System.currentTimeMillis();
         for (HonorData.Civ civ : data.civs.values()) Taxes.init(this, civ, loadNow);
@@ -191,11 +203,16 @@ public class Honor {
     }
 
     public Tier tier(ServerPlayerEntity p) {
-        return Tier.of(record(p).score, config);
+        return tier(record(p));
     }
 
     public Tier tier(PlayerRecord r) {
+        if (r.uuid != null && data.judges.contains(r.uuid)) return Tier.JUDGE;
         return Tier.of(r.score, config);
+    }
+
+    public boolean isJudge(String uuid) {
+        return uuid != null && data.judges.contains(uuid);
     }
 
     public static Formatting colorOf(Side s) {
@@ -230,6 +247,8 @@ public class Honor {
      */
     public int change(String uuid, String name, int delta, String reason, String source, ServerPlayerEntity where,
                       String other, int caseId) {
+        // Judges are exempt from every automatic change (daily bonus, tax penalty, kills, future fines).
+        if (!JudgeRules.autoChangeAllowed(isJudge(uuid), source)) return 0;
         PlayerRecord r = data.players.get(uuid);
         if (r == null) {
             r = new PlayerRecord();
@@ -303,6 +322,8 @@ public class Honor {
     // ------------------------------------------------------------ teams (prefix, name tag) and perks
 
     private String teamName(Tier t, boolean hiddenTag) {
+        // Team names sort alphabetically in the tab list, so "0" puts judges above everyone else.
+        if (t == Tier.JUDGE) return "hsmp_0judge";
         return "hsmp_" + t.name().toLowerCase() + (hiddenTag ? "_h" : "");
     }
 
@@ -508,20 +529,42 @@ public class Honor {
         kr.lastIp = ipOf(killer);
         vr.lastIp = ipOf(victim);
         String k = kr.uuid, v = vr.uuid;
+
+        if (isJudge(k)) {
+            // Judges are exempt from all automatic honor: no change, no case. Player-set bounties still pay.
+            vr.secondsSinceDeath = 0;
+            markDirty();
+            bounties.payout(killer, kr, vr);
+            return;
+        }
+
         Tier vt = tier(vr);
+        boolean victimJudge = vt == Tier.JUDGE;
         boolean sameIp = !kr.lastIp.isEmpty() && kr.lastIp.equals(vr.lastIp);
         long cooldown = config.sameVictimCooldownMinutes * 60_000L;
         boolean onCooldown = !antiFarm.wouldCount(k, v, now, cooldown);
         boolean newbie = vr.secondsSinceDeath < config.minVictimPlaytimeMinutes * 60;
-        boolean hitFirst = FirstHitRule.victimHitFirst(damage, k, v, now, config.selfDefenseWindowSeconds * 1000L);
-
         Civ kc = civOf(k);
         boolean guardOwn = kc != null && kc.guards.contains(k);
+        boolean sameCiv = kc != null && kc.members.contains(v);
+        FightAnalysis.Who who = FightAnalysis.firstAggressor(damage, k, v, now, config.selfDefenseWindowSeconds * 1000L, sameCiv);
+        boolean hitFirst = who == FightAnalysis.Who.VICTIM;
 
         String killerGear = Cases.gear(killer);
         String victimGear = Cases.gear(victim);
-        KillContext ctx = new KillContext(vt, guardOwn, hitFirst, Cases.unarmedAndUnarmored(victim), sameIp, onCooldown, newbie);
-        KillOutcome o = KillRules.evaluate(ctx, config);
+        KillContext ctx = new KillContext(vt, guardOwn, hitFirst, Cases.unarmedAndUnarmored(victim), sameIp, onCooldown, newbie,
+                who == FightAnalysis.Who.UNCLEAR);
+        boolean killerDishonored = tier(kr).isDishonored();
+        KillOutcome o;
+        JudgeKillRules.Result jr = null;
+        if (victimJudge) {
+            boolean otherJudge = false;
+            for (String j : data.judges) if (!j.equals(v)) otherJudge = true;
+            jr = JudgeKillRules.evaluate(ctx, killerDishonored, otherJudge, config);
+            o = jr.outcome();
+        } else {
+            o = KillRules.evaluate(ctx, config);
+        }
 
         if (o.counted()) antiFarm.tryCount(k, v, now, cooldown);
         vr.secondsSinceDeath = 0;
@@ -541,9 +584,15 @@ public class Honor {
             Cases.open(this, "KILL", killer, victim, killerGear, victimGear, o.delta(), applied, damage, now, o.reason());
         }
 
-        if (o.counted() && !newbie) {
+        if (jr != null) {
+            if (jr.judgeLoot()) {
+                server.getPlayerManager().broadcast(Text.literal(kr.name + " has slain the Judge " + vr.name + "!")
+                        .formatted(Formatting.GOLD, Formatting.BOLD), false);
+                BountyLoot.payJudge(this, killer);
+            }
+        } else if (o.counted() && !newbie) {
             // dishonored killer of an honorable victim: loot pool by victim tier
-            if (tier(kr).isDishonored() && vt.isHonorable()) {
+            if (killerDishonored && vt.isHonorable()) {
                 BountyLoot.pay(this, killer, vt.perkIndex());
             }
         }

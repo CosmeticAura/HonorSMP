@@ -101,12 +101,149 @@ public final class Cases {
         discord(h, "**New case #" + c.id + "** (" + c.type + ") " + c.killerName + " killed " + c.victimName
                 + " at " + c.dim + " " + c.x + " " + c.y + " " + c.z
                 + ". First damage: " + c.firstDamager + ". Provisional " + signed(c.provisional) + ". " + note);
-        for (ServerPlayerEntity p : h.server.getPlayerManager().getPlayerList()) {
-            if (h.isJudge(p)) {
-                p.sendMessage(net.minecraft.text.Text.literal("[HonorSMP] New case #" + c.id + ": " + c.killerName
-                        + " killed " + c.victimName + ". Use /honor case " + c.id).formatted(net.minecraft.util.Formatting.YELLOW));
+        announce(h, c);
+        return c;
+    }
+
+    // ------------------------------------------------------------ announcing, books
+
+    /** Tells online judges about a new case, gives each judge outside the case the book, queues it for offline ones. */
+    public static void announce(Honor h, Case c) {
+        for (String j : h.data.judges) {
+            if (!JudgeRules.canRule(j, c.killer, c.victim)) continue; // part of the case
+            ServerPlayerEntity p = h.online(j);
+            if (p != null) {
+                p.sendMessage(net.minecraft.text.Text.literal("[HonorSMP] New case #" + c.id + " [" + c.type + "]: " + c.killerName
+                        + (c.type.equals("APPEAL") ? " appeals an honor change" : " killed " + c.victimName)
+                        + ". Use /honor case " + c.id).formatted(net.minecraft.util.Formatting.YELLOW));
+                giveBook(h, c, p);
+            } else {
+                List<Integer> q = h.data.pendingBooks.computeIfAbsent(j, x -> new ArrayList<>());
+                if (!q.contains(c.id)) q.add(c.id);
+                h.markDirty();
             }
         }
+    }
+
+    /** Gives the case book to a judge (also used by the "Give book" button). Returns false if it cannot be built. */
+    public static boolean giveBook(Honor h, Case c, ServerPlayerEntity judge) {
+        try {
+            judge.getInventory().offerOrDrop(makeBook(c));
+            return true;
+        } catch (Exception e) {
+            Honor.LOG.warn("Could not build the book for case #{}: {}", c.id, e.toString());
+            return false;
+        }
+    }
+
+    /** On login: hand over the books queued while the judge was offline (only for cases still open). */
+    public static void deliverPending(Honor h, ServerPlayerEntity p) {
+        List<Integer> q = h.data.pendingBooks.remove(p.getUuid().toString());
+        if (q == null) return;
+        h.markDirty();
+        int n = 0;
+        for (int id : q) {
+            Case c = find(h, id);
+            if (c == null || !c.status.equals("OPEN")) continue;
+            if (!JudgeRules.canRule(p.getUuid().toString(), c.killer, c.victim)) continue;
+            if (giveBook(h, c, p)) n++;
+        }
+        if (n > 0) p.sendMessage(net.minecraft.text.Text.literal("[HonorSMP] You received " + n + " case book(s) from while you were away.")
+                .formatted(net.minecraft.util.Formatting.YELLOW));
+    }
+
+    public static ItemStack makeBook(Case c) {
+        List<net.minecraft.text.RawFilteredPair<net.minecraft.text.Text>> pages = new ArrayList<>();
+        for (String pg : BookPager.paginate(bookLines(c), BookPager.PAGE_CHARS)) {
+            pages.add(net.minecraft.text.RawFilteredPair.of(net.minecraft.text.Text.literal(pg)));
+        }
+        ItemStack book = new ItemStack(Items.WRITTEN_BOOK);
+        book.set(net.minecraft.component.DataComponentTypes.WRITTEN_BOOK_CONTENT,
+                new net.minecraft.component.type.WrittenBookContentComponent(
+                        net.minecraft.text.RawFilteredPair.of(BookPager.title("Case #" + c.id)), "HonorSMP", 0, pages, true));
+        return book;
+    }
+
+    /** All the text of a case book, one entry per line (pages are cut by BookPager). */
+    public static List<String> bookLines(Case c) {
+        List<String> l = new ArrayList<>();
+        boolean appeal = c.type.equals("APPEAL");
+        l.add("Case #" + c.id + " [" + c.type + "]");
+        l.add(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(new java.util.Date(c.time)));
+        l.add("");
+        if (appeal) {
+            l.add("Appeal by: " + c.killerName + " (score " + c.killerScore + ")");
+            l.add("About: honor change #" + c.appealLogId + " (" + signed(c.provisional) + ")");
+            if (c.victimName != null && !c.victimName.isEmpty()) l.add("Other player: " + c.victimName);
+            l.add("");
+            l.add("Reason: " + c.appealReason);
+        } else {
+            l.add("Killer: " + c.killerName + " (score " + c.killerScore + ")");
+            l.add("Victim: " + c.victimName + " (score " + c.victimScore + ")");
+            l.add("");
+            l.add("What happened: " + c.killerName + " killed " + c.victimName + ". " + c.note);
+        }
+        l.add("");
+        l.add("Damage timeline (last " + (int) (c.damageLog.isEmpty() ? 0 : Math.ceil(c.damageLog.get(0).agoMs / 1000.0)) + "s):");
+        if (c.damageLog.isEmpty()) l.add("none recorded");
+        for (Hit hit : c.damageLog) l.add(String.format("-%.1fs %s hit %.1f", hit.agoMs / 1000.0, hit.attacker, hit.amount));
+        if (!appeal) l.add("First damage: " + c.firstDamager);
+        l.add("");
+        if (!appeal) {
+            l.add("Gear");
+            l.add(c.killerName + ": " + c.killerGear);
+            l.add(c.victimName + ": " + c.victimGear);
+            l.add("");
+        }
+        l.add("Location: " + c.dim + " " + c.x + " " + c.y + " " + c.z);
+        l.add("");
+        l.add("Mod applied: " + signed(c.applied) + " to " + c.killerName);
+        l.add("Suggested ruling: " + suggest(c));
+        l.add("");
+        l.add("/honor case " + c.id + " confirm | cancel | set <n>");
+        return l;
+    }
+
+    public static String suggest(Case c) {
+        switch (c.type) {
+            case "IP_FLAG":
+                return "Confirm (no honor was applied). Cancel if it was a real fight.";
+            case "APPEAL":
+                return "Cancel to undo the change, confirm to keep it. Check /honor log " + c.killerName + ".";
+            default:
+                if (c.firstDamager.equals(c.killerName)) return "Confirm (" + c.killerName + " hit first, " + signed(c.provisional) + " stands).";
+                if (c.firstDamager.equals(c.victimName)) return "Cancel (" + c.victimName + " hit first: self defense).";
+                return "Unclear (no first hit recorded). Judge decides; the provisional " + signed(c.provisional) + " is applied.";
+        }
+    }
+
+    /** Opens an APPEAL case for an honor log entry. Caller already validated with AppealRules. */
+    public static Case openAppeal(Honor h, ServerPlayerEntity appellant, HonorData.LogEntry e, String reason) {
+        Case c = new Case();
+        c.id = h.data.nextCaseId++;
+        c.type = "APPEAL";
+        c.time = System.currentTimeMillis();
+        c.killer = appellant.getUuid().toString();
+        c.killerName = appellant.getName().getString();
+        PlayerRecord other = e.other == null || e.other.isEmpty() ? null : h.byName(e.other);
+        c.victim = other == null ? "" : other.uuid;
+        c.victimName = e.other == null ? "" : e.other;
+        c.killerScore = h.score(appellant);
+        c.victimScore = other == null ? 0 : other.score;
+        c.dim = e.dim == null ? "" : e.dim;
+        c.x = e.x;
+        c.y = e.y;
+        c.z = e.z;
+        c.provisional = e.delta;
+        c.applied = e.delta;
+        c.appealLogId = e.id;
+        c.appealReason = reason;
+        c.note = "Appeal of honor change #" + e.id + " (" + signed(e.delta) + "): " + e.reason + ". Reason given: " + reason;
+        h.data.cases.add(c);
+        h.markDirty();
+        discord(h, "**New appeal case #" + c.id + "** by " + c.killerName + " about change #" + e.id + " (" + signed(e.delta)
+                + " " + e.reason + "). Reason: " + reason);
+        announce(h, c);
         return c;
     }
 
@@ -152,6 +289,11 @@ public final class Cases {
         c.decidedAt = System.currentTimeMillis();
         c.decisionReason = why;
         h.markDirty();
+        if (c.type.equals("APPEAL")) {
+            ServerPlayerEntity ap = h.online(c.killer);
+            if (ap != null) ap.sendMessage(net.minecraft.text.Text.literal("Your appeal (case #" + c.id + ") was ruled: " + c.status
+                    + " by " + judgeName + (why.isEmpty() ? "" : " (" + why + ")")).formatted(net.minecraft.util.Formatting.YELLOW));
+        }
         discord(h, "**Case #" + c.id + " " + c.status + "** by " + judgeName + ". " + c.killerName + " killed " + c.victimName
                 + ". Honor applied to killer: " + signed(c.applied) + (why.isEmpty() ? "" : ". Reason: " + why));
         return null;

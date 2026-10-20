@@ -26,6 +26,10 @@ public final class KillRules {
         if (k.victimUnarmedAndUnarmored()) {
             return new KillOutcome(c.killUnarmed, false, false, true, "Killed an unarmed, unarmored player");
         }
+        if (!k.fightUnclear()) {
+            // The mod can see the killer started it (see FightAnalysis): decided automatically, no judge.
+            return new KillOutcome(c.killNoFirstHit, false, false, true, "Killed a player who did not hit first (decided automatically)");
+        }
         return new KillOutcome(c.killNoFirstHit, true, false, true, "Killed a player who did not hit first (provisional, judge review)");
     }
 
