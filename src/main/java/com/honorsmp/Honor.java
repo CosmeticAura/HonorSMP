@@ -331,6 +331,7 @@ public class Honor {
         if (cur != want) sb.addScoreHolderToTeam(holder, want);
         r.lastTier = t.name();
         applyAttributes(p, t);
+        Sidebar.update(p, t, r.score);
     }
 
     private static final Identifier DMG_ID = Identifier.of("honorsmp", "combat_damage");
@@ -545,9 +546,9 @@ public class Honor {
             if (tier(kr).isDishonored() && vt.isHonorable()) {
                 BountyLoot.pay(this, killer, vt.perkIndex());
             }
-            // player placed bounty on the victim's head
-            bounties.payout(killer, kr, vr);
         }
+        // player placed bounty on the victim's head
+        if (KillRules.bountyPays(o, newbie)) bounties.payout(killer, kr, vr);
     }
 
     // ------------------------------------------------------------ helpers

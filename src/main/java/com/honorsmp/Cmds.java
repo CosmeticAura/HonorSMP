@@ -240,16 +240,18 @@ public final class Cmds {
 
     private static void top(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
         Honor h = h();
-        List<PlayerRecord> all = new ArrayList<>(h.data.players.values());
-        all.sort((a, b) -> Integer.compare(b.score, a.score));
-        say(c, Text.literal("Top 10").formatted(Formatting.GOLD));
-        for (int i = 0; i < Math.min(10, all.size()); i++) {
-            PlayerRecord r = all.get(i);
+        List<PlayerRecord> top = Leaderboard.top(h.data.players.values(), r -> r.score, h.config, 10);
+        List<PlayerRecord> bottom = Leaderboard.bottom(h.data.players.values(), r -> r.score, h.config, 10);
+        say(c, Text.literal("Top 10 (honorable)").formatted(Formatting.GOLD));
+        if (top.isEmpty()) say(c, "  nobody yet");
+        for (int i = 0; i < top.size(); i++) {
+            PlayerRecord r = top.get(i);
             say(c, (i + 1) + ". " + r.name + "  " + r.score + "  " + h.tier(r).display);
         }
-        say(c, Text.literal("Bottom 10").formatted(Formatting.DARK_RED));
-        for (int i = 0; i < Math.min(10, all.size()); i++) {
-            PlayerRecord r = all.get(all.size() - 1 - i);
+        say(c, Text.literal("Bottom 10 (dishonored)").formatted(Formatting.DARK_RED));
+        if (bottom.isEmpty()) say(c, "  nobody yet");
+        for (int i = 0; i < bottom.size(); i++) {
+            PlayerRecord r = bottom.get(i);
             say(c, (i + 1) + ". " + r.name + "  " + r.score + "  " + h.tier(r).display);
         }
     }
@@ -395,6 +397,7 @@ public final class Cmds {
                     String n = StringArgumentType.getString(c, "player");
                     ServerPlayerEntity t = h.server.getPlayerManager().getPlayer(n);
                     if (t == null) throw err(n + " is not online.");
+                    if (civ.members.contains(t.getUuid().toString())) throw err(n + " is already a member of your civilization.");
                     if (h.civOf(t.getUuid().toString()) != null) throw err(n + " is already in a civilization.");
                     h.invites.put(t.getUuid(), new Honor.Invite(civ.id, System.currentTimeMillis() + h.config.inviteExpirySeconds * 1000L, p.getName().getString()));
                     t.sendMessage(Text.literal(p.getName().getString() + " invited you to " + civ.name + ". Type /civ join " + civ.name + " within "
@@ -456,7 +459,10 @@ public final class Cmds {
                     PlayerRecord r = target(c, "player");
                     if (!civ.members.contains(r.uuid)) throw err(r.name + " is not in your civilization.");
                     if (civ.leader.equals(r.uuid)) throw err("That is you.");
-                    civ.officers.add(r.uuid);
+                    if (!civ.officers.add(r.uuid)) {
+                        say(c, "Already an officer");
+                        return 0;
+                    }
                     h.markDirty();
                     broadcastCiv(h, civ, r.name + " is now an officer.");
                     return 1;
@@ -468,9 +474,11 @@ public final class Cmds {
                     if (!canManage(civ, p.getUuid().toString())) throw err("Only the leader or officers can assign guards.");
                     PlayerRecord r = target(c, "player");
                     if (!civ.members.contains(r.uuid)) throw err(r.name + " is not in your civilization.");
-                    if (!civ.guards.add(r.uuid)) civ.guards.remove(r.uuid);
+                    boolean added = civ.guards.add(r.uuid);
+                    if (!added) civ.guards.remove(r.uuid);
                     h.markDirty();
-                    broadcastCiv(h, civ, r.name + (civ.guards.contains(r.uuid) ? " is now a guard." : " is no longer a guard."));
+                    say(c, added ? r.name + " was not a guard, so they are now a guard." : r.name + " was already a guard, so they are no longer a guard.");
+                    broadcastCiv(h, civ, r.name + (added ? " is now a guard." : " is no longer a guard."));
                     return 1;
                 })))
                 .then(lit("tax")

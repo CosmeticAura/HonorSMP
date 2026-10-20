@@ -14,7 +14,10 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.ActionResult;
 
 public class HonorSMP implements ModInitializer {
     @Override
@@ -37,6 +40,7 @@ public class HonorSMP implements ModInitializer {
             ServerPlayerEntity p = handler.getPlayer();
             PlayerRecord r = h.record(p);
             r.lastIp = Honor.ipOf(p);
+            Sidebar.forget(p);
             h.refreshPlayer(p);
             h.updateTabVisibility();
             Taxes.onLogin(h, p);
@@ -46,12 +50,19 @@ public class HonorSMP implements ModInitializer {
             Honor h = Honor.I;
             if (h == null) return;
             ServerPlayerEntity p = handler.getPlayer();
+            Sidebar.forget(p);
             h.treasury.closeIfViewer(p);
             h.bounties.closeFor(p);
             h.clearAttributes(p);
             h.saveData();
         });
 
+        UseItemCallback.EVENT.register((player, world, hand) -> {
+            Honor h = Honor.I;
+            ItemStack st = player.getStackInHand(hand);
+            if (h != null && player instanceof ServerPlayerEntity sp && Compass.isCompass(st)) Compass.onUse(h, sp, st);
+            return ActionResult.PASS;
+        });
         ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, taken, blocked) -> onDamage(entity, source, taken));
         ServerLivingEntityEvents.AFTER_DEATH.register(HonorSMP::onDeath);
         ServerPlayerEvents.AFTER_RESPAWN.register((old, now, alive) -> {

@@ -28,4 +28,12 @@ public final class KillRules {
         }
         return new KillOutcome(c.killNoFirstHit, true, false, true, "Killed a player who did not hit first (provisional, judge review)");
     }
+
+    /**
+     * Whether a player-set bounty on the victim is paid out for this kill. Always: the items were put up by
+     * another player, so honor anti-farming (same IP, repeat pair, new victim) must not withhold them.
+     */
+    public static boolean bountyPays(KillOutcome o, boolean victimNewbie) {
+        return true;
+    }
 }

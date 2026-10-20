@@ -33,20 +33,41 @@ public final class Compass {
         return c != null && c.copyNbt().getBoolean(TAG, false);
     }
 
+    public static final String RANK_MSG = "You must be Noble or higher to use this";
+    public static final String NONE_MSG = "No wanted players nearby";
+
     public static void updateAll(Honor h) {
         for (ServerPlayerEntity p : h.server.getPlayerManager().getPlayerList()) {
             for (int i = 0; i < p.getInventory().size(); i++) {
                 ItemStack s = p.getInventory().getStack(i);
-                if (isCompass(s)) update(h, p, s);
+                if (isCompass(s)) update(h, p, s, isHeld(p, s));
             }
         }
     }
 
-    private static void update(Honor h, ServerPlayerEntity p, ItemStack s) {
+    /** Right click with a compass: re-check rank and target now. */
+    public static void onUse(Honor h, ServerPlayerEntity p, ItemStack s) {
+        update(h, p, s, true);
+    }
+
+    private static boolean isHeld(ServerPlayerEntity p, ItemStack s) {
+        return p.getMainHandStack() == s || p.getOffHandStack() == s;
+    }
+
+    private static void actionBar(ServerPlayerEntity p, String msg) {
+        p.sendMessage(Text.literal(msg).formatted(Formatting.RED), true);
+    }
+
+    private static void update(Honor h, ServerPlayerEntity p, ItemStack s, boolean held) {
         Tier t = h.tier(p);
+        if (!t.isNobleOrHigher()) {
+            clear(s);
+            if (held) actionBar(p, RANK_MSG);
+            return;
+        }
         ServerPlayerEntity best = null;
         double bd = Double.MAX_VALUE;
-        if (p.getEntityWorld().getRegistryKey() == World.OVERWORLD && t.isNobleOrHigher()) {
+        if (p.getEntityWorld().getRegistryKey() == World.OVERWORLD) {
             for (ServerPlayerEntity o : h.server.getPlayerManager().getPlayerList()) {
                 if (o == p || o.getEntityWorld().getRegistryKey() != World.OVERWORLD) continue;
                 if (!h.tier(o).isDishonored()) continue;
@@ -59,10 +80,16 @@ public final class Compass {
             }
         }
         if (best == null) {
-            s.set(DataComponentTypes.LODESTONE_TRACKER, new LodestoneTrackerComponent(Optional.empty(), false));
+            clear(s);
+            if (held) actionBar(p, NONE_MSG);
         } else {
             s.set(DataComponentTypes.LODESTONE_TRACKER,
                     new LodestoneTrackerComponent(Optional.of(GlobalPos.create(World.OVERWORLD, best.getBlockPos())), false));
         }
+    }
+
+    /** No target: an empty tracker makes the needle spin instead of pointing at an old spot. */
+    private static void clear(ItemStack s) {
+        s.set(DataComponentTypes.LODESTONE_TRACKER, new LodestoneTrackerComponent(Optional.empty(), false));
     }
 }
