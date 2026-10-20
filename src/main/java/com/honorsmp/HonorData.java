@@ -40,8 +40,29 @@ public class HonorData {
     public List<com.google.gson.JsonElement> treasury = new ArrayList<>();
     /** Judge uuid to case ids whose written book is waiting for them to log in. */
     public Map<String, List<Integer>> pendingBooks = new LinkedHashMap<>();
+    public int nextFineId = 1;
+    /** All fines, open and closed. A missing field (1.1.0 data) means none. */
+    public List<Fine> fines = new ArrayList<>();
     /** "killer>victim" to the time of the last counted kill (ms). */
     public Map<String, Long> antiFarm = new LinkedHashMap<>();
+
+    public static class Fine {
+        public int id;
+        public String target, targetName, judge, judgeName;
+        public int caseId = 0;
+        /** The fine's contents as ItemStack codec JSON. */
+        public List<com.google.gson.JsonElement> items = new ArrayList<>();
+        public long createdAt;
+        /** Time of the last honor penalty charged (0 = none yet). */
+        public long lastPenaltyAt = 0;
+        public int penalties = 0;
+        /** OPEN, PAID or CANCELLED */
+        public String status = "OPEN";
+        public long closedAt = 0;
+        public String closedBy = "";
+        /** False until the fined player has been told (they are told on next login if offline). */
+        public boolean notified = false;
+    }
 
     public static class PlayerRecord {
         public String uuid;

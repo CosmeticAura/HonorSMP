@@ -76,6 +76,11 @@ public final class Treasury {
         h.data.treasury = out;
     }
 
+    /** Adds paid items (fines). Works while the UI is open: they wait in the overflow list and merge on close. */
+    public void addItem(ItemStack s) {
+        if (!s.isEmpty()) items.add(s.copy());
+    }
+
     /** Adds emeralds, merging into existing emerald stacks. */
     public void addEmeralds(long n) {
         if (n <= 0) return;

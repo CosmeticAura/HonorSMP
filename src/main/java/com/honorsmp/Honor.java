@@ -60,6 +60,7 @@ public class Honor {
 
     public final Treasury treasury = new Treasury(this);
     public final Bounties bounties = new Bounties(this);
+    public final Fines fines = new Fines(this);
 
     public Honor(MinecraftServer server) {
         this.server = server;
@@ -119,6 +120,15 @@ public class Honor {
         if (data.logs == null) data.logs = new ArrayList<>();
         if (data.cases == null) data.cases = new ArrayList<>();
         if (data.judges == null) data.judges = new LinkedHashSet<>();
+        if (data.fines == null) data.fines = new ArrayList<>();
+        data.fines.removeIf(f -> f == null);
+        for (HonorData.Fine f : data.fines) {
+            if (f.items == null) f.items = new ArrayList<>();
+            if (f.status == null) f.status = "OPEN";
+            if (f.closedBy == null) f.closedBy = "";
+        }
+        if (data.nextFineId < 1) data.nextFineId = 1;
+        for (HonorData.Fine f : data.fines) if (f.id >= data.nextFineId) data.nextFineId = f.id + 1;
         if (data.pendingBooks == null) data.pendingBooks = new LinkedHashMap<>();
         for (HonorData.Case cs : data.cases) {
             if (cs.damageLog == null) cs.damageLog = new ArrayList<>();
@@ -164,6 +174,7 @@ public class Honor {
     public void stop() {
         treasury.closeAll();
         bounties.closeAll();
+        fines.closeAll();
         Menu.closeAll();
         saveData();
         I = null;
@@ -495,6 +506,7 @@ public class Honor {
             if (seconds % 5 == 0) refreshPlayer(p);
         }
         if (seconds % 60 == 0) Taxes.tick(this);
+        if (seconds % 30 == 0) fines.tick();
         if (seconds % Math.max(1, config.compassUpdateSeconds) == 0) Compass.updateAll(this);
         if (seconds % Math.max(1, config.tabRefreshSeconds) == 0) updateTabVisibility();
     }

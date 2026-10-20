@@ -98,6 +98,8 @@ public final class CaseMenus {
                     if (cc == null) return;
                     Fines.openFineFor(h, who, cc);
                 });
+        m.set(16, Menu.icon(Items.BARRIER, "Cancel a fine", Formatting.RED, "List open fines; click one to cancel it."),
+                (who, r, s) -> h.fines.openCancelMenu(who));
         m.set(15, Menu.icon(Items.WRITTEN_BOOK, "Give book", Formatting.AQUA, "Get the case book again."),
                 (who, r, s) -> {
                     Case cc = Cases.find(h, caseId);

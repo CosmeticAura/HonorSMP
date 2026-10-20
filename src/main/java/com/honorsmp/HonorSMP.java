@@ -45,6 +45,7 @@ public class HonorSMP implements ModInitializer {
             h.updateTabVisibility();
             Taxes.onLogin(h, p);
             h.bounties.onLogin(p);
+            h.fines.onLogin(p);
             if (h.isJudge(p)) Cases.deliverPending(h, p);
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
@@ -54,6 +55,7 @@ public class HonorSMP implements ModInitializer {
             Sidebar.forget(p);
             h.treasury.closeIfViewer(p);
             h.bounties.closeFor(p);
+            h.fines.closeFor(p);
             Menu.closeFor(p);
             SignPrompt.cancel(p);
             h.clearAttributes(p);
@@ -85,7 +87,7 @@ public class HonorSMP implements ModInitializer {
         Honor h = Honor.I;
         if (h == null) return;
         Entity attacker = source.getAttacker();
-        if (entity instanceof ServerPlayerEntity dead) { h.treasury.closeIfViewer(dead); h.bounties.closeFor(dead); Menu.closeFor(dead); SignPrompt.cancel(dead); }
+        if (entity instanceof ServerPlayerEntity dead) { h.treasury.closeIfViewer(dead); h.bounties.closeFor(dead); h.fines.closeFor(dead); Menu.closeFor(dead); SignPrompt.cancel(dead); }
         if (!(attacker instanceof ServerPlayerEntity killer) || attacker == entity) {
             if (entity instanceof ServerPlayerEntity v) h.record(v).secondsSinceDeath = 0;
             return;

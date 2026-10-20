@@ -101,6 +101,7 @@ public final class Cmds {
         d.register(civ());
         d.register(bounty());
         d.register(appeal());
+        d.register(fine());
     }
 
     // =============================================================== /honor
@@ -364,6 +365,64 @@ public final class Cmds {
             say(c, "Appeal #" + k.id + " sent to the judges for honor change #" + target.id + " (" + Cases.signed(target.delta) + ").");
             return 1;
         }));
+    }
+
+    // =============================================================== /fine
+
+    private static LiteralArgumentBuilder<ServerCommandSource> fine() {
+        return lit("fine")
+                .executes(c -> {
+                    Honor h = h();
+                    ServerPlayerEntity p = player(c);
+                    List<String> l = h.fines.describeOpen(p.getUuid().toString(), false);
+                    if (l.isEmpty()) say(c, "You have no open fines.");
+                    else {
+                        say(c, Text.literal("Your open fines (pay with /fine pay):").formatted(Formatting.GOLD));
+                        for (String s : l) say(c, Text.literal(s).formatted(Formatting.RED));
+                    }
+                    return 1;
+                })
+                .then(lit("pay").executes(c -> {
+                    String e = h().fines.openPay(player(c), 0);
+                    if (e != null) throw err(e);
+                    return 1;
+                }).then(arg("id", IntegerArgumentType.integer(1)).suggests((ctx, b) -> {
+                    ServerPlayerEntity p = ctx.getSource().getPlayer();
+                    if (Honor.I != null && p != null) {
+                        for (HonorData.Fine f : Honor.I.fines.openFor(p.getUuid().toString())) b.suggest(f.id);
+                    }
+                    return b.buildFuture();
+                }).executes(c -> {
+                    String e = h().fines.openPay(player(c), IntegerArgumentType.getInteger(c, "id"));
+                    if (e != null) throw err(e);
+                    return 1;
+                })))
+                .then(lit("list").executes(c -> {
+                    needJudge(c);
+                    List<String> l = h().fines.describeOpen(null, true);
+                    if (l.isEmpty()) say(c, "No open fines.");
+                    for (String s : l) say(c, s);
+                    return 1;
+                }))
+                .then(lit("cancel").then(arg("id", IntegerArgumentType.integer(1)).suggests((ctx, b) -> {
+                    if (Honor.I != null) {
+                        for (HonorData.Fine f : Honor.I.data.fines) if ("OPEN".equals(f.status)) b.suggest(f.id);
+                    }
+                    return b.buildFuture();
+                }).executes(c -> {
+                    needJudge(c);
+                    int id = IntegerArgumentType.getInteger(c, "id");
+                    String e = h().fines.cancel(id, who(c));
+                    if (e != null) throw err(e);
+                    say(c, "Fine #" + id + " cancelled.");
+                    return 1;
+                })))
+                .then(playerArg("player").executes(c -> {
+                    needJudge(c);
+                    String e = h().fines.openEditor(player(c), target(c, "player"), 0);
+                    if (e != null) throw err(e);
+                    return 1;
+                }));
     }
 
     // =============================================================== /bounty

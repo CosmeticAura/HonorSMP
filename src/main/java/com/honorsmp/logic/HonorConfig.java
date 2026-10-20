@@ -54,6 +54,11 @@ public class HonorConfig {
     public int minBounty = 4;
     public int compassUpdateSeconds = 5;
 
+    // fines
+    /** Real hours a fine can stay unpaid before each honor penalty. */
+    public double fineIntervalHours = 2.5;
+    public int fineHonorPenalty = 10;
+
     // admin
     public int seasonResetConfirmSeconds = 10;
     public int maxLogEntries = 50000;
