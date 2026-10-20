@@ -24,10 +24,6 @@ public final class CaseMenus {
         return Text.literal(s).formatted(Formatting.GRAY);
     }
 
-    private static boolean ruleable(ServerPlayerEntity p, Case c) {
-        return JudgeRules.canRule(p.getUuid().toString(), c.killer, c.victim);
-    }
-
     private static boolean checkJudge(Honor h, ServerPlayerEntity p) {
         if (h.isJudge(p)) return true;
         tell(p, "Only judges can do that.", Formatting.RED);
@@ -46,12 +42,6 @@ public final class CaseMenus {
         for (int i = 0; i < shown; i++) {
             Case c = open.get(i);
             String victim = c.victimName == null || c.victimName.isEmpty() ? "-" : c.victimName;
-            if (!ruleable(p, c)) {
-                m.icon(i, Menu.icon(Items.GRAY_DYE, Text.literal("Case #" + c.id).formatted(Formatting.GRAY, Formatting.STRIKETHROUGH),
-                        List.of(Text.literal("You are part of this case").formatted(Formatting.RED),
-                                line("Killer: " + c.killerName), line("Victim: " + victim), line("Type: " + c.type))));
-                continue;
-            }
             int id = c.id;
             m.set(i, Menu.icon(c.type.equals("APPEAL") ? Items.BOOK : Items.PAPER, Text.literal("Case #" + c.id).formatted(Formatting.YELLOW),
                     List.of(line("Killer: " + c.killerName), line("Victim: " + victim), line("Type: " + c.type),
@@ -73,10 +63,6 @@ public final class CaseMenus {
         if (c == null || !c.status.equals("OPEN")) {
             tell(p, "Case #" + caseId + " is no longer open.", Formatting.YELLOW);
             openList(h, p);
-            return;
-        }
-        if (!ruleable(p, c)) {
-            tell(p, "You are part of this case.", Formatting.RED);
             return;
         }
         Menu m = Menu.create(Text.literal("Case #" + c.id), 3);
@@ -133,10 +119,6 @@ public final class CaseMenus {
         if (c == null || !c.status.equals("OPEN")) {
             tell(p, "Case #" + caseId + " is no longer open.", Formatting.YELLOW);
             openList(h, p);
-            return;
-        }
-        if (!ruleable(p, c)) {
-            tell(p, "You cannot rule on a case where you are the killer or the victim.", Formatting.RED);
             return;
         }
         String e = Cases.decide(h, c, action, amount, null, p.getName().getString());

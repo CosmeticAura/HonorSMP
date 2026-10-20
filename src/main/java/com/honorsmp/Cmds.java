@@ -307,10 +307,6 @@ public final class Cmds {
         needJudge(c);
         Case k = Cases.find(h(), IntegerArgumentType.getInteger(c, "id"));
         if (k == null) throw err("No such case.");
-        ServerPlayerEntity jp = c.getSource().getPlayer();
-        if (!JudgeRules.canRule(jp == null ? null : jp.getUuid().toString(), k.killer, k.victim)) {
-            throw err("You cannot rule on a case where you are the killer or the victim.");
-        }
         String e = Cases.decide(h(), k, action, amount, reason, who(c));
         if (e != null) throw err(e);
         say(c, "Case #" + k.id + " " + k.status.toLowerCase() + ". Killer's honor from this case: " + Cases.signed(k.applied) + ".");

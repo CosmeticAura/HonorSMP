@@ -110,7 +110,6 @@ public final class Cases {
     /** Tells online judges about a new case, gives each judge outside the case the book, queues it for offline ones. */
     public static void announce(Honor h, Case c) {
         for (String j : h.data.judges) {
-            if (!JudgeRules.canRule(j, c.killer, c.victim)) continue; // part of the case
             ServerPlayerEntity p = h.online(j);
             if (p != null) {
                 p.sendMessage(net.minecraft.text.Text.literal("[HonorSMP] New case #" + c.id + " [" + c.type + "]: " + c.killerName
@@ -145,7 +144,6 @@ public final class Cases {
         for (int id : q) {
             Case c = find(h, id);
             if (c == null || !c.status.equals("OPEN")) continue;
-            if (!JudgeRules.canRule(p.getUuid().toString(), c.killer, c.victim)) continue;
             if (giveBook(h, c, p)) n++;
         }
         if (n > 0) p.sendMessage(net.minecraft.text.Text.literal("[HonorSMP] You received " + n + " case book(s) from while you were away.")

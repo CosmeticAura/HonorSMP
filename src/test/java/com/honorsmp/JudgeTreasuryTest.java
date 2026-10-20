@@ -9,11 +9,10 @@ import org.junit.jupiter.api.Test;
 
 class JudgeTreasuryTest {
     @Test
-    void judgeCannotRuleOwnCase() {
-        assertFalse(JudgeRules.canRule("j", "j", "v"));
-        assertFalse(JudgeRules.canRule("j", "k", "j"));
-        assertTrue(JudgeRules.canRule("j", "k", "v"));
-        assertTrue(JudgeRules.canRule(null, "k", "v"));
+    void judgesAreExemptFromAutoChangesOnly() {
+        assertFalse(JudgeRules.autoChangeAllowed(true, "auto"));
+        assertTrue(JudgeRules.autoChangeAllowed(true, "admin"));
+        assertTrue(JudgeRules.autoChangeAllowed(false, "auto"));
     }
 
     @Test
