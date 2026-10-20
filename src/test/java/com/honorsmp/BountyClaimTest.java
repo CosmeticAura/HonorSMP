@@ -43,8 +43,32 @@ class BountyClaimTest {
     }
 
     @Test
-    void sameIpKillStillPaysBounty() {
-        assertEquals(5, killWithBounty(new KillContext(Tier.MARAUDER, false, false, false, true, false, false), false));
+    void sameIpKillDoesNotPayBountyAndItStays() {
+        assertEquals(0, killWithBounty(new KillContext(Tier.MARAUDER, false, false, false, true, false, false), false));
+    }
+
+    @Test
+    void sameIpBountyStaysOnTarget() {
+        var e = new BountyEscrow<Item>(OPS);
+        e.startSet("victim").commit(List.of(new Item("diamond", 5)), true);
+        KillOutcome o = KillRules.evaluate(new KillContext(Tier.NEUTRAL, false, false, false, true, false, false), new HonorConfig());
+        assertTrue(o.ipFlag());
+        if (KillRules.bountyPays(o, false)) e.payout("victim", "killer");
+        assertEquals(5, e.itemsOn("victim"));
+        assertEquals(0, e.boxItems("killer"));
+    }
+
+    @Test
+    void bountyPaysRule() {
+        assertTrue(KillRules.bountyPays(false));
+        assertFalse(KillRules.bountyPays(true)); // judge killer on same IP
+        for (Tier t : Tier.values()) {
+            KillOutcome o = KillRules.evaluate(new KillContext(t, false, false, false, false, false, false), new HonorConfig());
+            assertTrue(KillRules.bountyPays(o, false));
+            KillOutcome ip = KillRules.evaluate(new KillContext(t, false, false, false, true, false, false), new HonorConfig());
+            assertFalse(KillRules.bountyPays(ip, false));
+            assertFalse(KillRules.bountyPays(ip, true));
+        }
     }
 
     @Test

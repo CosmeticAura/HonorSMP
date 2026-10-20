@@ -34,10 +34,16 @@ public final class KillRules {
     }
 
     /**
-     * Whether a player-set bounty on the victim is paid out for this kill. Always: the items were put up by
-     * another player, so honor anti-farming (same IP, repeat pair, new victim) must not withhold them.
+     * Whether a player-set bounty on the victim is paid out for this kill. Every kill pays except a kill between
+     * players on the same IP (alt exploit): that one is flagged and the bounty stays on the target. Other honor
+     * anti-farming (repeat pair, new victim) must not withhold items another player put up.
      */
     public static boolean bountyPays(KillOutcome o, boolean victimNewbie) {
-        return true;
+        return bountyPays(o.ipFlag());
+    }
+
+    /** Same rule from the raw same-IP fact (judge killers have no KillOutcome). */
+    public static boolean bountyPays(boolean sameIp) {
+        return !sameIp;
     }
 }

@@ -573,10 +573,16 @@ public class Honor {
         String k = kr.uuid, v = vr.uuid;
 
         if (isJudge(k)) {
-            // Judges are exempt from all automatic honor: no change, no case. Player-set bounties still pay.
+            // Judges are exempt from all automatic honor changes. Player-set bounties pay, except on the same IP.
+            boolean jSameIp = !kr.lastIp.isEmpty() && kr.lastIp.equals(vr.lastIp);
             vr.secondsSinceDeath = 0;
             markDirty();
-            bounties.payout(killer, kr, vr);
+            if (KillRules.bountyPays(jSameIp)) {
+                bounties.payout(killer, kr, vr);
+            } else {
+                Cases.open(this, "IP_FLAG", killer, victim, Cases.gear(killer), Cases.gear(victim), 0, 0, damage, now,
+                        "Kill between players on the same IP. No honor and no bounty were applied.");
+            }
             return;
         }
 
