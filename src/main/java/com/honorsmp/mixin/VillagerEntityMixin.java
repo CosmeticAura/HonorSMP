@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class VillagerEntityMixin {
     @Inject(method = "prepareOffersFor", at = @At("TAIL"))
     private void honorsmp$prices(PlayerEntity player, CallbackInfo ci) {
+        for (TradeOffer o : ((VillagerEntity) (Object) this).getOffers()) com.honorsmp.ItemFixer.fixCaps(o.getSellItem());
         if (player instanceof ServerPlayerEntity sp && Honor.I != null) {
             for (TradeOffer offer : ((VillagerEntity) (Object) this).getOffers()) {
                 int change = Honor.I.priceChange(sp, offer.getOriginalFirstBuyItem().getCount());

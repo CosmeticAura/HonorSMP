@@ -61,6 +61,7 @@ public class Honor {
     public final Treasury treasury = new Treasury(this);
     public final Bounties bounties = new Bounties(this);
     public final Fines fines = new Fines(this);
+    public final com.honorsmp.logic.CombatTimer combat = new com.honorsmp.logic.CombatTimer();
 
     public Honor(MinecraftServer server) {
         this.server = server;

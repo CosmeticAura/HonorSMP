@@ -59,10 +59,25 @@ public class HonorConfig {
     public double fineIntervalHours = 2.5;
     public int fineHonorPenalty = 10;
 
+    // nerfs (apply to everyone)
+    /** Highest allowed level per enchantment id. Anything above is lowered to the cap. */
+    public java.util.Map<String, Integer> enchantCaps = defaultEnchantCaps();
+    /** Seconds after taking player damage during which an elytra cannot open. 0 disables. */
+    public int combatElytraSeconds = 30;
+
     // admin
     public int seasonResetConfirmSeconds = 10;
     public int maxLogEntries = 50000;
     public int tabRefreshSeconds = 5;
+
+    public static java.util.Map<String, Integer> defaultEnchantCaps() {
+        java.util.Map<String, Integer> m = new java.util.LinkedHashMap<>();
+        m.put("minecraft:sharpness", 4);
+        m.put("minecraft:protection", 3);
+        m.put("minecraft:density", 4);
+        m.put("minecraft:breach", 3);
+        return m;
+    }
 
     public static LootTable[] defaultBountyLoot() {
         return new LootTable[] {

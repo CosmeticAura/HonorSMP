@@ -31,6 +31,9 @@ public class HonorSMP implements ModInitializer {
         });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             if (Honor.I != null) Honor.I.tick();
+            if (server.getTicks() % 40 == 0) {
+                for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) ItemFixer.sweepPlayer(p);
+            }
         });
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> Cmds.register(dispatcher));
 
@@ -40,6 +43,7 @@ public class HonorSMP implements ModInitializer {
             ServerPlayerEntity p = handler.getPlayer();
             PlayerRecord r = h.record(p);
             r.lastIp = Honor.ipOf(p);
+            ItemFixer.sweepPlayer(p);
             Sidebar.forget(p);
             h.refreshPlayer(p);
             h.updateTabVisibility();
@@ -71,7 +75,7 @@ public class HonorSMP implements ModInitializer {
         ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, taken, blocked) -> onDamage(entity, source, taken));
         ServerLivingEntityEvents.AFTER_DEATH.register(HonorSMP::onDeath);
         ServerPlayerEvents.AFTER_RESPAWN.register((old, now, alive) -> {
-            if (Honor.I != null) Honor.I.refreshPlayer(now);
+            if (Honor.I != null) { Honor.I.combat.clear(now.getUuid().toString()); Honor.I.refreshPlayer(now); }
         });
     }
 
@@ -79,6 +83,7 @@ public class HonorSMP implements ModInitializer {
         Honor h = Honor.I;
         if (h == null || !(entity instanceof ServerPlayerEntity victim)) return;
         if (source.getAttacker() instanceof ServerPlayerEntity attacker && attacker != victim) {
+            h.combat.record(victim.getUuid().toString(), System.currentTimeMillis());
             h.damage.add(new DamageEvent(System.currentTimeMillis(), attacker.getUuid().toString(), victim.getUuid().toString(), taken));
         }
     }

@@ -3,7 +3,14 @@
   "package": "com.honorsmp.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "AnvilScreenHandlerMixin",
+    "EnchantmentScreenHandlerMixin",
+    "ForgingScreenHandlerAccessor",
+    "ItemEntityMixin",
     "LivingEntityMixin",
+    "LootTableMixin",
+    "ServerPlayerEntityMixin",
+    "SmithingScreenHandlerMixin",
     "PlayerEntityMixin",
     "ServerPlayNetworkHandlerMixin",
     "VillagerEntityMixin"
