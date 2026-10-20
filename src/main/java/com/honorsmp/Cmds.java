@@ -145,6 +145,14 @@ public final class Cmds {
                             showCase(c);
                             return 1;
                         })
+                        .then(lit("rename").then(arg("name", StringArgumentType.greedyString()).executes(c -> {
+                            needJudge(c);
+                            Case k = Cases.find(h(), IntegerArgumentType.getInteger(c, "id"));
+                            if (k == null) throw err("No such case.");
+                            String n = Cases.rename(h(), k, StringArgumentType.getString(c, "name"), who(c));
+                            say(c, n.isEmpty() ? "Case #" + k.id + " name cleared." : "Renamed to " + Cases.title(k) + ".");
+                            return 1;
+                        })))
                         .then(lit("confirm").executes(c -> decide(c, "confirm", null, null)))
                         .then(lit("cancel").executes(c -> decide(c, "cancel", null, null))
                                 .then(arg("reason", StringArgumentType.greedyString()).executes(c -> decide(c, "cancel", null, StringArgumentType.getString(c, "reason")))))
@@ -278,7 +286,7 @@ public final class Cmds {
         for (Case k : h().data.cases) {
             if (!k.status.equals("OPEN")) continue;
             n++;
-            say(c, "#" + k.id + " [" + k.type + "] " + k.killerName + " killed " + k.victimName + ", provisional " + Cases.signed(k.provisional));
+            say(c, Cases.title(k).substring(5) + " [" + k.type + "] " + k.killerName + " killed " + k.victimName + ", provisional " + Cases.signed(k.provisional));
         }
         if (n == 0) say(c, "No open cases.");
     }
@@ -287,7 +295,7 @@ public final class Cmds {
         Case k = Cases.find(h(), IntegerArgumentType.getInteger(c, "id"));
         if (k == null) throw err("No such case.");
         SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        say(c, Text.literal("Case #" + k.id + " [" + k.type + "] " + k.status).formatted(Formatting.GOLD));
+        say(c, Text.literal(Cases.title(k) + " [" + k.type + "] " + k.status).formatted(Formatting.GOLD));
         say(c, "Time: " + f.format(new Date(k.time)));
         say(c, "Killer: " + k.killerName + " (score " + k.killerScore + ")  " + k.killerGear);
         say(c, "Victim: " + k.victimName + " (score " + k.victimScore + ")  " + k.victimGear);
@@ -309,7 +317,7 @@ public final class Cmds {
         if (k == null) throw err("No such case.");
         String e = Cases.decide(h(), k, action, amount, reason, who(c));
         if (e != null) throw err(e);
-        say(c, "Case #" + k.id + " " + k.status.toLowerCase() + ". Killer's honor from this case: " + Cases.signed(k.applied) + ".");
+        say(c, Cases.title(k) + " " + k.status.toLowerCase() + ". Killer's honor from this case: " + Cases.signed(k.applied) + ".");
         return 1;
     }
 

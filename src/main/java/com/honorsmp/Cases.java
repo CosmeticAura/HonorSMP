@@ -98,7 +98,7 @@ public final class Cases {
         }
         h.data.cases.add(c);
         h.markDirty();
-        discord(h, "**New case #" + c.id + "** (" + c.type + ") " + c.killerName + " killed " + c.victimName
+        discord(h, "**New " + title(c) + "** (" + c.type + ") " + c.killerName + " killed " + c.victimName
                 + " at " + c.dim + " " + c.x + " " + c.y + " " + c.z
                 + ". First damage: " + c.firstDamager + ". Provisional " + signed(c.provisional) + ". " + note);
         announce(h, c);
@@ -158,7 +158,7 @@ public final class Cases {
         ItemStack book = new ItemStack(Items.WRITTEN_BOOK);
         book.set(net.minecraft.component.DataComponentTypes.WRITTEN_BOOK_CONTENT,
                 new net.minecraft.component.type.WrittenBookContentComponent(
-                        net.minecraft.text.RawFilteredPair.of(BookPager.title("Case #" + c.id)), "HonorSMP", 0, pages, true));
+                        net.minecraft.text.RawFilteredPair.of(BookPager.title(title(c))), "HonorSMP", 0, pages, true));
         return book;
     }
 
@@ -166,7 +166,7 @@ public final class Cases {
     public static List<String> bookLines(Case c) {
         List<String> l = new ArrayList<>();
         boolean appeal = c.type.equals("APPEAL");
-        l.add("Case #" + c.id + " [" + c.type + "]");
+        l.add(title(c) + " [" + c.type + "]");
         l.add(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(new java.util.Date(c.time)));
         l.add("");
         if (appeal) {
@@ -239,10 +239,24 @@ public final class Cases {
         c.note = "Appeal of honor change #" + e.id + " (" + signed(e.delta) + "): " + e.reason + ". Reason given: " + reason;
         h.data.cases.add(c);
         h.markDirty();
-        discord(h, "**New appeal case #" + c.id + "** by " + c.killerName + " about change #" + e.id + " (" + signed(e.delta)
+        discord(h, "**New appeal " + title(c) + "** by " + c.killerName + " about change #" + e.id + " (" + signed(e.delta)
                 + " " + e.reason + "). Reason: " + reason);
         announce(h, c);
         return c;
+    }
+
+    /** The one display title for a case: "Case #7" or "Case #7 \"Name\"". */
+    public static String title(Case c) {
+        return com.honorsmp.logic.CaseName.title(c.id, c.name);
+    }
+
+    /** Sets (or clears, when empty) the case name. Returns the stored name. */
+    public static String rename(Honor h, Case c, String rawName, String by) {
+        String old = c.name == null ? "" : c.name;
+        c.name = com.honorsmp.logic.CaseName.sanitize(rawName);
+        h.markDirty();
+        Honor.LOG.info("Case #{} renamed by {}: \"{}\" -> \"{}\"", c.id, by, old, c.name);
+        return c.name;
     }
 
     public static Case find(Honor h, int id) {
@@ -264,7 +278,7 @@ public final class Cases {
             }
             case "cancel" -> {
                 if (c.applied != 0) {
-                    h.change(c.killer, kn, -c.applied, "Case #" + c.id + " cancelled by " + judgeName, judgeName, null, c.victimName, c.id);
+                    h.change(c.killer, kn, -c.applied, title(c) + " cancelled by " + judgeName, judgeName, null, c.victimName, c.id);
                     c.applied = 0;
                 }
                 c.status = "CANCELLED";
@@ -273,7 +287,7 @@ public final class Cases {
                 int target = amount == null ? 0 : amount;
                 int diff = target - c.applied;
                 if (diff != 0) {
-                    int real = h.change(c.killer, kn, diff, "Case #" + c.id + " changed to " + signed(target) + " by " + judgeName
+                    int real = h.change(c.killer, kn, diff, title(c) + " changed to " + signed(target) + " by " + judgeName
                             + (why.isEmpty() ? "" : " (" + why + ")"), judgeName, null, c.victimName, c.id);
                     c.applied += real;
                 }
@@ -289,10 +303,10 @@ public final class Cases {
         h.markDirty();
         if (c.type.equals("APPEAL")) {
             ServerPlayerEntity ap = h.online(c.killer);
-            if (ap != null) ap.sendMessage(net.minecraft.text.Text.literal("Your appeal (case #" + c.id + ") was ruled: " + c.status
+            if (ap != null) ap.sendMessage(net.minecraft.text.Text.literal("Your appeal (" + title(c) + ") was ruled: " + c.status
                     + " by " + judgeName + (why.isEmpty() ? "" : " (" + why + ")")).formatted(net.minecraft.util.Formatting.YELLOW));
         }
-        discord(h, "**Case #" + c.id + " " + c.status + "** by " + judgeName + ". " + c.killerName + " killed " + c.victimName
+        discord(h, "**" + title(c) + " " + c.status + "** by " + judgeName + ". " + c.killerName + " killed " + c.victimName
                 + ". Honor applied to killer: " + signed(c.applied) + (why.isEmpty() ? "" : ". Reason: " + why));
         return null;
     }

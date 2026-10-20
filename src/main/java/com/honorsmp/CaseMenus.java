@@ -43,7 +43,7 @@ public final class CaseMenus {
             Case c = open.get(i);
             String victim = c.victimName == null || c.victimName.isEmpty() ? "-" : c.victimName;
             int id = c.id;
-            m.set(i, Menu.icon(c.type.equals("APPEAL") ? Items.BOOK : Items.PAPER, Text.literal("Case #" + c.id).formatted(Formatting.YELLOW),
+            m.set(i, Menu.icon(c.type.equals("APPEAL") ? Items.BOOK : Items.PAPER, Text.literal(Cases.title(c)).formatted(Formatting.YELLOW),
                     List.of(line("Killer: " + c.killerName), line("Victim: " + victim), line("Type: " + c.type),
                             line("Age: " + MenuClicks.age(now - c.time)), Text.literal("Click to open").formatted(Formatting.DARK_GRAY))),
                     (who, r, s) -> openCase(h, who, id));
@@ -65,9 +65,9 @@ public final class CaseMenus {
             openList(h, p);
             return;
         }
-        Menu m = Menu.create(Text.literal("Case #" + c.id), 3);
+        Menu m = Menu.create(Text.literal(Cases.title(c)), 3);
         String victim = c.victimName == null || c.victimName.isEmpty() ? "-" : c.victimName;
-        m.icon(4, Menu.icon(c.type.equals("APPEAL") ? Items.BOOK : Items.PAPER, Text.literal("Case #" + c.id + " [" + c.type + "]").formatted(Formatting.YELLOW),
+        m.icon(4, Menu.icon(c.type.equals("APPEAL") ? Items.BOOK : Items.PAPER, Text.literal(Cases.title(c) + " [" + c.type + "]").formatted(Formatting.YELLOW),
                 List.of(line("Killer: " + c.killerName), line("Victim: " + victim),
                         line("Provisional: " + Cases.signed(c.provisional) + ", applied: " + Cases.signed(c.applied)),
                         line("First damage: " + c.firstDamager))));
@@ -92,8 +92,27 @@ public final class CaseMenus {
                     if (cc != null && Cases.giveBook(h, cc, who)) tell(who, "Gave you the book for case #" + caseId + ".", Formatting.GREEN);
                     else tell(who, "Could not give the book.", Formatting.RED);
                 });
+        m.set(13, Menu.icon(Items.NAME_TAG, "Rename", Formatting.AQUA, "Type a name for this case on a sign.", "Leave it empty to clear the name."),
+                (who, r, s) -> askName(h, who, caseId));
         m.set(22, Menu.icon(Items.ARROW, "Back", Formatting.WHITE), (who, r, s) -> openList(h, who));
         if (!m.open(p)) tell(p, "Could not open the case menu.", Formatting.RED);
+    }
+
+    private static void askName(Honor h, ServerPlayerEntity p, int caseId) {
+        if (!checkJudge(h, p)) return;
+        tell(p, "Type the new case name on the sign (max 40 characters, empty clears it).", Formatting.YELLOW);
+        SignPrompt.ask(p, lines -> {
+            if (!checkJudge(h, p)) return;
+            Case c = Cases.find(h, caseId);
+            if (c == null) {
+                tell(p, "Case #" + caseId + " no longer exists.", Formatting.YELLOW);
+                return;
+            }
+            String n = Cases.rename(h, c, com.honorsmp.logic.CaseName.fromSign(lines), p.getName().getString());
+            tell(p, n.isEmpty() ? "Case #" + c.id + " name cleared." : "Renamed to " + Cases.title(c) + ".", Formatting.GREEN);
+            if (c.status.equals("OPEN")) openCase(h, p, caseId);
+            else openList(h, p);
+        });
     }
 
     private static void askAmount(Honor h, ServerPlayerEntity p, int caseId) {
@@ -127,7 +146,7 @@ public final class CaseMenus {
             openCase(h, p, caseId);
             return;
         }
-        tell(p, "Case #" + c.id + " " + c.status.toLowerCase() + ". Killer's honor from this case: " + Cases.signed(c.applied) + ".", Formatting.GREEN);
+        tell(p, Cases.title(c) + " " + c.status.toLowerCase() + ". Killer's honor from this case: " + Cases.signed(c.applied) + ".", Formatting.GREEN);
         openList(h, p);
     }
 }

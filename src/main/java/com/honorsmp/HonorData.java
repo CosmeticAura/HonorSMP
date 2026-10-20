@@ -140,6 +140,8 @@ public class HonorData {
 
     public static class Case {
         public int id;
+        /** Optional judge-given name; empty = none. */
+        public String name = "";
         public String type = "KILL";
         public long time;
         public String killer, killerName, victim, victimName;
