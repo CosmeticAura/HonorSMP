@@ -58,6 +58,8 @@ public class Honor {
 
     public record Invite(String civId, long expiresMs, String from) {}
 
+    public final Treasury treasury = new Treasury(this);
+
     public Honor(MinecraftServer server) {
         this.server = server;
     }
@@ -70,6 +72,7 @@ public class Honor {
         loadData();
         antiFarm.raw().putAll(data.antiFarm);
         data.antiFarm = antiFarm.raw();
+        treasury.load();
         saveData();
         LOG.info("HonorSMP loaded: {} players, {} civs, {} open cases", data.players.size(),
                 data.civs.size(), data.cases.stream().filter(c -> c.status.equals("OPEN")).count());
@@ -123,6 +126,7 @@ public class Honor {
     public void saveData() {
         try {
             Files.createDirectories(dataPath.getParent());
+            treasury.sync();
             Path tmp = dataPath.resolveSibling("data.json.tmp");
             Files.writeString(tmp, GSON.toJson(data), StandardCharsets.UTF_8);
             Files.move(tmp, dataPath, StandardCopyOption.REPLACE_EXISTING);
@@ -140,6 +144,7 @@ public class Honor {
     }
 
     public void stop() {
+        treasury.closeAll();
         saveData();
         I = null;
     }
@@ -203,7 +208,7 @@ public class Honor {
     }
 
     public boolean isJudge(ServerPlayerEntity p) {
-        return isOp(p) || data.judges.contains(p.getUuid().toString());
+        return data.judges.contains(p.getUuid().toString());
     }
 
     public static String dim(World w) {

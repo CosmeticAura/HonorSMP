@@ -119,7 +119,7 @@ public final class Taxes {
         long have = emeraldValue(p);
         if (have < amt) return "You need " + amt + " emeralds (blocks count as 9) but only have " + have + ". Nothing was taken.";
         takeValue(p, (int) amt);
-        h.data.treasuryEmeralds += amt;
+        h.treasury.addEmeralds(amt);
         if (now > civ.taxDue) {
             civ.taxDue = TaxMath.nextDueAfterLatePay(civ.taxDue, now, h.config.taxIntervalDays);
             civ.taxPaid = false;

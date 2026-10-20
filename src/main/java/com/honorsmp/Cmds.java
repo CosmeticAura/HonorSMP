@@ -53,7 +53,7 @@ public final class Cmds {
     }
 
     private static void needJudge(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
-        if (!isJudge(c)) throw err("Only judges (ops, or players added with /honor judge add) can do that.");
+        if (!isJudge(c)) throw err("Only judges (players added with /honor judge add) can do that. Ops are not judges by default.");
     }
 
     private static void needAdmin(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
@@ -119,6 +119,12 @@ public final class Cmds {
                     if (!h().tier(p).isNobleOrHigher()) throw err("You need to be Noble or higher to get a Bounty Compass.");
                     p.getInventory().offerOrDrop(Compass.make());
                     say(c, "You received a Bounty Compass. It points to the nearest dishonored player with a bounty (overworld only).");
+                    return 1;
+                }))
+                .then(lit("treasury").executes(c -> {
+                    needJudge(c);
+                    String e = h().treasury.openFor(player(c));
+                    if (e != null) throw err(e);
                     return 1;
                 }))
                 .then(lit("cases").executes(c -> {
@@ -282,6 +288,10 @@ public final class Cmds {
         needJudge(c);
         Case k = Cases.find(h(), IntegerArgumentType.getInteger(c, "id"));
         if (k == null) throw err("No such case.");
+        ServerPlayerEntity jp = c.getSource().getPlayer();
+        if (!JudgeRules.canRule(jp == null ? null : jp.getUuid().toString(), k.killer, k.victim)) {
+            throw err("You cannot rule on a case where you are the killer or the victim.");
+        }
         String e = Cases.decide(h(), k, action, amount, reason, who(c));
         if (e != null) throw err(e);
         say(c, "Case #" + k.id + " " + k.status.toLowerCase() + ". Killer's honor from this case: " + Cases.signed(k.applied) + ".");

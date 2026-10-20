@@ -45,6 +45,7 @@ public class HonorSMP implements ModInitializer {
             Honor h = Honor.I;
             if (h == null) return;
             ServerPlayerEntity p = handler.getPlayer();
+            h.treasury.closeIfViewer(p);
             h.clearAttributes(p);
             h.saveData();
         });
@@ -68,6 +69,7 @@ public class HonorSMP implements ModInitializer {
         Honor h = Honor.I;
         if (h == null) return;
         Entity attacker = source.getAttacker();
+        if (entity instanceof ServerPlayerEntity dead) h.treasury.closeIfViewer(dead);
         if (!(attacker instanceof ServerPlayerEntity killer) || attacker == entity) {
             if (entity instanceof ServerPlayerEntity v) h.record(v).secondsSinceDeath = 0;
             return;

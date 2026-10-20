@@ -29,6 +29,8 @@ public class HonorData {
     public Set<String> judges = new LinkedHashSet<>();
     /** Emeralds paid as civ tax, held for the judges (opened later via /honor treasury). */
     public long treasuryEmeralds = 0;
+    /** Treasury contents as ItemStack codec JSON (replaces treasuryEmeralds, which is only read for migration). */
+    public List<com.google.gson.JsonElement> treasury = new ArrayList<>();
     /** "killer>victim" to the time of the last counted kill (ms). */
     public Map<String, Long> antiFarm = new LinkedHashMap<>();
 
