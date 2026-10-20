@@ -47,7 +47,8 @@ public class HonorConfig {
     public String discordWebhookUrl = "";
 
     // bounties
-    public int[] serverBountyEmeralds = {4, 8, 16};
+    /** Loot pools for a dishonored player killing an Honorable, Noble or Paragon player (index = victim tier). */
+    public LootTable[] bountyLoot = defaultBountyLoot();
     public int minBounty = 4;
     public int compassUpdateSeconds = 5;
 
@@ -55,4 +56,31 @@ public class HonorConfig {
     public int seasonResetConfirmSeconds = 10;
     public int maxLogEntries = 50000;
     public int tabRefreshSeconds = 5;
+
+    public static LootTable[] defaultBountyLoot() {
+        return new LootTable[] {
+            new LootTable(2, new java.util.ArrayList<>(java.util.List.of(
+                LootEntry.item(10, 8, 16, "minecraft:emerald"),
+                LootEntry.item(10, 8, 8, "minecraft:iron_ingot"),
+                LootEntry.item(6, 1, 2, "minecraft:golden_apple"),
+                LootEntry.item(8, 8, 8, "minecraft:experience_bottle"),
+                LootEntry.item(8, 16, 16, "minecraft:arrow"),
+                LootEntry.book(5, 1, 2, false)))),
+            new LootTable(3, new java.util.ArrayList<>(java.util.List.of(
+                LootEntry.item(8, 2, 4, "minecraft:diamond"),
+                LootEntry.item(10, 16, 32, "minecraft:emerald"),
+                LootEntry.gear(6, 15, 30, "minecraft:iron_sword", "minecraft:iron_axe", "minecraft:diamond_sword", "minecraft:diamond_axe"),
+                LootEntry.item(8, 2, 4, "minecraft:golden_apple"),
+                LootEntry.book(6, 2, 3, false),
+                LootEntry.item(5, 4, 4, "minecraft:ender_pearl")))),
+            new LootTable(4, new java.util.ArrayList<>(java.util.List.of(
+                LootEntry.item(10, 4, 8, "minecraft:diamond"),
+                LootEntry.item(6, 1, 1, "minecraft:netherite_scrap"),
+                LootEntry.item(4, 1, 1, "minecraft:totem_of_undying"),
+                LootEntry.gear(6, 20, 35, "minecraft:diamond_helmet", "minecraft:diamond_chestplate",
+                        "minecraft:diamond_leggings", "minecraft:diamond_boots"),
+                LootEntry.book(6, 1, 1, true),
+                LootEntry.item(1, 1, 1, "minecraft:enchanted_golden_apple"))))
+        };
+    }
 }

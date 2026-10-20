@@ -534,11 +534,9 @@ public class Honor {
         }
 
         if (o.counted() && !newbie) {
-            // dishonored killer of an honorable victim: server bounty
+            // dishonored killer of an honorable victim: loot pool by victim tier
             if (tier(kr).isDishonored() && vt.isHonorable()) {
-                int e = config.serverBountyEmeralds[vt.perkIndex()];
-                giveEmeralds(killer, e);
-                killer.sendMessage(Text.literal("Bounty payout: " + e + " emeralds.").formatted(Formatting.GREEN));
+                BountyLoot.pay(this, killer, vt.perkIndex());
             }
             // player placed bounty on the victim's head
             Integer head = data.bounties.remove(v);
