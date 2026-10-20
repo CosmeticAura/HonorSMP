@@ -48,7 +48,6 @@ public class Honor {
     public final AntiFarm antiFarm = new AntiFarm();
     public final List<DamageEvent> damage = new ArrayList<>();
     public final Map<UUID, Invite> invites = new HashMap<>();
-    public final Map<UUID, String> lastClaim = new HashMap<>();
     public final Map<UUID, Long> seasonConfirm = new HashMap<>();
     private final Set<UUID> hiddenBefore = new HashSet<>();
     private boolean dirty = false;
@@ -72,8 +71,8 @@ public class Honor {
         antiFarm.raw().putAll(data.antiFarm);
         data.antiFarm = antiFarm.raw();
         saveData();
-        LOG.info("HonorSMP loaded: {} players, {} civs, {} claims, {} open cases", data.players.size(),
-                data.civs.size(), data.claims.size(), data.cases.stream().filter(c -> c.status.equals("OPEN")).count());
+        LOG.info("HonorSMP loaded: {} players, {} civs, {} open cases", data.players.size(),
+                data.civs.size(), data.cases.stream().filter(c -> c.status.equals("OPEN")).count());
     }
 
     public String loadConfig() {
@@ -96,7 +95,7 @@ public class Honor {
     private void loadData() {
         try {
             if (Files.exists(dataPath)) {
-                HonorData d = GSON.fromJson(Files.readString(dataPath, StandardCharsets.UTF_8), HonorData.class);
+                HonorData d = HonorData.parse(Files.readString(dataPath, StandardCharsets.UTF_8));
                 if (d != null) data = d;
             }
         } catch (Exception e) {
@@ -108,7 +107,6 @@ public class Honor {
         }
         if (data.players == null) data.players = new LinkedHashMap<>();
         if (data.civs == null) data.civs = new LinkedHashMap<>();
-        if (data.claims == null) data.claims = new LinkedHashMap<>();
         if (data.bounties == null) data.bounties = new LinkedHashMap<>();
         if (data.logs == null) data.logs = new ArrayList<>();
         if (data.cases == null) data.cases = new ArrayList<>();
@@ -388,20 +386,7 @@ public class Honor {
         return 0;
     }
 
-    // ------------------------------------------------------------ civs and claims
-
-    public static String claimKey(String dim, int cx, int cz) {
-        return dim + "|" + cx + "|" + cz;
-    }
-
-    public String claimKeyAt(World w, BlockPos pos) {
-        return claimKey(dim(w), pos.getX() >> 4, pos.getZ() >> 4);
-    }
-
-    public Civ civAt(World w, BlockPos pos) {
-        String id = data.claims.get(claimKeyAt(w, pos));
-        return id == null ? null : data.civs.get(id);
-    }
+    // ------------------------------------------------------------ civs
 
     public Civ civOf(String uuid) {
         for (Civ c : data.civs.values()) {
@@ -420,16 +405,6 @@ public class Honor {
     public Side civSide(Civ c) {
         PlayerRecord leader = data.players.get(c.leader);
         return leader == null ? Side.NEUTRAL : tier(leader).side;
-    }
-
-    public int maxClaims(Civ c) {
-        return Math.min(config.claimsCap, config.claimsBase + config.claimsPerMember * c.members.size());
-    }
-
-    public int claimCount(Civ c) {
-        int n = 0;
-        for (String id : data.claims.values()) if (id.equals(c.id)) n++;
-        return n;
     }
 
     public String nameOf(String uuid) {
@@ -469,8 +444,6 @@ public class Honor {
             if (!today.equals(r.dayKey)) {
                 r.dayKey = today;
                 r.onlineSecondsToday = 0;
-                r.blockPenaltyToday = 0;
-                r.containerPenaltyToday = 0;
                 r.lostHonorToday = false;
                 r.onlineBonusGiven = false;
                 markDirty();
@@ -483,22 +456,9 @@ public class Honor {
                 change(r.uuid, r.name, config.onlineBonusHonor, config.onlineBonusHours + " hours online without losing honor", "auto", p, "", 0);
             }
             if (seconds % 5 == 0) refreshPlayer(p);
-            claimActionBar(p);
         }
         if (seconds % Math.max(1, config.compassUpdateSeconds) == 0) Compass.updateAll(this);
         if (seconds % Math.max(1, config.tabRefreshSeconds) == 0) updateTabVisibility();
-    }
-
-    private void claimActionBar(ServerPlayerEntity p) {
-        Civ c = civAt(p.getEntityWorld(), p.getBlockPos());
-        String id = c == null ? "" : c.id;
-        String prev = lastClaim.getOrDefault(p.getUuid(), "");
-        if (!id.equals(prev)) {
-            lastClaim.put(p.getUuid(), id);
-            if (c != null) {
-                p.sendMessage(Text.literal("Entering " + c.name).formatted(colorOf(civSide(c))), true);
-            }
-        }
     }
 
     // ------------------------------------------------------------ stealth tab list
@@ -525,33 +485,6 @@ public class Honor {
 
     // ------------------------------------------------------------ automatic events
 
-    private boolean inOtherClaim(ServerPlayerEntity p, World w, BlockPos pos) {
-        Civ c = civAt(w, pos);
-        if (c == null) return false;
-        Civ mine = civOf(p.getUuid().toString());
-        return mine == null || !mine.id.equals(c.id);
-    }
-
-    public void onBlockChanged(ServerPlayerEntity p, World w, BlockPos pos) {
-        if (!inOtherClaim(p, w, pos)) return;
-        PlayerRecord r = record(p);
-        int d = ScoreMath.dailyCapped(r.blockPenaltyToday, config.blockInOtherClaimDailyCap, config.blockInOtherClaim);
-        if (d == 0) return;
-        r.blockPenaltyToday += Math.abs(d);
-        Civ c = civAt(w, pos);
-        change(r.uuid, r.name, d, "Block changed in " + c.name + "'s claim", "auto", p, c.name, 0);
-    }
-
-    public void onContainerOpened(ServerPlayerEntity p, World w, BlockPos pos) {
-        if (!inOtherClaim(p, w, pos)) return;
-        PlayerRecord r = record(p);
-        int d = ScoreMath.dailyCapped(r.containerPenaltyToday, config.containerInOtherClaimDailyCap, config.containerInOtherClaim);
-        if (d == 0) return;
-        r.containerPenaltyToday += Math.abs(d);
-        Civ c = civAt(w, pos);
-        change(r.uuid, r.name, d, "Opened a container in " + c.name + "'s claim", "auto", p, c.name, 0);
-    }
-
     public void onPlayerKill(ServerPlayerEntity killer, ServerPlayerEntity victim) {
         long now = System.currentTimeMillis();
         PlayerRecord kr = record(killer);
@@ -567,8 +500,7 @@ public class Honor {
         boolean hitFirst = FirstHitRule.victimHitFirst(damage, k, v, now, config.selfDefenseWindowSeconds * 1000L);
 
         Civ kc = civOf(k);
-        Civ land = civAt(victim.getEntityWorld(), victim.getBlockPos());
-        boolean guardOwn = kc != null && land != null && kc.id.equals(land.id) && kc.guards.contains(k);
+        boolean guardOwn = kc != null && kc.guards.contains(k);
 
         String killerGear = Cases.gear(killer);
         String victimGear = Cases.gear(victim);

@@ -70,8 +70,6 @@ public final class Cases {
         c.x = bp.getX();
         c.y = bp.getY();
         c.z = bp.getZ();
-        Civ land = h.civAt(victim.getEntityWorld(), bp);
-        c.land = land == null ? "wilderness" : land.name;
         c.killerGear = killerGear;
         c.victimGear = victimGear;
         c.provisional = provisional;
@@ -101,7 +99,7 @@ public final class Cases {
         h.data.cases.add(c);
         h.markDirty();
         discord(h, "**New case #" + c.id + "** (" + c.type + ") " + c.killerName + " killed " + c.victimName
-                + " at " + c.dim + " " + c.x + " " + c.y + " " + c.z + " on " + c.land
+                + " at " + c.dim + " " + c.x + " " + c.y + " " + c.z
                 + ". First damage: " + c.firstDamager + ". Provisional " + signed(c.provisional) + ". " + note);
         for (ServerPlayerEntity p : h.server.getPlayerManager().getPlayerList()) {
             if (h.isJudge(p)) {

@@ -217,7 +217,7 @@ public final class Cmds {
         } else if (t.isDishonored()) {
             say(c, "Perks: hidden from tab list, name tag hidden when sneaking, +" + k.attackDamageBonus[i] + " attack damage, +"
                     + k.speedBonusPercent[i] + "% speed, bounty payouts. Downsides: potions -" + k.dishonoredPotionPenaltyPercent
-                    + "%, villagers +" + k.dishonoredVillagerSurchargePercent + "%, no sleeping in honorable land.");
+                    + "%, villagers +" + k.dishonoredVillagerSurchargePercent + "%.");
         } else {
             say(c, "Perks: none (reach " + k.honorableMin + " for the honorable side).");
         }
@@ -266,7 +266,7 @@ public final class Cmds {
         say(c, "Time: " + f.format(new Date(k.time)));
         say(c, "Killer: " + k.killerName + " (score " + k.killerScore + ")  " + k.killerGear);
         say(c, "Victim: " + k.victimName + " (score " + k.victimScore + ")  " + k.victimGear);
-        say(c, "Where: " + k.dim + " " + k.x + " " + k.y + " " + k.z + "  Land: " + k.land);
+        say(c, "Where: " + k.dim + " " + k.x + " " + k.y + " " + k.z + "");
         say(c, "First damage: " + k.firstDamager + (k.firstDamage > 0 ? " (" + String.format("%.1f", k.firstDamage) + ")" : ""));
         say(c, "Provisional: " + Cases.signed(k.provisional) + "  Currently applied to killer: " + Cases.signed(k.applied));
         say(c, "Damage between them in the last " + h().config.caseDamageLogSeconds + "s:");
@@ -295,7 +295,7 @@ public final class Cmds {
         Long last = h.seasonConfirm.get(key);
         if (last == null || now - last > h.config.seasonResetConfirmSeconds * 1000L) {
             h.seasonConfirm.put(key, now);
-            say(c, Text.literal("This sets EVERY player back to 0 and clears all bounties (civs and claims stay). Run /honor season reset again within "
+            say(c, Text.literal("This sets EVERY player back to 0 and clears all bounties (civs stay). Run /honor season reset again within "
                     + h.config.seasonResetConfirmSeconds + " seconds to confirm.").formatted(Formatting.RED));
             return;
         }
@@ -474,36 +474,9 @@ public final class Cmds {
                     ServerPlayerEntity p = player(c);
                     Civ civ = myCiv(c);
                     if (!civ.leader.equals(p.getUuid().toString())) throw err("Only the leader can disband.");
-                    h.data.claims.values().removeIf(id -> id.equals(civ.id));
                     h.data.civs.remove(civ.id);
                     h.markDirty();
                     h.server.getPlayerManager().broadcast(Text.literal(civ.name + " has been disbanded.").formatted(Formatting.GOLD), false);
-                    return 1;
-                }))
-                .then(lit("claim").executes(c -> {
-                    Honor h = h();
-                    ServerPlayerEntity p = player(c);
-                    Civ civ = myCiv(c);
-                    if (!canManage(civ, p.getUuid().toString())) throw err("Only the leader or officers can claim.");
-                    String key = h.claimKeyAt(p.getEntityWorld(), p.getBlockPos());
-                    String owner = h.data.claims.get(key);
-                    if (owner != null) throw err(owner.equals(civ.id) ? "You already own this chunk." : "Another civilization owns this chunk.");
-                    if (h.claimCount(civ) >= h.maxClaims(civ)) throw err("Your civilization is at its claim limit (" + h.maxClaims(civ) + ").");
-                    h.data.claims.put(key, civ.id);
-                    h.markDirty();
-                    say(c, "Claimed this chunk (" + h.claimCount(civ) + "/" + h.maxClaims(civ) + ").");
-                    return 1;
-                }))
-                .then(lit("unclaim").executes(c -> {
-                    Honor h = h();
-                    ServerPlayerEntity p = player(c);
-                    Civ civ = myCiv(c);
-                    if (!canManage(civ, p.getUuid().toString())) throw err("Only the leader or officers can unclaim.");
-                    String key = h.claimKeyAt(p.getEntityWorld(), p.getBlockPos());
-                    if (!civ.id.equals(h.data.claims.get(key))) throw err("Your civilization does not own this chunk.");
-                    h.data.claims.remove(key);
-                    h.markDirty();
-                    say(c, "Unclaimed this chunk (" + h.claimCount(civ) + "/" + h.maxClaims(civ) + ").");
                     return 1;
                 }))
                 .then(lit("info")
@@ -521,7 +494,7 @@ public final class Cmds {
                     Honor h = h();
                     if (h.data.civs.isEmpty()) say(c, "No civilizations yet.");
                     for (Civ civ : h.data.civs.values()) {
-                        say(c, civ.name + "  (" + Honor.sideName(h.civSide(civ)) + ", " + civ.members.size() + " members, " + h.claimCount(civ) + " claims)  leader "
+                        say(c, civ.name + "  (" + Honor.sideName(h.civSide(civ)) + ", " + civ.members.size() + " members)  leader "
                                 + h.nameOf(civ.leader));
                     }
                     return 1;
@@ -539,7 +512,6 @@ public final class Cmds {
         say(c, "Officers: " + (off.isEmpty() ? "none" : String.join(", ", off)));
         say(c, "Guards: " + (gu.isEmpty() ? "none" : String.join(", ", gu)));
         say(c, "Members (" + mem.size() + "): " + String.join(", ", mem));
-        say(c, "Claims: " + h.claimCount(civ) + "/" + h.maxClaims(civ));
     }
 
     private static void broadcastCiv(Honor h, Civ civ, String msg) {

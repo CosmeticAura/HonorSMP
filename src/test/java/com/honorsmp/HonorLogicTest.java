@@ -175,9 +175,9 @@ class HonorLogicTest {
 
     // ---- kill table ----
 
-    private KillContext ctx(Tier victim, boolean guardOwn, boolean hitFirst, boolean unarmed, boolean sameIp,
+    private KillContext ctx(Tier victim, boolean guard, boolean hitFirst, boolean unarmed, boolean sameIp,
                             boolean cooldown, boolean newbie) {
-        return new KillContext(victim, guardOwn, hitFirst, unarmed, sameIp, cooldown, newbie);
+        return new KillContext(victim, guard, hitFirst, unarmed, sameIp, cooldown, newbie);
     }
 
     @Test
@@ -188,7 +188,7 @@ class HonorLogicTest {
     }
 
     @Test
-    void guardOnOwnLandGetsBonus() {
+    void guardGetsBonusAnywhere() {
         KillOutcome o = KillRules.evaluate(ctx(Tier.WARLORD, true, false, false, false, false, false), c);
         assertEquals(35, o.delta());
     }

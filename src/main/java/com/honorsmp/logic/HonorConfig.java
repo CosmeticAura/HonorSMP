@@ -24,22 +24,14 @@ public class HonorConfig {
     // civilizations
     public int civCreateEmeralds = 16;
     public int civNameMaxLength = 24;
-    public int claimsBase = 9;
-    public int claimsPerMember = 4;
-    public int claimsCap = 64;
     public int inviteExpirySeconds = 120;
 
     // automatic honor events
     public int killDishonored = 25;
-    public int killDishonoredGuardOwnLand = 35;
+    public int killDishonoredGuard = 35;
     public int killUnarmed = -60;
     public int killNoFirstHit = -30;
     public int selfDefenseWindowSeconds = 15;
-    public int blockInOtherClaim = -1;
-    public int blockInOtherClaimDailyCap = 50;
-    public int containerInOtherClaim = -5;
-    public int containerInOtherClaimDailyCap = 50;
-    public int killVillagerOrGolemInClaim = -15;
     public int onlineBonusHours = 3;
     public int onlineBonusHonor = 5;
 

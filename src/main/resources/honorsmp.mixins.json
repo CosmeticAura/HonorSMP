@@ -3,7 +3,6 @@
   "package": "com.honorsmp.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "BlockItemMixin",
     "LivingEntityMixin",
     "PlayerEntityMixin",
     "VillagerEntityMixin"

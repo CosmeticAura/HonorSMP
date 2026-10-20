@@ -9,14 +9,19 @@ import java.util.Set;
 
 /** Everything saved to the world folder (honorsmp/data.json). Plain fields so Gson can read and write it. */
 public class HonorData {
+    private static final com.google.gson.Gson PARSER = new com.google.gson.Gson();
+
+    /** Parses data.json. Unknown fields (e.g. old claims) are ignored, so they are not written back. */
+    public static HonorData parse(String json) {
+        return PARSER.fromJson(json, HonorData.class);
+    }
+
     public int version = 1;
     public long nextLogId = 1;
     public int nextCaseId = 1;
 
     public Map<String, PlayerRecord> players = new LinkedHashMap<>();
     public Map<String, Civ> civs = new LinkedHashMap<>();
-    /** "minecraft:overworld|chunkX|chunkZ" to civ id. */
-    public Map<String, String> claims = new LinkedHashMap<>();
     /** victim uuid to total emeralds on their head. */
     public Map<String, Integer> bounties = new LinkedHashMap<>();
     public List<LogEntry> logs = new ArrayList<>();
@@ -33,8 +38,6 @@ public class HonorData {
         public String lastTier = "NEUTRAL";
         public String dayKey = "";
         public int onlineSecondsToday = 0;
-        public int blockPenaltyToday = 0;
-        public int containerPenaltyToday = 0;
         public boolean lostHonorToday = false;
         public boolean onlineBonusGiven = false;
         public int secondsSinceDeath = 0;
@@ -81,7 +84,6 @@ public class HonorData {
         public int killerScore, victimScore;
         public String dim = "";
         public int x, y, z;
-        public String land = "wilderness";
         public String killerGear = "", victimGear = "";
         public String firstDamager = "none";
         public float firstDamage = 0;

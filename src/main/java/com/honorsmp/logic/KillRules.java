@@ -12,12 +12,12 @@ public final class KillRules {
             return new KillOutcome(0, false, false, false, "Repeat kill of the same victim inside the anti farming window");
         }
         if (k.victimTier().isDishonored()) {
-            int d = k.killerIsGuardOnOwnLand() ? c.killDishonoredGuardOwnLand : c.killDishonored;
+            int d = k.killerIsGuard() ? c.killDishonoredGuard : c.killDishonored;
             if (k.victimUnder5MinPlaytime()) {
                 return new KillOutcome(0, false, false, true, "Victim had under " + c.minVictimPlaytimeMinutes + " minutes of playtime since last death (no honor)");
             }
             return new KillOutcome(d, false, false, true,
-                    k.killerIsGuardOnOwnLand() ? "Guard killed a dishonored player on their civ's land" : "Killed a dishonored player");
+                    k.killerIsGuard() ? "Guard killed a dishonored player" : "Killed a dishonored player");
         }
         // honorable or neutral victim
         if (k.victimHitFirst()) {
