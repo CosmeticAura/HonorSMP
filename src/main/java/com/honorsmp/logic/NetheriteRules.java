@@ -47,4 +47,18 @@ public final class NetheriteRules {
         if (dia == null) return in;
         return new ItemData(dia, new LinkedHashMap<>(in.enchants()), clampDamage(in.damage(), diamondMax), in.name());
     }
+
+    /** Id + count of one smithing input, for testing without Minecraft classes. */
+    public record Entry(String id, int count) {}
+
+    public static final String UPGRADE_TEMPLATE = "minecraft:netherite_upgrade_smithing_template";
+    public static final String NETHERITE_INGOT = "minecraft:netherite_ingot";
+
+    /** Inputs the player gets back when a smithing result is a restricted netherite item: all of them, template included. */
+    public static java.util.List<Entry> smithingReturns(java.util.List<Entry> inputs, String outputId) {
+        java.util.List<Entry> out = new java.util.ArrayList<>();
+        if (!isRestricted(outputId)) return out;
+        for (Entry e : inputs) if (e.count() > 0) out.add(e);
+        return out;
+    }
 }

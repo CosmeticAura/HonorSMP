@@ -101,4 +101,17 @@ class NerfsTest {
         t.clear("a");
         assertEquals(0, t.remainingSeconds("a", 1000, 30));
     }
+
+    @Test
+    void blockedNetheriteSmithingReturnsTemplateBaseAndIngot() {
+        var in = java.util.List.of(
+            new NetheriteRules.Entry(NetheriteRules.UPGRADE_TEMPLATE, 1),
+            new NetheriteRules.Entry("minecraft:diamond_sword", 1),
+            new NetheriteRules.Entry(NetheriteRules.NETHERITE_INGOT, 1));
+        var back = NetheriteRules.smithingReturns(in, "minecraft:netherite_sword");
+        assertEquals(in, back);
+        assertTrue(NetheriteRules.smithingReturns(in, "minecraft:netherite_pickaxe").isEmpty());
+        assertTrue(NetheriteRules.smithingReturns(
+            java.util.List.of(new NetheriteRules.Entry("minecraft:air", 0)), "minecraft:netherite_axe").isEmpty());
+    }
 }

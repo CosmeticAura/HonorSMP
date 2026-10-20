@@ -108,7 +108,10 @@ public final class ItemFixer {
     /** Every slot of an open screen (chests, ender chest, trade/anvil outputs) plus the cursor. */
     public static void sweepHandler(ScreenHandler h, ServerPlayerEntity owner) {
         if (h == null) return;
+        // A smithing result is never converted: taking it would eat the template (see SmithingScreenHandlerMixin).
+        int skip = h instanceof net.minecraft.screen.SmithingScreenHandler sh ? sh.getResultSlotIndex() : -1;
         for (Slot slot : h.slots) {
+            if (slot.id == skip) continue;
             ItemStack s = slot.getStack();
             if (s.isEmpty()) continue;
             ItemStack f = fix(s, owner);
