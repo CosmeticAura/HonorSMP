@@ -62,29 +62,28 @@ Dishonored side
 Longer potion effects (up to +50%), cheaper villager trades, slower hunger. Nobles and up can get a Bounty Compass that tracks wanted outlaws.
 
 **What the dishonored get**
-Hidden from the tab list, name tag hidden while sneaking, extra attack damage and speed, and emeralds for every honorable player they kill. The catch: shorter potions, pricier villagers, and no sleeping in honorable land.
+Hidden from the tab list, name tag hidden while sneaking, extra attack damage and speed, and a loot pool for every honorable player they kill (better loot for higher tiers). The catch: shorter potions and pricier villagers.
 
 **How honor changes**
 
 The mod handles the obvious stuff:
-> Killing a dishonored player: +25 (more if you're a guard defending your civ)
+> Killing a dishonored player: +25 (+35 if you're a guard)
 > Killing in self defense: no change
 > Killing someone unarmed with no armor: -60
-> Breaking, placing or opening chests in another civ's land: small losses that add up
-> Killing villagers or golems in someone's land: -15
+> Not paying your civ's weekly tax: -10 a day for every member
 > Playing 3 hours in a day without losing honor: +5
 
-Any kill that isn't clear cut goes to a judge. They see who hit first, what everyone was wearing and whose land it was, then confirm or change the call. Judges can also award honor for good deeds and big builds.
+Any kill that isn't clear cut goes to a judge. They see who hit first and what everyone was wearing, then confirm or change the call. Judges are players the admins picked, not ops, and they never rule on their own fights. They can also award honor for good deeds and big builds.
 
 **Civilizations**
 
-Start one with /civ create (16 emeralds) and claim chunks around your base. Claims don't protect blocks, anyone can still get in. They just tell the server whose land it is, so raiders lose honor for breaking in and guards gain more for defending it.
+Start one with /civ create. It's free, and there's no land to claim. Every week your civ owes the judges a tax of 8 emeralds per member. The leader or an officer pays it with /civ tax pay, and /civ tax shows what's owed and when. Miss the deadline and every member loses 10 honor a day until it's paid, and your civ shows [Unpaid]. You get a warning on login and 24 hours before it's due. The tax goes to the judges' treasury.
 
-Leaders can name guards. Guards are the PvP players of an honorable civ: they hunt outlaws and get paid in honor for it.
+Leaders can name guards. Guards are the PvP players of an honorable civ: they hunt outlaws and get more honor for it.
 
 **Bounties**
 
-Anyone can put emeralds on a dishonored player's head with /bounty set. Whoever kills them collects.
+Anyone can put items on a dishonored player's head with /bounty set. A chest opens, drop in what you want to offer and close it. Close it empty to cancel. Bounties from different players stack, and you can't target yourself or your own civ. Whoever kills them gets everything in their bounty box, opened with /bounty claim.
 
 ---
 
@@ -94,17 +93,25 @@ Anyone can put emeralds on a dishonored player's head with /bounty set. Whoever 
 `/honor` your score, tier, perks and recent changes
 `/honor top` top 10 and bottom 10
 `/honor tracker` get a Bounty Compass (Noble and up)
-`/bounty set <player> <emeralds>` put a bounty on a dishonored player
+`/bounty set <player>` put items on a dishonored player (chest opens)
+`/bounty claim` collect bounty items you've earned
 `/bounty list` active bounties
 
 **Civilizations**
-`/civ create <name>` start a civ (16 emeralds)
+`/civ create <name>` start a civ (free)
 `/civ invite <player>` / `/civ join <name>` / `/civ leave`
-`/civ claim` / `/civ unclaim` claim or drop the chunk you're in
+`/civ tax` see what your civ owes and when
+`/civ tax pay` pay it (leaders and officers)
 `/civ guard <player>` make a member a guard (leaders and officers)
 `/civ promote <player>` make a member an officer (leader)
 `/civ kick <player>` / `/civ disband`
 `/civ info` / `/civ list`
+
+**Judges**
+`/honor cases` / `/honor case <id>` review and rule on cases
+`/honor give <player> <amount> <reason>` award or take honor
+`/honor log <player>` honor history
+`/honor treasury` open the tax treasury
 
 ---
 
@@ -151,6 +158,6 @@ IP: [SERVER IP], Java 1.21.11, no mods needed.
 
 Everyone starts neutral. Where you end up is up to you. Read #how-it-works before you pick a fight.
 
-First season runs until we say otherwise. When it resets, scores go back to 0 but your civs and claims stay.
+First season runs until we say otherwise. When it resets, scores go back to 0 but your civs and bounties stay.
 
 See you in game.
