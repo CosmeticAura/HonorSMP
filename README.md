@@ -5,11 +5,11 @@ A server-side Fabric mod for Minecraft 1.21.11. Players join with a vanilla clie
 ## Install
 
 1. Java 21 or newer, a Fabric server for 1.21.11 (loader 0.19.5 or newer) and Fabric API 0.141.6+1.21.11.
-2. Put `honorsmp-1.1.0.jar` and Fabric API in the server's `mods/` folder.
+2. Put `honorsmp-1.2.0.jar` and Fabric API in the server's `mods/` folder.
 3. Start the server. `config/honorsmp.json` is created with every number below. Edit it and run `/honor reload`.
 4. Data is saved in the world folder at `honorsmp/data.json` (on every change, and on shutdown).
 
-Build from source: `./gradlew build` (the jar is `build/libs/honorsmp-1.1.0.jar`).
+Build from source: `./gradlew build` (the jar is `build/libs/honorsmp-1.2.0.jar`).
 
 ## Tiers
 
@@ -24,6 +24,10 @@ Build from source: `./gradlew build` (the jar is `build/libs/honorsmp-1.1.0.jar`
 | -800 and below | Warlord | Dishonored |
 
 The tier shows as a colored prefix in chat and the tab list (gold, gray, dark red) using scoreboard teams named `hsmp_*`. A chat message announces side changes.
+
+The Judge is a special tier above Paragon (gold tag in chat and tab). Judges are the players added with `/honor judge add`.
+
+Honor sidebar: every player sees their own tier and honor on the right side of the screen (a per-player sidebar sent by packets, nobody else sees it, the real scoreboard is untouched). Judges see `Judge` instead of a score.
 
 ## Perks
 
@@ -44,9 +48,41 @@ Dishonored (Outlaw / Marauder / Warlord): hidden from the tab list except to the
 
 Anti-farming: the same killer/victim pair counts once per 30 minutes. Kills between players on the same IP never count and are flagged as a case. A victim with under 5 minutes of playtime since their last death never gives positive honor.
 
-## Judge review
+## Judges and judge rules
 
-Questionable kills create a case with scores, location, held item and armor, who hit first and the last 30 seconds of damage between the pair. The provisional honor is applied at once. Judges are picked, not ops: only players added with `/honor judge add` can rule on cases or open the treasury. Ops can run admin commands but cannot rule unless they are also judges. A judge cannot rule on a case where they are the killer or victim. Set `discordWebhookUrl` in the config to post every new case and decision to Discord.
+A judge is the highest honorable rank. Judges are picked, not ops: only players added with `/honor judge add` can rule on cases, fine, or open the treasury. Ops can run admin commands but cannot rule unless they are also judges.
+
+- Honor rules do not apply to judges: no automatic honor changes at all, and `/honor` shows `Judge` instead of a score. They cannot appeal.
+- Killing a judge counts like an unprovoked kill of a Paragon for honor. A dishonored player who kills a judge also gets the Judge loot pool and a server-wide chat announcement. Anyone else killing a judge is a normal unprovoked kill.
+- Judge loot pool (`judgeLoot` in the config, 5 rolls). Defaults: 8 to 12 diamonds, 2 netherite scrap, 1 totem of undying, 1 enchanted golden apple, 1 max level enchanted book.
+- A judge cannot rule on a case where they are the killer or victim.
+
+## Cases, auto-decisions and appeals
+
+The mod decides a kill by itself whenever it can tell what happened: who hit first (from the damage timeline), armor, held item and tiers. Only cases it really cannot decide go to a judge: no hits recorded between the pair (fire, lava, explosions), the victim hit the killer earlier in an older feud, or both players are in the same civ (could be a duel). Same IP kills are flagged as a case with no honor applied. For judge cases the provisional honor is applied at once and the judge can confirm, cancel or set a different amount.
+
+`/appeal <reason>` appeals your most recent honor change, or `/appeal <id> <reason>` a specific change from your log. It creates an appeal case for the judges. One open appeal per player at a time, and each change can be appealed once.
+
+Case books: when a case is created every judge gets a written book called `Case #N` with everything: who, what happened, damage timeline, gear, location and the mod's suggested ruling. A judge who is offline gets it on their next login. The Give book button in the case menu hands out the book again.
+
+Set `discordWebhookUrl` in the config to post every new case and decision to Discord.
+
+## Chest menus
+
+All menus are server-side chests that work on vanilla clients. Items in them are icons only: every click type, shift click, number key, drag and double click collect is cancelled, so nothing can be taken or duped.
+
+- `/honor cases` opens a chest with one item per open case (paper, or a book for appeals) with the killer, victim, type and age. Cases where you are the killer or victim are greyed out with "You are part of this case". Clicking a case opens its menu: Confirm (green wool), Cancel (red wool), Set amount (sign), Fine, Give book and Back. `/honor cases text` lists cases in chat instead.
+- Set amount opens a sign editor where you type the number. Invalid input says so and reopens the case menu.
+- `/bounty list` opens a chest with the head of every player who has a bounty, with the item count in the lore. Clicking a head opens a read-only view of that bounty's loot, with a Back button.
+
+## Fines
+
+Judges can fine a player. `/fine <player>` (or the Fine button in a case menu) opens a chest. The judge puts in the items the fine consists of and closes it to confirm; closing it empty cancels. The judge's items are not taken, they only define the fine.
+
+- The fined player is told in chat and again on next login. `/fine` shows their open fines.
+- `/fine pay` opens a chest showing what is owed. Put the matching items in to pay. Items and counts must match exactly (durability is ignored on undamaged items, enchanted items must match enchants). Paid items go into the treasury.
+- For every `fineIntervalHours` (default 2.5 real hours) a fine stays unpaid the player loses `fineHonorPenalty` (default 10) honor. This also runs while they are offline and catches up on login.
+- Judges can cancel a fine from the case menu or with `/fine cancel <id>`. `/fine list` shows all open fines.
 
 ## Civilizations, taxes and the treasury
 
@@ -54,7 +90,7 @@ Questionable kills create a case with scores, location, held item and armor, who
 
 If a civ is late, every member loses 10 honor per day late (`taxLatePenaltyHonor`) and the civ shows `[Unpaid]` in `/civ info` and `/civ list`. The leader and officers are warned on login and 24 hours before the due time (`taxWarnHours`).
 
-Paid tax goes into the Treasury. Only judges can open it, with `/honor treasury` (chest UI).
+Paid tax and paid fines go into the Treasury. Only judges can open it, with `/honor treasury` (chest UI).
 
 ## Bounties
 
@@ -66,22 +102,40 @@ A dishonored player who kills an honorable player gets a loot pool, not emeralds
 
 Loot goes into the killer's inventory; overflow drops at their feet.
 
-Player bounties use chest UIs. `/bounty set <player>` opens a 27 slot chest. Items you put in become the bounty when you close it; closing it empty cancels. Only dishonored targets are allowed, not yourself or your own civ, and bounties from different players stack. When the target is killed, all bounty items go to the killer's bounty box, opened with `/bounty claim` (take only). `/bounty list` shows targets with item and stack counts, no locations. Items are saved when the UI closes, including on disconnect, death and server stop. Season resets do not clear bounties. Old 1.0.0 emerald bounties convert to emerald stacks.
+Player bounties use chest UIs. `/bounty set <player>` opens a 27 slot chest. Items you put in become the bounty when you close it; closing it empty cancels. Only dishonored targets are allowed, not yourself or your own civ, and bounties from different players stack. When the target is killed, all bounty items go to the killer's bounty box, opened with `/bounty claim` (take only). `/bounty list` is a chest GUI of target heads with item counts (click a head to see the loot, read-only), no locations. If the bounty box was empty after a kill, that was a bug fixed in 1.2.0: bounties now always pay out on a kill and the claim box is saved across restarts. Items are saved when the UI closes, including on disconnect, death and server stop. Season resets do not clear bounties. Old 1.0.0 emerald bounties convert to emerald stacks.
 
-Bounty Compass: Noble and up get one with `/honor tracker`, or craft it shapeless: 1 compass + 4 emeralds. It points at the nearest dishonored player with a bounty, refreshes every 5 s, and only works in the overworld and for Noble+ holders.
+Bounty Compass: Noble and up get one with `/honor tracker`, or craft it shapeless: 1 compass + 4 emeralds. It points at the nearest dishonored player with a bounty, refreshes every 5 s, and only works in the overworld and for Noble+ holders. With no target it spins and shows "No wanted players nearby" in the action bar instead of pointing at an old spot. If the holder drops below Noble the compass stops working and says "You must be Noble or higher to use this" (checked on use and on every update).
+
+## Leaderboard
+
+`/honor top` lists the top 10 only among players who are honorable right now, and the bottom 10 only among players who are dishonored right now. Someone who went from Marauder back to Neutral drops off the bottom list.
+
+## Civilization command replies
+
+`/civ promote` on an officer says "Already an officer" and changes nothing. `/civ guard` is a toggle and says whether the player became or stopped being a guard. `/civ invite` on someone already in your civ says they are already a member.
+
+## Nerfs (apply to everyone)
+
+- Enchant caps (`enchantCaps` in the config, a map of enchant id to max level). Defaults: Sharpness 4, Protection 3, Density 4, Breach 3. Items above a cap (books, weapons, armor, tools, from anvils, enchanting tables, loot, villagers, fishing, inventories on login or pickup) are lowered to the cap. Only that enchant changes, every other enchant stays the same.
+- No netherite swords, axes or armor. A smithing table upgrade to one is cancelled: you get the same diamond item back (same enchants, durability and name) plus the netherite upgrade template and the netherite ingot. Netherite pickaxes, shovels and hoes are still allowed.
+- Any netherite sword, axe or armor piece that shows up anyway (bastion loot, old items, pickups, chests you open) turns into the diamond version with the same enchants, durability and name, and you get one netherite ingot.
+- Elytra combat lock: for `combatElytraSeconds` (default 30) after taking damage from a player an elytra cannot open, and the action bar tells you. 0 disables it.
 
 ## Commands
 
 Players
-- `/honor` score, tier, perks, last 10 changes
-- `/honor top` top 10 and bottom 10
+- `/honor` score (or `Judge`), tier, perks, last 10 changes
+- `/honor top` top 10 and bottom 10 (honorable and dishonored only)
 - `/honor tracker` get a Bounty Compass (Noble+)
 - `/civ create <name>` (free), `invite <player>`, `join <name>`, `leave`, `kick <player>`, `promote <player>`, `guard <player>` (toggle), `tax`, `tax pay` (leader or officer), `disband`, `info [name]`, `list`
-- `/bounty set <player>` (chest UI), `/bounty claim`, `/bounty list`
+- `/bounty set <player>` (chest UI), `/bounty claim`, `/bounty list` (chest UI)
+- `/appeal <reason>` or `/appeal <id> <reason>`
+- `/fine` (your open fines), `/fine pay [id]` (chest UI)
 
 Judges (added with `/honor judge add`)
 - `/honor treasury`
-- `/honor cases`, `/honor case <id>`, `/honor case <id> confirm | cancel [reason] | set <amount> [reason]`
+- `/honor cases` (chest GUI with the case menu), `/honor cases text`, `/honor case <id>`, `/honor case <id> confirm | cancel [reason] | set <amount> [reason]`
+- `/fine <player>` (chest UI), `/fine list`, `/fine cancel <id>`
 - `/honor give <player> <amount> <reason>`
 - `/honor log <player>`
 
@@ -93,6 +147,7 @@ Admins (ops, no judge powers unless also judges)
 
 ## Notes
 
+- Config keys added in 1.2.0: `judgeLoot`, `fineIntervalHours`, `fineHonorPenalty`, `enchantCaps`, `combatElytraSeconds`.
 - Admin commands check the op list and judge commands check the judge list in code, so no permission mod is needed.
 - There is no land claiming. Old claim data in `data.json` is dropped on load.
 - Honor tests: `./gradlew test`.

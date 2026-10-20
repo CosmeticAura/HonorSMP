@@ -51,6 +51,8 @@ Honorable side
 > Noble: 400 to 799
 > Honorable: 100 to 399
 
+Judge: the highest rank, above Paragon. Judges have no score and honor rules do not apply to them.
+
 > Neutral: -99 to 99
 
 Dishonored side
@@ -59,10 +61,10 @@ Dishonored side
 > Warlord: -800 and below
 
 **What the honorable get**
-Longer potion effects (up to +50%), cheaper villager trades, slower hunger. Nobles and up can get a Bounty Compass that tracks wanted outlaws.
+Longer potion effects (up to +50%), cheaper villager trades, slower hunger. Nobles and up can get a Bounty Compass that tracks wanted outlaws. Your tier and honor show on the right side of your screen at all times.
 
 **What the dishonored get**
-Hidden from the tab list, name tag hidden while sneaking, extra attack damage and speed, and a loot pool for every honorable player they kill (better loot for higher tiers). The catch: shorter potions and pricier villagers.
+Hidden from the tab list, name tag hidden while sneaking, extra attack damage and speed, and a loot pool for every honorable player they kill (better loot for higher tiers). The catch: shorter potions and pricier villagers. Kill the judge and you get a huge loot pool and the whole server hears about it.
 
 **How honor changes**
 
@@ -73,7 +75,7 @@ The mod handles the obvious stuff:
 > Not paying your civ's weekly tax: -10 a day for every member
 > Playing 3 hours in a day without losing honor: +5
 
-Any kill that isn't clear cut goes to a judge. They see who hit first and what everyone was wearing, then confirm or change the call. Judges are players the admins picked, not ops, and they never rule on their own fights. They can also award honor for good deeds and big builds.
+The mod decides most kills by itself by checking who hit first, gear and tiers. Only the kills it can't call go to a judge. They get a case book with who hit first and what everyone was wearing, then confirm or change the call. Think a call was wrong? Use /appeal and your reason. Judges are players the admins picked, not ops, and they never rule on their own fights. They can also award honor for good deeds and big builds, and fine players. A fine is a set of items you pay with /fine pay, and every 2.5 hours it stays unpaid costs you 10 honor.
 
 **Civilizations**
 
@@ -83,7 +85,10 @@ Leaders can name guards. Guards are the PvP players of an honorable civ: they hu
 
 **Bounties**
 
-Anyone can put items on a dishonored player's head with /bounty set. A chest opens, drop in what you want to offer and close it. Close it empty to cancel. Bounties from different players stack, and you can't target yourself or your own civ. Whoever kills them gets everything in their bounty box, opened with /bounty claim.
+Anyone can put items on a dishonored player's head with /bounty set. A chest opens, drop in what you want to offer and close it. Close it empty to cancel. Bounties from different players stack, and you can't target yourself or your own civ. Whoever kills them gets everything in their bounty box, opened with /bounty claim. /bounty list shows who is wanted.
+
+**Limits for everyone**
+Sharpness is capped at 4, Protection at 3, Density at 4 and Breach at 3. Netherite swords, axes and armor don't exist here: they turn into diamond with the same enchants, and you get a netherite ingot. Netherite pickaxes, shovels and hoes are fine. After you take damage from a player, your elytra won't open for 30 seconds.
 
 ---
 
@@ -95,7 +100,10 @@ Anyone can put items on a dishonored player's head with /bounty set. A chest ope
 `/honor tracker` get a Bounty Compass (Noble and up)
 `/bounty set <player>` put items on a dishonored player (chest opens)
 `/bounty claim` collect bounty items you've earned
-`/bounty list` active bounties
+`/bounty list` active bounties (chest opens)
+`/appeal <reason>` appeal your latest honor change
+`/fine` see your open fines
+`/fine pay` pay a fine (chest opens)
 
 **Civilizations**
 `/civ create <name>` start a civ (free)
@@ -108,7 +116,10 @@ Anyone can put items on a dishonored player's head with /bounty set. A chest ope
 `/civ info` / `/civ list`
 
 **Judges**
-`/honor cases` / `/honor case <id>` review and rule on cases
+`/honor cases` open the case menu (confirm, cancel, set amount, fine, case book)
+`/honor case <id>` review and rule on a case
+`/fine <player>` fine a player (chest opens)
+`/fine list` / `/fine cancel <id>` open fines
 `/honor give <player> <amount> <reason>` award or take honor
 `/honor log <player>` honor history
 `/honor treasury` open the tax treasury
