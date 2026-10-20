@@ -333,6 +333,54 @@ public final class Bounties {
         }
     }
 
+    // ------------------------------------------------------------ read-only menus
+
+    /** /bounty list as a chest of heads. Still shows no locations. */
+    public void openList(ServerPlayerEntity p) {
+        List<String> targets = new ArrayList<>();
+        for (String t : escrow.bounties().keySet()) if (escrow.itemsOn(t) > 0) targets.add(t);
+        Menu m = Menu.create(Text.literal("Bounties (" + targets.size() + ")"), 6);
+        int shown = Math.min(targets.size(), 54);
+        for (int i = 0; i < shown; i++) {
+            String t = targets.get(i);
+            ItemStack head = new ItemStack(Items.PLAYER_HEAD);
+            ServerPlayerEntity on = h.online(t);
+            try {
+                head.set(net.minecraft.component.DataComponentTypes.PROFILE, on != null
+                        ? net.minecraft.component.type.ProfileComponent.ofStatic(on.getGameProfile())
+                        : net.minecraft.component.type.ProfileComponent.ofDynamic(UUID.fromString(t)));
+            } catch (Exception ignored) {
+                // plain head
+            }
+            head.set(net.minecraft.component.DataComponentTypes.CUSTOM_NAME,
+                    Text.literal(h.nameOf(t)).formatted(Formatting.RED).styled(st -> st.withItalic(false)));
+            head.set(net.minecraft.component.DataComponentTypes.LORE, new net.minecraft.component.type.LoreComponent(List.of(
+                    Text.literal(escrow.itemsOn(t) + " items in " + escrow.bounties().get(t).size() + " stacks").formatted(Formatting.GRAY).styled(st -> st.withItalic(false)),
+                    Text.literal("Click to see the loot").formatted(Formatting.DARK_GRAY).styled(st -> st.withItalic(false)))));
+            m.set(i, head, (who, r, s) -> openLoot(who, t));
+        }
+        if (targets.isEmpty()) m.icon(22, Menu.icon(Items.BARRIER, "No active bounties", Formatting.GRAY));
+        if (!m.open(p)) p.sendMessage(Text.literal("Could not open the bounty list.").formatted(Formatting.RED));
+    }
+
+    /** Read-only view of the loot on one target. */
+    public void openLoot(ServerPlayerEntity p, String target) {
+        List<ItemStack> stacks = escrow.bounties().get(target);
+        if (stacks == null || escrow.itemsOn(target) <= 0) {
+            p.sendMessage(Text.literal("That bounty no longer exists.").formatted(Formatting.YELLOW));
+            openList(p);
+            return;
+        }
+        Menu m = Menu.create(Text.literal("Bounty on " + h.nameOf(target)), 6);
+        int shown = Math.min(stacks.size(), stacks.size() > 45 ? 44 : 45);
+        for (int i = 0; i < shown; i++) m.icon(i, stacks.get(i).copy());
+        if (stacks.size() > shown) {
+            m.icon(44, Menu.icon(Items.CHEST, "+" + (stacks.size() - shown) + " more stacks", Formatting.WHITE));
+        }
+        m.set(49, Menu.icon(Items.ARROW, "Back", Formatting.WHITE), (who, r, s) -> openList(who));
+        if (!m.open(p)) p.sendMessage(Text.literal("Could not open the bounty loot.").formatted(Formatting.RED));
+    }
+
     // ------------------------------------------------------------ closing
 
     private String busy(ServerPlayerEntity p) {

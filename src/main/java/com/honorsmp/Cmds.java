@@ -130,9 +130,14 @@ public final class Cmds {
                 }))
                 .then(lit("cases").executes(c -> {
                     needJudge(c);
+                    if (c.getSource().getPlayer() == null) listCases(c);
+                    else CaseMenus.openList(h(), player(c));
+                    return 1;
+                }).then(lit("text").executes(c -> {
+                    needJudge(c);
                     listCases(c);
                     return 1;
-                }))
+                })))
                 .then(lit("case").then(arg("id", IntegerArgumentType.integer(1))
                         .executes(c -> {
                             needJudge(c);
@@ -377,6 +382,18 @@ public final class Cmds {
                     return 1;
                 }))
                 .then(lit("list").executes(c -> {
+                    if (c.getSource().getPlayer() != null) {
+                        h().bounties.openList(player(c));
+                        return 1;
+                    }
+                    return bountyText(c);
+                }).then(lit("text").executes(c -> bountyText(c))));
+    }
+
+    private static int bountyText(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
+        {
+            {
+                {
                     Honor h = h();
                     int n = 0;
                     for (Map.Entry<String, java.util.List<net.minecraft.item.ItemStack>> e : h.bounties.view().entrySet()) {
@@ -387,7 +404,9 @@ public final class Cmds {
                     }
                     if (n == 0) say(c, "No active bounties.");
                     return 1;
-                }));
+                }
+            }
+        }
     }
 
     // =============================================================== /civ

@@ -164,6 +164,7 @@ public class Honor {
     public void stop() {
         treasury.closeAll();
         bounties.closeAll();
+        Menu.closeAll();
         saveData();
         I = null;
     }
