@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "com.honorsmp.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BlockItemMixin",
+    "LivingEntityMixin",
+    "PlayerEntityMixin",
+    "VillagerEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

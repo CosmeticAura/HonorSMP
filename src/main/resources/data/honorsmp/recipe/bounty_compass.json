@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": ["minecraft:compass", "minecraft:emerald", "minecraft:emerald", "minecraft:emerald", "minecraft:emerald"],
+  "result": {
+    "id": "minecraft:compass",
+    "count": 1,
+    "components": {
+      "minecraft:custom_name": {"text": "Bounty Compass", "color": "gold", "italic": false},
+      "minecraft:custom_data": {"honorsmp_compass": true},
+      "minecraft:lodestone_tracker": {"tracked": false}
+    }
+  }
+}

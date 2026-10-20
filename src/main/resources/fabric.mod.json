@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "honorsmp",
+  "version": "${version}",
+  "name": "HonorSMP",
+  "description": "Honor scores, civilizations, bounties and judge review for a near-vanilla survival server. Server side only.",
+  "authors": ["Hector"],
+  "license": "All-Rights-Reserved",
+  "environment": "server",
+  "entrypoints": {
+    "main": ["com.honorsmp.HonorSMP"]
+  },
+  "mixins": ["honorsmp.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
