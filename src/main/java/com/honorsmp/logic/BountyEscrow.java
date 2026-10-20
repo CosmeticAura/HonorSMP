@@ -180,6 +180,14 @@ public final class BountyEscrow<T> {
 
     // ------------------------------------------------------------ queries
 
+    /** Drops every bounty, claim box and open-box marker (full reset). */
+    public void clear() {
+        bounties.clear();
+        boxes.clear();
+        openBoxes.clear();
+        journal.clear();
+    }
+
     public Map<String, List<T>> bounties() {
         return Collections.unmodifiableMap(bounties);
     }

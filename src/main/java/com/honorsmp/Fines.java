@@ -490,6 +490,18 @@ public final class Fines {
         else closeEdit(s);
     }
 
+    /** Full reset: drop open fine sessions WITHOUT paying, returning or saving anything, then close the screens. */
+    public void wipe() {
+        List<ServerPlayerEntity> viewers = new ArrayList<>();
+        for (Session s : open.values()) {
+            s.closed = true;
+            for (int i = 0; i < s.inv.size(); i++) s.inv.setStack(i, ItemStack.EMPTY);
+            viewers.add(s.player);
+        }
+        open.clear();
+        for (ServerPlayerEntity p : viewers) p.closeHandledScreen();
+    }
+
     /** Server stopping: settle every open screen before the final save. */
     public void closeAll() {
         for (Session s : new ArrayList<>(open.values())) {

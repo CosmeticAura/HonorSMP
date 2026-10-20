@@ -53,6 +53,11 @@ public final class Sidebar {
                 Optional.of(BlankNumberFormat.INSTANCE)));
     }
 
+    /** Forget everything sent (reset): next update resends the whole sidebar. */
+    public static void forgetAll() {
+        SENT.clear();
+    }
+
     /** Join: the client has no sidebar yet, so everything must be sent again. */
     public static void forget(ServerPlayerEntity p) {
         SENT.remove(p.getUuid());

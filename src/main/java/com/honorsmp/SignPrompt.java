@@ -35,6 +35,11 @@ public final class SignPrompt {
         p.networkHandler.sendPacket(new SignEditorOpenS2CPacket(pos, true));
     }
 
+    /** Full reset: drop every pending sign prompt. */
+    public static void clearAll() {
+        PENDING.clear();
+    }
+
     /** Netty thread: does this sign packet belong to a prompt? */
     public static boolean expects(ServerPlayerEntity p, BlockPos pos) {
         Pending pd = PENDING.get(p.getUuid());

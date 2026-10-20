@@ -48,6 +48,7 @@ public class Honor {
     public final AntiFarm antiFarm = new AntiFarm();
     public final List<DamageEvent> damage = new ArrayList<>();
     public final Map<UUID, Invite> invites = new HashMap<>();
+    public final com.honorsmp.logic.ConfirmWindow resetConfirm = new com.honorsmp.logic.ConfirmWindow();
     public final Map<UUID, Long> seasonConfirm = new HashMap<>();
     private final Set<UUID> hiddenBefore = new HashSet<>();
     private boolean dirty = false;
@@ -170,6 +171,33 @@ public class Honor {
         Path b = dataPath.resolveSibling("data-backup-" + System.currentTimeMillis() + ".json");
         Files.copy(dataPath, b, StandardCopyOption.REPLACE_EXISTING);
         return b;
+    }
+
+    /**
+     * /honor reset all: wipes every persisted and in-memory state except the judge list. Open chest UIs are
+     * neutralised first so their close handlers cannot write anything back. Caller backs up beforehand.
+     */
+    public void resetAll() {
+        treasury.wipe();
+        bounties.wipe();
+        fines.wipe();
+        SignPrompt.clearAll();
+        Menu.closeAll();
+        data.wipeAllExceptJudges();
+        antiFarm.raw().clear();
+        combat.clearAll();
+        damage.clear();
+        invites.clear();
+        seasonConfirm.clear();
+        hiddenBefore.clear();
+        Sidebar.forgetAll();
+        for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+            if (p.currentScreenHandler != p.playerScreenHandler) p.closeHandledScreen();
+            clearAttributes(p);
+            refreshPlayer(p);
+        }
+        markDirty();
+        saveData();
     }
 
     public void stop() {

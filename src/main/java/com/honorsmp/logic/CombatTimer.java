@@ -11,6 +11,10 @@ public final class CombatTimer {
         last.put(player, nowMs);
     }
 
+    public synchronized void clearAll() {
+        last.clear();
+    }
+
     public synchronized void clear(String player) {
         last.remove(player);
     }

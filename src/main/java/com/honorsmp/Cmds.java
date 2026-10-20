@@ -206,6 +206,11 @@ public final class Cmds {
                     season(c);
                     return 1;
                 })))
+                .then(lit("reset").then(lit("all").executes(c -> {
+                    needAdmin(c);
+                    resetAll(c);
+                    return 1;
+                })))
                 .then(lit("reload").executes(c -> {
                     needAdmin(c);
                     String e = h().loadConfig();
@@ -336,6 +341,25 @@ public final class Cmds {
         h.markDirty();
         h.saveData();
         h.server.getPlayerManager().broadcast(Text.literal("A new season has begun. Everyone's honor is back to 0.").formatted(Formatting.GOLD), false);
+    }
+
+    private static void resetAll(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
+        Honor h = h();
+        UUID key = c.getSource().getPlayer() == null ? new UUID(0, 0) : c.getSource().getPlayer().getUuid();
+        if (!h.resetConfirm.confirm(key, System.currentTimeMillis(), 10_000L)) {
+            say(c, Text.literal("This deletes every honor score, civ, bounty, case, fine and the treasury, including items in bounty boxes and the treasury. "
+                    + "Judges stay. Run /honor reset all again within 10 seconds to confirm. Backup is made first.").formatted(Formatting.RED));
+            return;
+        }
+        try {
+            var b = h.backupData();
+            say(c, "Backed up data to " + b);
+        } catch (Exception e) {
+            throw err("Backup failed, nothing was reset: " + e.getMessage());
+        }
+        h.resetAll();
+        h.server.getPlayerManager().broadcast(Text.literal("HonorSMP has been fully reset by " + who(c)
+                + ". All honor, civs, bounties, cases, fines and the treasury are wiped. Judges stay.").formatted(Formatting.GOLD), false);
     }
 
     // =============================================================== /appeal

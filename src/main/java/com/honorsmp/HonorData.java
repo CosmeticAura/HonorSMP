@@ -46,6 +46,26 @@ public class HonorData {
     /** "killer>victim" to the time of the last counted kill (ms). */
     public Map<String, Long> antiFarm = new LinkedHashMap<>();
 
+    /** Full wipe for /honor reset all: everything except the judge list. Clears in place (antiFarm is shared with the live AntiFarm). */
+    public void wipeAllExceptJudges() {
+        players.clear();
+        civs.clear();
+        bounties.clear();
+        bountyItems.clear();
+        bountyBoxes.clear();
+        bountyPending.clear();
+        logs.clear();
+        cases.clear();
+        treasuryEmeralds = 0;
+        treasury.clear();
+        pendingBooks.clear();
+        fines.clear();
+        antiFarm.clear();
+        nextLogId = 1;
+        nextCaseId = 1;
+        nextFineId = 1;
+    }
+
     public static class Fine {
         public int id;
         public String target, targetName, judge, judgeName;

@@ -406,6 +406,22 @@ public final class Bounties {
         else closeSet(s);
     }
 
+    /** Full reset: drop all escrow and open sessions WITHOUT committing or returning items, then close the screens. */
+    public void wipe() {
+        List<ServerPlayerEntity> viewers = new ArrayList<>();
+        for (Session s : open.values()) {
+            s.closed = true;
+            for (int i = 0; i < s.inv.size(); i++) s.inv.setStack(i, ItemStack.EMPTY);
+            viewers.add(s.player);
+        }
+        open.clear();
+        escrow.clear();
+        h.data.bountyItems = new LinkedHashMap<>();
+        h.data.bountyBoxes = new LinkedHashMap<>();
+        h.data.bountyPending = new LinkedHashMap<>();
+        for (ServerPlayerEntity p : viewers) p.closeHandledScreen();
+    }
+
     /** Server stopping: close every open bounty UI before the final save. */
     public void closeAll() {
         for (Session s : new ArrayList<>(open.values())) {

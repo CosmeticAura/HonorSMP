@@ -155,6 +155,19 @@ public final class Treasury {
         }
     }
 
+    /** Full reset: forget all contents (including the open UI) WITHOUT writing anything back, then close the screen. */
+    public void wipe() {
+        ServerPlayerEntity v = viewer;
+        if (open != null) for (int i = 0; i < open.size(); i++) open.setStack(i, ItemStack.EMPTY);
+        open = null;
+        viewer = null;
+        handler = null;
+        items.clear();
+        pendingEmeralds = 0;
+        h.data.treasury = new ArrayList<>();
+        if (v != null) v.closeHandledScreen();
+    }
+
     /** Server stopping: close any open UI so contents are flushed before the final save. */
     public void closeAll() {
         if (viewer != null) viewer.closeHandledScreen();
