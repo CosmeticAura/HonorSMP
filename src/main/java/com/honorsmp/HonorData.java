@@ -22,8 +22,14 @@ public class HonorData {
 
     public Map<String, PlayerRecord> players = new LinkedHashMap<>();
     public Map<String, Civ> civs = new LinkedHashMap<>();
-    /** victim uuid to total emeralds on their head. */
+    /** Old (1.0.0) emerald bounties: victim uuid to emeralds. Only read for migration into bountyItems, then emptied. */
     public Map<String, Integer> bounties = new LinkedHashMap<>();
+    /** Target uuid to the bounty ItemStacks (codec JSON) on their head. */
+    public Map<String, List<com.google.gson.JsonElement>> bountyItems = new LinkedHashMap<>();
+    /** Player uuid to the stacks waiting in their bounty claim box (/bounty claim). */
+    public Map<String, List<com.google.gson.JsonElement>> bountyBoxes = new LinkedHashMap<>();
+    /** Stacks sitting in an open set-bounty screen at save time; returned to the owner's claim box on load. */
+    public Map<String, List<com.google.gson.JsonElement>> bountyPending = new LinkedHashMap<>();
     public List<LogEntry> logs = new ArrayList<>();
     public List<Case> cases = new ArrayList<>();
     public Set<String> judges = new LinkedHashSet<>();

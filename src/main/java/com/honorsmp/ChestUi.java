@@ -40,4 +40,10 @@ public final class ChestUi {
                 }, title));
         return opened.isPresent() ? p.currentScreenHandler : null;
     }
+
+    /** Opens a UI built by a custom handler factory (e.g. a take-only claim box). Returns the handler or null. */
+    public static ScreenHandler openCustom(ServerPlayerEntity p, Text title, net.minecraft.screen.ScreenHandlerFactory f) {
+        var opened = p.openHandledScreen(new SimpleNamedScreenHandlerFactory(f, title));
+        return opened.isPresent() ? p.currentScreenHandler : null;
+    }
 }

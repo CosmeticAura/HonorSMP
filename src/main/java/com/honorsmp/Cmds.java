@@ -305,7 +305,7 @@ public final class Cmds {
         Long last = h.seasonConfirm.get(key);
         if (last == null || now - last > h.config.seasonResetConfirmSeconds * 1000L) {
             h.seasonConfirm.put(key, now);
-            say(c, Text.literal("This sets EVERY player back to 0 and clears all bounties (civs stay). Run /honor season reset again within "
+            say(c, Text.literal("This sets EVERY player back to 0 (civs stay; bounty items are kept). Run /honor season reset again within "
                     + h.config.seasonResetConfirmSeconds + " seconds to confirm.").formatted(Formatting.RED));
             return;
         }
@@ -319,7 +319,6 @@ public final class Cmds {
         for (PlayerRecord r : new ArrayList<>(h.data.players.values())) {
             h.change(r.uuid, r.name, -r.score, "Season reset", "admin:" + who(c), null, "", 0);
         }
-        h.data.bounties.clear();
         h.markDirty();
         h.saveData();
         h.server.getPlayerManager().broadcast(Text.literal("A new season has begun. Everyone's honor is back to 0.").formatted(Formatting.GOLD), false);
@@ -329,29 +328,25 @@ public final class Cmds {
 
     private static LiteralArgumentBuilder<ServerCommandSource> bounty() {
         return lit("bounty")
-                .then(lit("set").then(playerArg("player").then(arg("emeralds", IntegerArgumentType.integer(1)).executes(c -> {
+                .then(lit("set").then(playerArg("player").executes(c -> {
                     Honor h = h();
-                    ServerPlayerEntity p = player(c);
-                    PlayerRecord r = target(c, "player");
-                    int n = IntegerArgumentType.getInteger(c, "emeralds");
-                    if (n < h.config.minBounty) throw err("The minimum bounty is " + h.config.minBounty + " emeralds.");
-                    if (!h.tier(r).isDishonored()) throw err(r.name + " is not dishonored. Bounties can only go on dishonored players.");
-                    if (r.uuid.equals(p.getUuid().toString())) throw err("You cannot put a bounty on yourself.");
-                    if (Honor.countEmeralds(p) < n) throw err("You need " + n + " emeralds in your inventory.");
-                    Honor.takeEmeralds(p, n);
-                    int total = h.data.bounties.merge(r.uuid, n, Integer::sum);
-                    h.markDirty();
-                    h.server.getPlayerManager().broadcast(Text.literal(p.getName().getString() + " put " + n + " emeralds on " + r.name
-                            + "'s head. Total bounty: " + total + ".").formatted(Formatting.GOLD), false);
+                    String err = h.bounties.openSet(player(c), target(c, "player"));
+                    if (err != null) throw err(err);
                     return 1;
-                }))))
+                })))
+                .then(lit("claim").executes(c -> {
+                    String err = h().bounties.openClaim(player(c));
+                    if (err != null) throw err(err);
+                    return 1;
+                }))
                 .then(lit("list").executes(c -> {
                     Honor h = h();
                     int n = 0;
-                    for (Map.Entry<String, Integer> e : h.data.bounties.entrySet()) {
-                        if (e.getValue() <= 0) continue;
+                    for (Map.Entry<String, java.util.List<net.minecraft.item.ItemStack>> e : h.bounties.view().entrySet()) {
+                        long items = h.bounties.itemsOn(e.getKey());
+                        if (items <= 0) continue;
                         n++;
-                        say(c, h.nameOf(e.getKey()) + ": " + e.getValue() + " emeralds");
+                        say(c, h.nameOf(e.getKey()) + ": " + items + " items in " + e.getValue().size() + " stacks");
                     }
                     if (n == 0) say(c, "No active bounties.");
                     return 1;

@@ -50,7 +50,7 @@ public final class Compass {
             for (ServerPlayerEntity o : h.server.getPlayerManager().getPlayerList()) {
                 if (o == p || o.getEntityWorld().getRegistryKey() != World.OVERWORLD) continue;
                 if (!h.tier(o).isDishonored()) continue;
-                if (h.data.bounties.getOrDefault(o.getUuid().toString(), 0) <= 0) continue;
+                if (!h.bounties.hasBounty(o.getUuid().toString())) continue;
                 double d = o.squaredDistanceTo(p);
                 if (d < bd) {
                     bd = d;

@@ -59,6 +59,7 @@ public class Honor {
     public record Invite(String civId, long expiresMs, String from) {}
 
     public final Treasury treasury = new Treasury(this);
+    public final Bounties bounties = new Bounties(this);
 
     public Honor(MinecraftServer server) {
         this.server = server;
@@ -73,6 +74,7 @@ public class Honor {
         antiFarm.raw().putAll(data.antiFarm);
         data.antiFarm = antiFarm.raw();
         treasury.load();
+        bounties.load();
         saveData();
         LOG.info("HonorSMP loaded: {} players, {} civs, {} open cases", data.players.size(),
                 data.civs.size(), data.cases.stream().filter(c -> c.status.equals("OPEN")).count());
@@ -111,6 +113,9 @@ public class Honor {
         if (data.players == null) data.players = new LinkedHashMap<>();
         if (data.civs == null) data.civs = new LinkedHashMap<>();
         if (data.bounties == null) data.bounties = new LinkedHashMap<>();
+        if (data.bountyItems == null) data.bountyItems = new LinkedHashMap<>();
+        if (data.bountyBoxes == null) data.bountyBoxes = new LinkedHashMap<>();
+        if (data.bountyPending == null) data.bountyPending = new LinkedHashMap<>();
         if (data.logs == null) data.logs = new ArrayList<>();
         if (data.cases == null) data.cases = new ArrayList<>();
         if (data.judges == null) data.judges = new LinkedHashSet<>();
@@ -127,6 +132,7 @@ public class Honor {
         try {
             Files.createDirectories(dataPath.getParent());
             treasury.sync();
+            bounties.sync();
             Path tmp = dataPath.resolveSibling("data.json.tmp");
             Files.writeString(tmp, GSON.toJson(data), StandardCharsets.UTF_8);
             Files.move(tmp, dataPath, StandardCopyOption.REPLACE_EXISTING);
@@ -145,6 +151,7 @@ public class Honor {
 
     public void stop() {
         treasury.closeAll();
+        bounties.closeAll();
         saveData();
         I = null;
     }
@@ -539,13 +546,7 @@ public class Honor {
                 BountyLoot.pay(this, killer, vt.perkIndex());
             }
             // player placed bounty on the victim's head
-            Integer head = data.bounties.remove(v);
-            if (head != null && head > 0) {
-                giveEmeralds(killer, head);
-                markDirty();
-                server.getPlayerManager().broadcast(Text.literal(kr.name + " collected a bounty of " + head + " emeralds on " + vr.name + ".")
-                        .formatted(Formatting.GOLD), false);
-            }
+            bounties.payout(killer, kr, vr);
         }
     }
 
