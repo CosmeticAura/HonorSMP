@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1
+- Fixed the netherite smithing upgrade losing the upgrade template: the diamond item, the template and the ingot all come back. The found-netherite conversion path never takes a template.
+- New `/honor reset all` (ops only, run twice within 10 s, backs up `data.json` first). Wipes honor, civs, taxes, bounties and bounty boxes, cases, appeals, fines, treasury, logs and anti-farm data. Judges stay. Items in bounty boxes, the treasury and open chest screens are deleted. Announced in chat.
+- Judges can rule on any case, including ones they are part of.
+- Cases can be renamed: Rename button (name tag) in the case menu or `/honor case <id> rename <name>`. The name shows in `/honor cases`, the case book and the Discord posts.
+- Back button on every chest page opened from another page, keeping the list page. Top level lists have a Close button. Long lists are paged.
+- A kill between players on the same IP no longer pays out a player-set bounty (it stays on the target) and is flagged as a case.
+
 ## 1.2.0
 - Honor sidebar: each player sees their own tier and honor on the right of the screen (per-player, server-side).
 - Judge tier: the highest honorable rank, gold tag above Paragon. No automatic honor changes for judges and `/honor` shows `Judge`. Killing a judge is an unprovoked Paragon kill for honor; a dishonored killer gets the new `judgeLoot` pool plus a server-wide announcement.

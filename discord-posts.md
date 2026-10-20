@@ -34,7 +34,7 @@ Honor handles most of what you do in game. These are the few things that get you
 3. No slurs, real threats or harassment in chat or voice. Trash talk is fine, going after someone personally is not.
 4. No lag machines or anything built to crash the server.
 5. Don't argue with a judge's ruling in public chat. If you think a ruling was wrong, post in #report-a-player with your side.
-6. Judges don't rule on cases they're part of.
+6. Alts on the same IP never pay out bounties. Those kills are flagged and reviewed.
 
 Everything else, including raiding, griefing and killing people, is allowed. It just costs honor.
 
@@ -75,7 +75,7 @@ The mod handles the obvious stuff:
 > Not paying your civ's weekly tax: -10 a day for every member
 > Playing 3 hours in a day without losing honor: +5
 
-The mod decides most kills by itself by checking who hit first, gear and tiers. Only the kills it can't call go to a judge. They get a case book with who hit first and what everyone was wearing, then confirm or change the call. Think a call was wrong? Use /appeal and your reason. Judges are players the admins picked, not ops, and they never rule on their own fights. They can also award honor for good deeds and big builds, and fine players. A fine is a set of items you pay with /fine pay, and every 2.5 hours it stays unpaid costs you 10 honor.
+The mod decides most kills by itself by checking who hit first, gear and tiers. Only the kills it can't call go to a judge. They get a case book with who hit first and what everyone was wearing, then confirm or change the call. Think a call was wrong? Use /appeal and your reason (your latest change, or /appeal and a case number for an older one). You get one open appeal at a time and each change can be appealed once. Judges are players the admins picked, not ops. Judges can rule on any case, even their own, so expect the other judges to check anything that looks off. They can also award honor for good deeds and big builds, and fine players. A fine is a set of items you pay with /fine pay, and every 2.5 hours it stays unpaid costs you 10 honor.
 
 **Civilizations**
 
@@ -85,7 +85,7 @@ Leaders can name guards. Guards are the PvP players of an honorable civ: they hu
 
 **Bounties**
 
-Anyone can put items on a dishonored player's head with /bounty set. A chest opens, drop in what you want to offer and close it. Close it empty to cancel. Bounties from different players stack, and you can't target yourself or your own civ. Whoever kills them gets everything in their bounty box, opened with /bounty claim. /bounty list shows who is wanted.
+Anyone can put items on a dishonored player's head with /bounty set. A kill between players on the same IP never pays a bounty. A chest opens, drop in what you want to offer and close it. Close it empty to cancel. Bounties from different players stack, and you can't target yourself or your own civ. Whoever kills them gets everything in their bounty box, opened with /bounty claim. /bounty list shows who is wanted.
 
 **Limits for everyone**
 Sharpness is capped at 4, Protection at 3, Density at 4 and Breach at 3. Netherite swords, axes and armor don't exist here: they turn into diamond with the same enchants, and you get a netherite ingot. Netherite pickaxes, shovels and hoes are fine. After you take damage from a player, your elytra won't open for 30 seconds.
@@ -116,13 +116,18 @@ Sharpness is capped at 4, Protection at 3, Density at 4 and Breach at 3. Netheri
 `/civ info` / `/civ list`
 
 **Judges**
-`/honor cases` open the case menu (confirm, cancel, set amount, fine, case book)
+Every menu page you open from another page has a Back button in the bottom left.
+`/honor cases` open the case menu (confirm, cancel, set amount, rename, fine, case book)
 `/honor case <id>` review and rule on a case
+`/honor case <id> rename <name>` give a case a name
 `/fine <player>` fine a player (chest opens)
 `/fine list` / `/fine cancel <id>` open fines
 `/honor give <player> <amount> <reason>` award or take honor
 `/honor log <player>` honor history
 `/honor treasury` open the tax treasury
+
+**Admins**
+`/honor reset all` wipe all honor, civs, bounties, cases, fines and the treasury (run twice within 10 seconds, judges stay)
 
 ---
 
