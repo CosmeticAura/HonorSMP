@@ -6,6 +6,7 @@ import com.honorsmp.HonorData.PlayerRecord;
 import com.honorsmp.logic.FineMatch;
 import com.honorsmp.logic.FineTimer;
 import com.honorsmp.logic.MenuClicks;
+import com.honorsmp.logic.PageNav;
 import com.mojang.serialization.JsonOps;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,6 +53,7 @@ public final class Fines {
         final SimpleInventory inv;
         ScreenHandler handler;
         boolean closed;
+        Runnable afterClose; // edit only: runs on the next tick once the fine is saved or cancelled (back to the case menu)
 
         Session(ServerPlayerEntity player, boolean pay, String target, int caseId, SimpleInventory inv) {
             this.player = player;
@@ -70,7 +72,7 @@ public final class Fines {
     }
 
     /** Hook called by the case menu's Fine button: fines the case's killer. */
-    public static void openFineFor(Honor h, ServerPlayerEntity judge, HonorData.Case c) {
+    public static void openFineFor(Honor h, ServerPlayerEntity judge, HonorData.Case c, Runnable afterClose) {
         if (c.killer == null || c.killer.isEmpty()) {
             judge.sendMessage(Text.literal("That case has no killer to fine.").formatted(Formatting.RED));
             return;
@@ -80,7 +82,7 @@ public final class Fines {
             judge.sendMessage(Text.literal("Unknown player.").formatted(Formatting.RED));
             return;
         }
-        String e = h.fines.openEditor(judge, t, c.id);
+        String e = h.fines.openEditor(judge, t, c.id, afterClose);
         if (e != null) judge.sendMessage(Text.literal(e).formatted(Formatting.RED));
     }
 
@@ -174,12 +176,21 @@ public final class Fines {
 
     /** Returns an error message, or null when the chest opened. */
     public String openEditor(ServerPlayerEntity judge, PlayerRecord target, int caseId) {
+        return openEditor(judge, target, caseId, null);
+    }
+
+    /**
+     * Item chest: every slot is an item slot, so there is no Back button; closing it IS the confirmation.
+     * When afterClose is set (opened from a case menu) it runs once the fine was saved or cancelled.
+     */
+    public String openEditor(ServerPlayerEntity judge, PlayerRecord target, int caseId, Runnable afterClose) {
         if (!h.isJudge(judge)) return "Only judges can fine players.";
         if (open.containsKey(judge.getUuid())) return "Close your other fine screen first.";
         if (!FineTimer.canBeFined(h.isJudge(target.uuid))) return target.name + " is a judge. Judges cannot be fined.";
         if (target.uuid.equals(judge.getUuid().toString())) return "You cannot fine yourself.";
         SimpleInventory inv = new SimpleInventory(EDIT_ROWS * 9);
         Session s = new Session(judge, false, target.uuid, caseId, inv);
+        s.afterClose = afterClose;
         open.put(judge.getUuid(), s);
         s.handler = ChestUi.open(judge, Text.literal("Fine for " + target.name + " (close to confirm)"), EDIT_ROWS, inv, who -> closeEdit(s));
         if (s.handler == null) {
@@ -191,6 +202,20 @@ public final class Fines {
 
     private void closeEdit(Session s) {
         if (s.closed) return;
+        try {
+            settleEdit(s);
+        } finally {
+            Runnable back = s.afterClose;
+            if (back != null) {
+                // next tick: never open a screen from inside the close handler
+                h.server.execute(() -> {
+                    if (!s.player.isRemoved() && s.player.networkHandler != null && s.player.currentScreenHandler == s.player.playerScreenHandler) back.run();
+                });
+            }
+        }
+    }
+
+    private void settleEdit(Session s) {
         s.closed = true;
         if (open.get(s.player.getUuid()) == s) open.remove(s.player.getUuid());
         List<ItemStack> items = new ArrayList<>();
@@ -408,17 +433,18 @@ public final class Fines {
         return out;
     }
 
-    /** Judge menu: every open fine; click one to cancel it. */
-    public void openCancelMenu(ServerPlayerEntity p) {
+    /** Judge menu: every open fine; click one to cancel it. back = page it came from (null: Close). Paged 45 per page. */
+    public void openCancelMenu(ServerPlayerEntity p, Runnable back, int page) {
         if (!h.isJudge(p)) {
             tell(p, "Only judges can do that.", Formatting.RED);
             return;
         }
         List<Fine> list = new ArrayList<>();
         for (Fine f : h.data.fines) if ("OPEN".equals(f.status)) list.add(f);
+        PageNav nav = PageNav.of(list.size(), page);
         Menu m = Menu.create(Text.literal("Open fines (" + list.size() + ")"), 6);
         long now = System.currentTimeMillis();
-        for (int i = 0; i < Math.min(53, list.size()); i++) {
+        for (int i = nav.from(); i < nav.to(); i++) {
             Fine f = list.get(i);
             Item icon = Items.GOLD_INGOT;
             List<ItemStack> st = decode(f);
@@ -429,13 +455,15 @@ public final class Fines {
             if (f.caseId > 0) lore.add(Text.literal("Case #" + f.caseId).formatted(Formatting.GRAY));
             lore.add(Text.literal("Click to CANCEL this fine").formatted(Formatting.RED));
             int id = f.id;
-            m.set(i, Menu.icon(icon, Text.literal("Fine #" + f.id + " on " + f.targetName).formatted(Formatting.GOLD), lore), (who, r, sh) -> {
+            m.set(i - nav.from(), Menu.icon(icon, Text.literal("Fine #" + f.id + " on " + f.targetName).formatted(Formatting.GOLD), lore), (who, r, sh) -> {
                 String e = cancel(id, who.getName().getString());
                 tell(who, e == null ? "Fine #" + id + " cancelled." : e, e == null ? Formatting.GREEN : Formatting.RED);
-                openCancelMenu(who);
+                openCancelMenu(who, back, nav.page());
             });
         }
         if (list.isEmpty()) m.icon(22, Menu.icon(Items.BARRIER, "No open fines", Formatting.GRAY));
+        m.pager(nav, (who, pg) -> openCancelMenu(who, back, pg));
+        m.backOrClose(back == null ? null : (who, r, sh) -> back.run());
         if (!m.open(p)) tell(p, "Could not open the fines menu.", Formatting.RED);
     }
 

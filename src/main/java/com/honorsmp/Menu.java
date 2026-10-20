@@ -75,6 +75,34 @@ public final class Menu {
         return this;
     }
 
+    /**
+     * Bottom-left slot (first slot of the last row): an ARROW named Back running {@code back}, or, when
+     * {@code back} is null (top-level page), a BARRIER named Close that closes the screen.
+     */
+    public Menu backOrClose(Click back) {
+        int slot = size() - 9;
+        if (back == null) {
+            return set(slot, icon(net.minecraft.item.Items.BARRIER, "Close", Formatting.RED), (who, r, s) -> who.closeHandledScreen());
+        }
+        return set(slot, icon(net.minecraft.item.Items.ARROW, "Back", Formatting.WHITE), back);
+    }
+
+    /** Previous / page indicator / Next in the bottom-middle slots (6-row menus). Only shown when there is more than one page. */
+    public Menu pager(com.honorsmp.logic.PageNav nav, java.util.function.BiConsumer<ServerPlayerEntity, Integer> goTo) {
+        if (nav.pages() <= 1) return this;
+        int base = size() - 9;
+        if (nav.hasPrev()) {
+            set(base + 3, icon(net.minecraft.item.Items.ARROW, "Previous page", Formatting.YELLOW),
+                    (who, r, s) -> goTo.accept(who, nav.prev()));
+        }
+        icon(base + 4, icon(net.minecraft.item.Items.PAPER, "Page " + (nav.page() + 1) + " / " + nav.pages(), Formatting.GRAY));
+        if (nav.hasNext()) {
+            set(base + 5, icon(net.minecraft.item.Items.ARROW, "Next page", Formatting.YELLOW),
+                    (who, r, s) -> goTo.accept(who, nav.next()));
+        }
+        return this;
+    }
+
     /** Returns false if the menu could not be opened. Replaces any screen the player has open. */
     public boolean open(ServerPlayerEntity p) {
         SimpleInventory inv = new SimpleInventory(size());

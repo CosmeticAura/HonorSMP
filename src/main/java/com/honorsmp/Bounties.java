@@ -5,6 +5,7 @@ import com.honorsmp.HonorData.Civ;
 import com.honorsmp.HonorData.PlayerRecord;
 import com.honorsmp.logic.BountyEscrow;
 import com.mojang.serialization.JsonOps;
+import com.honorsmp.logic.PageNav;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -337,11 +338,16 @@ public final class Bounties {
 
     /** /bounty list as a chest of heads. Still shows no locations. */
     public void openList(ServerPlayerEntity p) {
+        openList(p, 0);
+    }
+
+    /** Top-level page: Close in the bottom-left slot, paged 45 heads per page. */
+    public void openList(ServerPlayerEntity p, int page) {
         List<String> targets = new ArrayList<>();
         for (String t : escrow.bounties().keySet()) if (escrow.itemsOn(t) > 0) targets.add(t);
         Menu m = Menu.create(Text.literal("Bounties (" + targets.size() + ")"), 6);
-        int shown = Math.min(targets.size(), 54);
-        for (int i = 0; i < shown; i++) {
+        PageNav nav = PageNav.of(targets.size(), page);
+        for (int i = nav.from(); i < nav.to(); i++) {
             String t = targets.get(i);
             ItemStack head = new ItemStack(Items.PLAYER_HEAD);
             ServerPlayerEntity on = h.online(t);
@@ -357,27 +363,33 @@ public final class Bounties {
             head.set(net.minecraft.component.DataComponentTypes.LORE, new net.minecraft.component.type.LoreComponent(List.of(
                     Text.literal(escrow.itemsOn(t) + " items in " + escrow.bounties().get(t).size() + " stacks").formatted(Formatting.GRAY).styled(st -> st.withItalic(false)),
                     Text.literal("Click to see the loot").formatted(Formatting.DARK_GRAY).styled(st -> st.withItalic(false)))));
-            m.set(i, head, (who, r, s) -> openLoot(who, t));
+            int pg = nav.page();
+            m.set(i - nav.from(), head, (who, r, s) -> openLoot(who, t, pg));
         }
         if (targets.isEmpty()) m.icon(22, Menu.icon(Items.BARRIER, "No active bounties", Formatting.GRAY));
+        m.pager(nav, (who, pg) -> openList(who, pg));
+        m.backOrClose(null);
         if (!m.open(p)) p.sendMessage(Text.literal("Could not open the bounty list.").formatted(Formatting.RED));
     }
 
     /** Read-only view of the loot on one target. */
-    public void openLoot(ServerPlayerEntity p, String target) {
+    public void openLoot(ServerPlayerEntity p, String target, int listPage) {
+        openLoot(p, target, listPage, 0);
+    }
+
+    /** listPage = bounty list page Back returns to; lootPage = page of stacks shown here. */
+    public void openLoot(ServerPlayerEntity p, String target, int listPage, int lootPage) {
         List<ItemStack> stacks = escrow.bounties().get(target);
         if (stacks == null || escrow.itemsOn(target) <= 0) {
             p.sendMessage(Text.literal("That bounty no longer exists.").formatted(Formatting.YELLOW));
-            openList(p);
+            openList(p, listPage);
             return;
         }
         Menu m = Menu.create(Text.literal("Bounty on " + h.nameOf(target)), 6);
-        int shown = Math.min(stacks.size(), stacks.size() > 45 ? 44 : 45);
-        for (int i = 0; i < shown; i++) m.icon(i, stacks.get(i).copy());
-        if (stacks.size() > shown) {
-            m.icon(44, Menu.icon(Items.CHEST, "+" + (stacks.size() - shown) + " more stacks", Formatting.WHITE));
-        }
-        m.set(49, Menu.icon(Items.ARROW, "Back", Formatting.WHITE), (who, r, s) -> openList(who));
+        PageNav nav = PageNav.of(stacks.size(), lootPage);
+        for (int i = nav.from(); i < nav.to(); i++) m.icon(i - nav.from(), stacks.get(i).copy());
+        m.pager(nav, (who, pg) -> openLoot(who, target, listPage, pg));
+        m.backOrClose((who, r, s) -> openList(who, listPage));
         if (!m.open(p)) p.sendMessage(Text.literal("Could not open the bounty loot.").formatted(Formatting.RED));
     }
 
