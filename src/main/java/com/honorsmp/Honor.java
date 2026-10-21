@@ -151,8 +151,6 @@ public class Honor {
         }
         data.version = 2;
         if (data.antiFarm == null) data.antiFarm = new LinkedHashMap<>();
-        long loadNow = System.currentTimeMillis();
-        for (HonorData.Civ civ : data.civs.values()) Taxes.init(this, civ, loadNow);
     }
 
     public void markDirty() {
@@ -301,7 +299,7 @@ public class Honor {
      */
     public int change(String uuid, String name, int delta, String reason, String source, ServerPlayerEntity where,
                       String other, int caseId) {
-        // Judges are exempt from every automatic change (daily bonus, tax penalty, kills, future fines).
+        // Judges are exempt from every automatic change (daily bonus, kills, future fines).
         if (!JudgeRules.autoChangeAllowed(isJudge(uuid), source)) return 0;
         PlayerRecord r = data.players.get(uuid);
         if (r == null) {
@@ -547,7 +545,6 @@ public class Honor {
             }
             if (seconds % 5 == 0) refreshPlayer(p);
         }
-        if (seconds % 60 == 0) Taxes.tick(this);
         if (seconds % 30 == 0) fines.tick();
         if (seconds % Math.max(1, config.compassUpdateSeconds) == 0) Compass.updateAll(this);
         if (seconds % Math.max(1, config.tabRefreshSeconds) == 0) updateTabVisibility();

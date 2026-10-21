@@ -39,7 +39,7 @@ public class HonorData {
     public List<LogEntry> logs = new ArrayList<>();
     public List<Case> cases = new ArrayList<>();
     public Set<String> judges = new LinkedHashSet<>();
-    /** Emeralds paid as civ tax, held for the judges (opened later via /honor treasury). */
+    /** Old emerald count for the judges' treasury (migration only; replaced by treasury) (opened later via /honor treasury). */
     public long treasuryEmeralds = 0;
     /** Treasury contents as ItemStack codec JSON (replaces treasuryEmeralds, which is only read for migration). */
     public List<com.google.gson.JsonElement> treasury = new ArrayList<>();
@@ -128,14 +128,6 @@ public class HonorData {
         public Set<String> members = new LinkedHashSet<>();
         public Set<String> guards = new LinkedHashSet<>();
         public long created;
-        /** Epoch ms the current tax cycle is due. 0 = not set yet (old data); Taxes.init fills it in. */
-        public long taxDue = 0;
-        /** True once the current cycle was paid early (the due date rolls forward when it passes). */
-        public boolean taxPaid = false;
-        /** Days of late penalty already applied this cycle. */
-        public int taxPenaltyDays = 0;
-        /** True once the pre-due warning went out this cycle. */
-        public boolean taxWarned = false;
     }
 
     public static class LogEntry {

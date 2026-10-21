@@ -428,7 +428,7 @@ public final class Fines {
             if (!"OPEN".equals(f.status) || (!all && !f.target.equals(uuid))) continue;
             long next = FineTimer.nextPenaltyAt(f.createdAt, f.lastPenaltyAt, intervalMs());
             out.add("#" + f.id + (all ? " " + f.targetName : "") + ": " + contentsText(f) + " | " + MenuClicks.age(now - f.createdAt)
-                    + " | next -" + h.config.fineHonorPenalty + " honor in " + Taxes.dueText(next - now));
+                    + " | next -" + h.config.fineHonorPenalty + " honor in " + dueText(next - now));
         }
         return out;
     }
@@ -537,5 +537,13 @@ public final class Fines {
             if (s.pay) closePay(s);
             else closeEdit(s);
         }
+    }
+
+    private static String dueText(long msUntil) {
+        long abs = Math.abs(msUntil);
+        long day = 86_400_000L, hour = 3_600_000L;
+        long d = abs / day, hr = (abs % day) / hour, m = (abs % hour) / 60_000L;
+        String t = (d > 0 ? d + "d " : "") + hr + "h " + m + "m";
+        return msUntil >= 0 ? "in " + t : t + " ago";
     }
 }

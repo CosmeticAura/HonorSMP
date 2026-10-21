@@ -35,7 +35,7 @@ class PlayerCommandsTest {
             "fine", "fine pay", "fine pay 3",
             "bounty set Steve", "bounty claim", "bounty list", "bounty list text",
             "civ create My Civ", "civ invite Steve", "civ join My Civ", "civ leave", "civ kick Steve",
-            "civ promote Steve", "civ guard Steve", "civ tax", "civ tax pay", "civ disband",
+            "civ promote Steve", "civ guard Steve", "civ disband",
             "civ info", "civ info My Civ", "civ list");
 
     /** Commands typed without their argument: allowed, and answer with a Usage line. */

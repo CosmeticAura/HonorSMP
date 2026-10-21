@@ -22,10 +22,6 @@ public class HonorConfig {
     public int dishonoredVillagerSurchargePercent = 20;
 
     // civilizations
-    public int taxPerMember = 8;
-    public int taxIntervalDays = 7;
-    public int taxLatePenaltyHonor = 10;
-    public int taxWarnHours = 24;
     public int civNameMaxLength = 24;
     public int inviteExpirySeconds = 120;
 

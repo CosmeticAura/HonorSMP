@@ -49,7 +49,6 @@ public class HonorSMP implements ModInitializer {
             Sidebar.forget(p);
             h.refreshPlayer(p);
             h.updateTabVisibility();
-            Taxes.onLogin(h, p);
             h.bounties.onLogin(p);
             h.fines.onLogin(p);
             h.donationBox.onLogin(p);
