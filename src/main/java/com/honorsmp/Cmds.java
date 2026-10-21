@@ -36,14 +36,20 @@ public final class Cmds {
         return new SimpleCommandExceptionType(Text.literal(m)).create();
     }
 
+    private static com.mojang.brigadier.Command<ServerCommandSource> usage(String u) {
+        return c -> {
+            throw err("Usage: " + u);
+        };
+    }
+
     private static Honor h() throws CommandSyntaxException {
-        if (Honor.I == null) throw err("HonorSMP is not ready yet.");
+        if (Honor.I == null) throw err("HonorSMP is not ready yet. Wait a few seconds after the server starts and try again.");
         return Honor.I;
     }
 
     private static ServerPlayerEntity player(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
         ServerPlayerEntity p = c.getSource().getPlayer();
-        if (p == null) throw err("This command can only be used by a player.");
+        if (p == null) throw err("This command can only be used by a player in game. Join the server and run it there.");
         return p;
     }
 
@@ -53,12 +59,12 @@ public final class Cmds {
     }
 
     private static void needJudge(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
-        if (!isJudge(c)) throw err("Only judges (players added with /honor judge add) can do that. Ops are not judges by default.");
+        if (!isJudge(c)) throw err("Only judges (players added with /honor judge add) can do that. Ask an op to make you a judge.");
     }
 
     private static void needAdmin(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
         ServerPlayerEntity p = c.getSource().getPlayer();
-        if (p != null && !h().isOp(p)) throw err("Only operators can do that.");
+        if (p != null && !h().isOp(p)) throw err("Only operators can do that. Ask an op.");
     }
 
     private static String who(CommandContext<ServerCommandSource> c) {
@@ -77,7 +83,7 @@ public final class Cmds {
     private static PlayerRecord target(CommandContext<ServerCommandSource> c, String arg) throws CommandSyntaxException {
         String n = StringArgumentType.getString(c, arg);
         PlayerRecord r = h().byName(n);
-        if (r == null) throw err("Unknown player " + n + " (they must have joined this server at least once).");
+        if (r == null) throw err("Unknown player " + n + ". Check the spelling; they must have joined this server at least once.");
         return r;
     }
 
@@ -119,7 +125,7 @@ public final class Cmds {
                 }))
                 .then(lit("tracker").executes(c -> {
                     ServerPlayerEntity p = player(c);
-                    if (!h().tier(p).isNobleOrHigher()) throw err("You need to be Noble or higher to get a Bounty Compass.");
+                    if (!h().tier(p).isNobleOrHigher()) throw err("You need to be Noble or higher to get a Bounty Compass. Check your honor with /honor.");
                     p.getInventory().offerOrDrop(Compass.make());
                     say(c, "You received a Bounty Compass. It points to the nearest dishonored player with a bounty (overworld only).");
                     return 1;
@@ -149,7 +155,7 @@ public final class Cmds {
                         .then(lit("rename").then(arg("name", StringArgumentType.greedyString()).executes(c -> {
                             needJudge(c);
                             Case k = Cases.find(h(), IntegerArgumentType.getInteger(c, "id"));
-                            if (k == null) throw err("No such case.");
+                            if (k == null) throw err("No such case. List open cases with /honor cases.");
                             String n = Cases.rename(h(), k, StringArgumentType.getString(c, "name"), who(c));
                             say(c, n.isEmpty() ? "Case #" + k.id + " name cleared." : "Renamed to " + Cases.title(k) + ".");
                             return 1;
@@ -294,7 +300,7 @@ public final class Cmds {
 
     private static void showCase(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
         Case k = Cases.find(h(), IntegerArgumentType.getInteger(c, "id"));
-        if (k == null) throw err("No such case.");
+        if (k == null) throw err("No such case. List open cases with /honor cases.");
         SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         say(c, Text.literal(Cases.title(k) + " [" + k.type + "] " + k.status).formatted(Formatting.GOLD));
         say(c, "Time: " + f.format(new Date(k.time)));
@@ -315,7 +321,7 @@ public final class Cmds {
     private static int decide(CommandContext<ServerCommandSource> c, String action, Integer amount, String reason) throws CommandSyntaxException {
         needJudge(c);
         Case k = Cases.find(h(), IntegerArgumentType.getInteger(c, "id"));
-        if (k == null) throw err("No such case.");
+        if (k == null) throw err("No such case. List open cases with /honor cases.");
         String e = Cases.decide(h(), k, action, amount, reason, who(c));
         if (e != null) throw err(e);
         say(c, Cases.title(k) + " " + k.status.toLowerCase() + ". Killer's honor from this case: " + Cases.signed(k.applied) + ".");
@@ -370,11 +376,11 @@ public final class Cmds {
     // =============================================================== /appeal
 
     private static LiteralArgumentBuilder<ServerCommandSource> appeal() {
-        return lit("appeal").then(arg("text", StringArgumentType.greedyString()).executes(c -> {
+        return lit("appeal").executes(usage("/appeal <reason>, or /appeal <change id> <reason>")).then(arg("text", StringArgumentType.greedyString()).executes(c -> {
             Honor h = h();
             ServerPlayerEntity p = player(c);
             String me = p.getUuid().toString();
-            if (h.isJudge(me)) throw err("Judges have no automatic honor changes to appeal.");
+            if (h.isJudge(me)) throw err("Judges have no automatic honor changes to appeal. Nothing to do.");
             List<AppealRules.LogView> logs = new ArrayList<>();
             for (LogEntry e : h.data.logs) logs.add(new AppealRules.LogView(e.id, e.player, e.delta));
             List<AppealRules.AppealView> ap = new ArrayList<>();
@@ -385,7 +391,7 @@ public final class Cmds {
                 for (AppealRules.LogView l : logs) if (l.id() == id && l.player().equals(me) && l.delta() != 0) return true;
                 return false;
             });
-            if (parsed.reason().isEmpty()) throw err("Usage: /appeal <reason> or /appeal <change id> <reason>");
+            if (parsed.reason().isEmpty()) throw err("Usage: /appeal <reason>, or /appeal <change id> <reason> (see your change ids with /honor)");
             AppealRules.Pick pick = AppealRules.pick(me, parsed.logId(), logs, ap);
             if (pick.error() != null) throw err(pick.error());
             LogEntry target = null;
@@ -399,11 +405,25 @@ public final class Cmds {
     // =============================================================== /donate
 
     private static LiteralArgumentBuilder<ServerCommandSource> donate() {
-        return lit("donate").executes(c -> {
-            String e = h().donations.open(player(c));
-            if (e != null) throw err(e);
-            return 1;
-        });
+        // Extra words ("/donate food") are accepted and ignored: they just open the chest.
+        return lit("donate").executes(DONATE)
+                .then(arg("ignored", StringArgumentType.greedyString()).executes(DONATE));
+    }
+
+    private static final com.mojang.brigadier.Command<ServerCommandSource> DONATE = Cmds::donateOpen;
+
+    private static int donateOpen(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
+        String e;
+        try {
+            e = h().donations.open(player(c));
+        } catch (CommandSyntaxException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            Honor.LOG.error("/donate failed to open the chest", ex);
+            throw err("Usage: /donate, then put food in the chest. The chest could not be opened (see the server log); tell an op.");
+        }
+        if (e != null) throw err(e);
+        return 1;
     }
 
     // =============================================================== /fine
@@ -468,7 +488,7 @@ public final class Cmds {
 
     private static LiteralArgumentBuilder<ServerCommandSource> bounty() {
         return lit("bounty")
-                .then(lit("set").then(playerArg("player").executes(c -> {
+                .then(lit("set").executes(usage("/bounty set <player>")).then(playerArg("player").executes(c -> {
                     Honor h = h();
                     String err = h.bounties.openSet(player(c), target(c, "player"));
                     if (err != null) throw err(err);
@@ -511,7 +531,7 @@ public final class Cmds {
 
     private static Civ myCiv(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
         Civ civ = h().civOf(player(c).getUuid().toString());
-        if (civ == null) throw err("You are not in a civilization.");
+        if (civ == null) throw err("You are not in a civilization. Create one with /civ create <name> or ask a leader to /civ invite you.");
         return civ;
     }
 
@@ -521,13 +541,13 @@ public final class Cmds {
 
     private static LiteralArgumentBuilder<ServerCommandSource> civ() {
         return lit("civ")
-                .then(lit("create").then(arg("name", StringArgumentType.greedyString()).executes(c -> {
+                .then(lit("create").executes(usage("/civ create <name>")).then(arg("name", StringArgumentType.greedyString()).executes(c -> {
                     Honor h = h();
                     ServerPlayerEntity p = player(c);
                     String name = StringArgumentType.getString(c, "name").trim();
-                    if (name.isEmpty() || name.length() > h.config.civNameMaxLength) throw err("Names are 1 to " + h.config.civNameMaxLength + " characters.");
-                    if (h.civOf(p.getUuid().toString()) != null) throw err("Leave your current civilization first.");
-                    if (h.civByName(name) != null) throw err("That name is taken.");
+                    if (name.isEmpty() || name.length() > h.config.civNameMaxLength) throw err("Usage: /civ create <name>. Names are 1 to " + h.config.civNameMaxLength + " characters.");
+                    if (h.civOf(p.getUuid().toString()) != null) throw err("Leave your current civilization first with /civ leave.");
+                    if (h.civByName(name) != null) throw err("That name is taken. Pick another: /civ create <name>.");
                     Civ civ = new Civ();
                     civ.id = UUID.randomUUID().toString();
                     civ.name = name;
@@ -541,14 +561,14 @@ public final class Cmds {
                             .formatted(Formatting.GOLD), false);
                     return 1;
                 })))
-                .then(lit("invite").then(playerArg("player").executes(c -> {
+                .then(lit("invite").executes(usage("/civ invite <player>")).then(playerArg("player").executes(c -> {
                     Honor h = h();
                     ServerPlayerEntity p = player(c);
                     Civ civ = myCiv(c);
-                    if (!canManage(civ, p.getUuid().toString())) throw err("Only the leader or officers can invite.");
+                    if (!canManage(civ, p.getUuid().toString())) throw err("Only the leader or officers can invite. Ask one of them.");
                     String n = StringArgumentType.getString(c, "player");
                     ServerPlayerEntity t = h.server.getPlayerManager().getPlayer(n);
-                    if (t == null) throw err(n + " is not online.");
+                    if (t == null) throw err(n + " is not online. Invites only work for online players; try again when they join.");
                     if (civ.members.contains(t.getUuid().toString())) throw err(n + " is already a member of your civilization.");
                     if (h.civOf(t.getUuid().toString()) != null) throw err(n + " is already in a civilization.");
                     h.invites.put(t.getUuid(), new Honor.Invite(civ.id, System.currentTimeMillis() + h.config.inviteExpirySeconds * 1000L, p.getName().getString()));
@@ -557,14 +577,14 @@ public final class Cmds {
                     say(c, "Invited " + n + ".");
                     return 1;
                 })))
-                .then(lit("join").then(arg("name", StringArgumentType.greedyString()).executes(c -> {
+                .then(lit("join").executes(usage("/civ join <name>")).then(arg("name", StringArgumentType.greedyString()).executes(c -> {
                     Honor h = h();
                     ServerPlayerEntity p = player(c);
-                    if (h.civOf(p.getUuid().toString()) != null) throw err("Leave your current civilization first.");
+                    if (h.civOf(p.getUuid().toString()) != null) throw err("Leave your current civilization first with /civ leave.");
                     Civ civ = h.civByName(StringArgumentType.getString(c, "name").trim());
                     Honor.Invite inv = h.invites.get(p.getUuid());
                     if (civ == null || inv == null || !inv.civId().equals(civ.id) || inv.expiresMs() < System.currentTimeMillis()) {
-                        throw err("You have no valid invite to that civilization.");
+                        throw err("You have no valid invite to that civilization. Ask a leader or officer to /civ invite you (invites expire).");
                     }
                     h.invites.remove(p.getUuid());
                     civ.members.add(p.getUuid().toString());
@@ -578,7 +598,7 @@ public final class Cmds {
                     ServerPlayerEntity p = player(c);
                     Civ civ = myCiv(c);
                     String id = p.getUuid().toString();
-                    if (civ.leader.equals(id)) throw err("The leader cannot leave. Use /civ disband.");
+                    if (civ.leader.equals(id)) throw err("The leader cannot leave. Use /civ disband to dissolve the civilization.");
                     civ.members.remove(id);
                     civ.officers.remove(id);
                     civ.guards.remove(id);
@@ -587,13 +607,13 @@ public final class Cmds {
                     broadcastCiv(h, civ, p.getName().getString() + " left the civilization.");
                     return 1;
                 }))
-                .then(lit("kick").then(playerArg("player").executes(c -> {
+                .then(lit("kick").executes(usage("/civ kick <player>")).then(playerArg("player").executes(c -> {
                     Honor h = h();
                     ServerPlayerEntity p = player(c);
                     Civ civ = myCiv(c);
-                    if (!canManage(civ, p.getUuid().toString())) throw err("Only the leader or officers can kick.");
+                    if (!canManage(civ, p.getUuid().toString())) throw err("Only the leader or officers can kick. Ask one of them.");
                     PlayerRecord r = target(c, "player");
-                    if (!civ.members.contains(r.uuid)) throw err(r.name + " is not in your civilization.");
+                    if (!civ.members.contains(r.uuid)) throw err(r.name + " is not in your civilization. See /civ info for your members.");
                     if (civ.leader.equals(r.uuid)) throw err("You cannot kick the leader.");
                     if (civ.officers.contains(r.uuid) && !civ.leader.equals(p.getUuid().toString())) throw err("Only the leader can kick an officer.");
                     civ.members.remove(r.uuid);
@@ -603,13 +623,13 @@ public final class Cmds {
                     broadcastCiv(h, civ, r.name + " was kicked by " + p.getName().getString() + ".");
                     return 1;
                 })))
-                .then(lit("promote").then(playerArg("player").executes(c -> {
+                .then(lit("promote").executes(usage("/civ promote <player>")).then(playerArg("player").executes(c -> {
                     Honor h = h();
                     ServerPlayerEntity p = player(c);
                     Civ civ = myCiv(c);
-                    if (!civ.leader.equals(p.getUuid().toString())) throw err("Only the leader can promote.");
+                    if (!civ.leader.equals(p.getUuid().toString())) throw err("Only the leader can promote. Ask the leader.");
                     PlayerRecord r = target(c, "player");
-                    if (!civ.members.contains(r.uuid)) throw err(r.name + " is not in your civilization.");
+                    if (!civ.members.contains(r.uuid)) throw err(r.name + " is not in your civilization. See /civ info for your members.");
                     if (civ.leader.equals(r.uuid)) throw err("That is you.");
                     if (!civ.officers.add(r.uuid)) {
                         say(c, "Already an officer");
@@ -619,13 +639,13 @@ public final class Cmds {
                     broadcastCiv(h, civ, r.name + " is now an officer.");
                     return 1;
                 })))
-                .then(lit("guard").then(playerArg("player").executes(c -> {
+                .then(lit("guard").executes(usage("/civ guard <player>")).then(playerArg("player").executes(c -> {
                     Honor h = h();
                     ServerPlayerEntity p = player(c);
                     Civ civ = myCiv(c);
-                    if (!canManage(civ, p.getUuid().toString())) throw err("Only the leader or officers can assign guards.");
+                    if (!canManage(civ, p.getUuid().toString())) throw err("Only the leader or officers can assign guards. Ask one of them.");
                     PlayerRecord r = target(c, "player");
-                    if (!civ.members.contains(r.uuid)) throw err(r.name + " is not in your civilization.");
+                    if (!civ.members.contains(r.uuid)) throw err(r.name + " is not in your civilization. See /civ info for your members.");
                     boolean added = civ.guards.add(r.uuid);
                     if (!added) civ.guards.remove(r.uuid);
                     h.markDirty();
@@ -651,7 +671,7 @@ public final class Cmds {
                     Honor h = h();
                     ServerPlayerEntity p = player(c);
                     Civ civ = myCiv(c);
-                    if (!civ.leader.equals(p.getUuid().toString())) throw err("Only the leader can disband.");
+                    if (!civ.leader.equals(p.getUuid().toString())) throw err("Only the leader can disband. Ask the leader, or use /civ leave.");
                     h.data.civs.remove(civ.id);
                     h.markDirty();
                     h.server.getPlayerManager().broadcast(Text.literal(civ.name + " has been disbanded.").formatted(Formatting.GOLD), false);
@@ -664,7 +684,7 @@ public final class Cmds {
                         })
                         .then(arg("name", StringArgumentType.greedyString()).executes(c -> {
                             Civ civ = h().civByName(StringArgumentType.getString(c, "name").trim());
-                            if (civ == null) throw err("No civilization with that name.");
+                            if (civ == null) throw err("No civilization with that name. See /civ list.");
                             info(c, civ);
                             return 1;
                         })))

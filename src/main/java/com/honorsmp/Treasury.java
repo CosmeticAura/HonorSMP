@@ -120,7 +120,7 @@ public final class Treasury {
         handler = ChestUi.open(p, Text.literal("Treasury"), 6, inv, who -> close(who));
         if (handler == null) {
             close(null);
-            return "Could not open the treasury.";
+            return "Could not open the treasury. Press Esc to close any other screen and run /honor treasury again.";
         }
         return null;
     }

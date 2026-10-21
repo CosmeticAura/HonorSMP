@@ -184,10 +184,10 @@ public final class Fines {
      * When afterClose is set (opened from a case menu) it runs once the fine was saved or cancelled.
      */
     public String openEditor(ServerPlayerEntity judge, PlayerRecord target, int caseId, Runnable afterClose) {
-        if (!h.isJudge(judge)) return "Only judges can fine players.";
-        if (open.containsKey(judge.getUuid())) return "Close your other fine screen first.";
+        if (!h.isJudge(judge)) return "Only judges can fine players. If you have a fine, pay it with /fine pay.";
+        if (open.containsKey(judge.getUuid())) return "You already have a fine screen open. Press Esc to close it, then run the command again.";
         if (!FineTimer.canBeFined(h.isJudge(target.uuid))) return target.name + " is a judge. Judges cannot be fined.";
-        if (target.uuid.equals(judge.getUuid().toString())) return "You cannot fine yourself.";
+        if (target.uuid.equals(judge.getUuid().toString())) return "You cannot fine yourself. Use /fine <player> on someone else.";
         SimpleInventory inv = new SimpleInventory(EDIT_ROWS * 9);
         Session s = new Session(judge, false, target.uuid, caseId, inv);
         s.afterClose = afterClose;
@@ -195,7 +195,7 @@ public final class Fines {
         s.handler = ChestUi.open(judge, Text.literal("Fine for " + target.name + " (close to confirm)"), EDIT_ROWS, inv, who -> closeEdit(s));
         if (s.handler == null) {
             open.remove(judge.getUuid());
-            return "Could not open the fine screen.";
+            return "Could not open the fine screen. Press Esc to close any other screen and run /fine <player> again.";
         }
         return null;
     }
@@ -276,7 +276,7 @@ public final class Fines {
 
     /** fineId 0 = the oldest open fine. Returns an error message, or null when the chest opened. */
     public String openPay(ServerPlayerEntity p, int fineId) {
-        if (open.containsKey(p.getUuid())) return "Close your other fine screen first.";
+        if (open.containsKey(p.getUuid())) return "You already have a fine screen open. Press Esc to close it, then run the command again.";
         List<Fine> mine = openFor(p.getUuid().toString());
         Fine f = null;
         if (fineId == 0) {
@@ -284,7 +284,7 @@ public final class Fines {
         } else {
             for (Fine x : mine) if (x.id == fineId) f = x;
         }
-        if (f == null) return fineId == 0 ? "You have no open fines." : "You have no open fine #" + fineId + ".";
+        if (f == null) return fineId == 0 ? "You have no open fines. Nothing to pay." : "You have no open fine #" + fineId + ". Type /fine to see your open fines.";
         List<ItemStack> owed = decode(f);
         SimpleInventory inv = new SimpleInventory(54);
         for (int i = 0; i < owed.size() && i < PAY_DISPLAY; i++) inv.setStack(i, owed.get(i));
@@ -294,7 +294,7 @@ public final class Fines {
                 (syncId, playerInv, player) -> new PayHandler(syncId, playerInv, inv));
         if (s.handler == null) {
             open.remove(p.getUuid());
-            return "Could not open the payment screen.";
+            return "Could not open the payment screen. Press Esc to close any other screen and run /fine pay again.";
         }
         ((PayHandler) s.handler).session = s;
         return null;
@@ -399,7 +399,7 @@ public final class Fines {
     /** Returns an error message or null. */
     public String cancel(int id, String byName) {
         Fine f = find(id);
-        if (f == null) return "No fine #" + id + ".";
+        if (f == null) return "No fine #" + id + ". Type /fine list to see open fines.";
         if (!"OPEN".equals(f.status)) return "Fine #" + id + " is already " + f.status.toLowerCase() + ".";
         f.status = "CANCELLED";
         f.closedAt = System.currentTimeMillis();

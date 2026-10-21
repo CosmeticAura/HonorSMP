@@ -150,10 +150,10 @@ public final class Donations {
 
     /** Returns an error message, or null when the chest opened. */
     public String open(ServerPlayerEntity p) {
-        if (h.isJudge(p)) return "Judges cannot donate. Honor rules do not apply to judges.";
+        if (h.isJudge(p)) return "Judges cannot donate: judges are outside the honor system and earn no honor. Nothing to do here.";
         Session old = open.get(p.getUuid());
         if (old != null) {
-            if (!old.closed && p.currentScreenHandler == old.handler) return "Close your donation screen first.";
+            if (!old.closed && p.currentScreenHandler == old.handler) return "Your donation chest is already open. Press Esc to close it, then type /donate again.";
             open.remove(p.getUuid()); // stale
         }
         PlayerRecord r = h.record(p);
@@ -168,7 +168,7 @@ public final class Donations {
                 (syncId, playerInv, player) -> new DonateHandler(syncId, playerInv, inv, s));
         if (s.handler == null) {
             open.remove(p.getUuid());
-            return "Could not open the donation screen.";
+            return "Could not open the donation chest. Press Esc to close any other screen and type /donate again. If it keeps failing, tell an op.";
         }
         if (DonateMath.remainingToday(r, today, h.config) <= 0) {
             tell(p, "You have already reached today's donation limit (" + h.config.donateDailyCap + " honor). Come back tomorrow.", Formatting.YELLOW);
@@ -234,7 +234,7 @@ public final class Donations {
         }
 
         private void refuseFull() {
-            tell(s.player, "You have reached today's donation limit.", Formatting.RED);
+            tell(s.player, "You have reached today's donation limit. You can't add more food today; click Close to get it back.", Formatting.RED);
         }
 
         @Override
@@ -354,7 +354,7 @@ public final class Donations {
         List<ItemStack> items = new ArrayList<>();
         for (int i = 0; i < FOOD_SLOTS; i++) if (!s.inv.getStack(i).isEmpty()) items.add(s.inv.getStack(i));
         if (items.isEmpty()) {
-            tell(p, "Put some food in first.", Formatting.YELLOW);
+            tell(p, "Put some food in the top two rows of the chest first, then click Confirm.", Formatting.YELLOW);
             return;
         }
         PlayerRecord r = h.record(p);
@@ -364,7 +364,7 @@ public final class Donations {
         long raw = (hungerIn(s.inv) + r.donateCarry) / Math.max(1, h.config.honorPerHungerPoints);
         long remaining = q.remainingToday();
         if (raw > remaining) {
-            if (remaining <= 0) tell(p, "You have reached today's donation limit.", Formatting.RED);
+            if (remaining <= 0) tell(p, "You have reached today's donation limit. Take your food out (Close gives it back) and come back tomorrow.", Formatting.RED);
             else tell(p, "Too much food for today's limit: take some out. You can still earn " + remaining + " honor today.", Formatting.YELLOW);
             return;
         }

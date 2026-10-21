@@ -169,10 +169,10 @@ public final class Bounties {
         String err = busy(p);
         if (err != null) return err;
         String me = p.getUuid().toString();
-        if (target.uuid.equals(me)) return "You cannot put a bounty on yourself.";
-        if (!h.tier(target).isDishonored()) return target.name + " is not dishonored. Bounties can only go on dishonored players.";
+        if (target.uuid.equals(me)) return "You cannot put a bounty on yourself. Pick another player: /bounty set <player>.";
+        if (!h.tier(target).isDishonored()) return target.name + " is not dishonored. Bounties can only go on dishonored players; see /honor top for who is.";
         Civ mine = h.civOf(me);
-        if (mine != null && mine.members.contains(target.uuid)) return "You cannot put a bounty on a member of your own civilization.";
+        if (mine != null && mine.members.contains(target.uuid)) return "You cannot put a bounty on a member of your own civilization. Pick another player: /bounty set <player>.";
 
         SimpleInventory inv = new SimpleInventory(SET_ROWS * 9);
         Session s = new Session(p, false, target.uuid, inv);
@@ -181,7 +181,7 @@ public final class Bounties {
         s.handler = ChestUi.open(p, Text.literal("Bounty on " + target.name), SET_ROWS, inv, who -> closeSet(s));
         if (s.handler == null) {
             open.remove(p.getUuid());
-            return "Could not open the bounty screen.";
+            return "Could not open the bounty screen. Press Esc to close any other screen and run /bounty set <player> again.";
         }
         return null;
     }
@@ -242,9 +242,9 @@ public final class Bounties {
         String err = busy(p);
         if (err != null) return err;
         String id = p.getUuid().toString();
-        if (escrow.boxItems(id) <= 0 || escrow.isBoxOpen(id)) return "You have no bounty to claim.";
+        if (escrow.boxItems(id) <= 0 || escrow.isBoxOpen(id)) return "You have no bounty to claim. You get one by killing a player who has a bounty on them (see /bounty list).";
         List<ItemStack> stacks = escrow.openBox(id, CLAIM_ROWS * 9);
-        if (stacks == null) return "Your claim box is already open.";
+        if (stacks == null) return "Your claim box is already open. Press Esc to close it, then run /bounty claim again.";
         SimpleInventory inv = new SimpleInventory(CLAIM_ROWS * 9);
         for (int i = 0; i < stacks.size(); i++) inv.setStack(i, stacks.get(i));
         Session s = new Session(p, true, null, inv);
@@ -252,7 +252,7 @@ public final class Bounties {
         s.handler = ChestUi.openCustom(p, Text.literal("Bounty claim"), (syncId, playerInv, who) -> new TakeOnlyHandler(syncId, playerInv, inv, s));
         if (s.handler == null) {
             closeClaim(s);
-            return "Could not open the claim box.";
+            return "Could not open the claim box. Press Esc to close any other screen and run /bounty claim again.";
         }
         return null;
     }
@@ -408,7 +408,7 @@ public final class Bounties {
                 if (s.claim) closeClaim(s);
                 else closeSet(s);
             } else {
-                return "You already have a bounty screen open.";
+                return "You already have a bounty screen open. Press Esc to close it, then run the command again.";
             }
         }
         return null;
