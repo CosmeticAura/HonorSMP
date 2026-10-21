@@ -3,7 +3,7 @@ package com.honorsmp;
 import com.honorsmp.HonorData.PlayerRecord;
 import com.honorsmp.logic.DonateMath;
 import com.honorsmp.logic.DonationRules;
-import com.honorsmp.logic.DonationSplit;
+import com.honorsmp.logic.DonationRotation;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import com.google.gson.JsonElement;
@@ -106,6 +106,7 @@ public final class Donations {
             }
         }
         h.data.donatePending = new LinkedHashMap<>();
+        migratePots();
     }
 
     private static void tell(ServerPlayerEntity p, String m, Formatting f) {
@@ -380,12 +381,7 @@ public final class Donations {
         s.closed = true;
         if (open.get(p.getUuid()) == s) open.remove(p.getUuid());
         for (int i = 0; i < FOOD_SLOTS; i++) s.inv.setStack(i, ItemStack.EMPTY);
-        Map<String, Long> each = DonationSplit.apply(h.data.donatePots, counts, rec.size());
-        for (var e : each.entrySet()) {
-            if (e.getValue() <= 0) continue;
-            int n = (int) Math.min(Integer.MAX_VALUE, e.getValue());
-            for (String uuid : rec) h.donationBox.give(uuid, sample.get(e.getKey()), n);
-        }
+        shareOut(counts, sample, rec, p.getName().getString());
         DonateMath.apply(q, r, today);
         if (q.honor() > 0) h.change(p.getUuid().toString(), p.getName().getString(), q.honor(), "Donated items", "donate", p, "", 0);
         h.markDirty();
@@ -395,6 +391,59 @@ public final class Donations {
         h.server.getPlayerManager().broadcast(Text.literal(p.getName().getString() + " donated " + String.join(", ", names)
                 + ". Use /donation to claim your share.").formatted(Formatting.GOLD), false);
         p.closeHandledScreen();
+    }
+
+    /** Hands counts (item id to amount) to the recipients by rotation, files them in their claim boxes and tells them. */
+    private void shareOut(Map<String, Long> counts, Map<String, ItemStack> sample, List<String> rec, String donor) {
+        Map<String, Map<String, Long>> shares = DonationRotation.share(h.data.donateRotation, counts, rec);
+        if (shares == null) return;
+        for (var r : shares.entrySet()) {
+            Map<String, Long> named = new LinkedHashMap<>();
+            for (var it : r.getValue().entrySet()) {
+                long n = it.getValue();
+                while (n > 0) {
+                    int chunk = (int) Math.min(Integer.MAX_VALUE, n);
+                    h.donationBox.give(r.getKey(), sample.get(it.getKey()), chunk);
+                    n -= chunk;
+                }
+                named.merge(sample.get(it.getKey()).getItemName().getString(), it.getValue(), Long::sum);
+            }
+            h.donationBox.notifyShare(r.getKey(), DonationRotation.notice(DonationRotation.describe(named), donor));
+        }
+    }
+
+    /**
+     * Startup: hands out the old leftover pots (1.4.x) by rotation among everyone who has joined. Entries whose
+     * item cannot be resolved stay in donatePots and are retried next start. Running it again with an empty
+     * pot does nothing.
+     */
+    private void migratePots() {
+        Map<String, Long> pots = h.data.donatePots;
+        if (pots == null || pots.isEmpty()) return;
+        List<String> rec = new ArrayList<>(h.data.players.keySet());
+        if (rec.isEmpty()) return; // nobody to give to yet: keep the pots
+        Map<String, Long> ready = new LinkedHashMap<>();
+        Map<String, ItemStack> sample = new LinkedHashMap<>();
+        Map<String, Long> keep = new LinkedHashMap<>();
+        for (var e : pots.entrySet()) {
+            long n = e.getValue() == null ? 0 : e.getValue();
+            if (n <= 0) continue;
+            try {
+                net.minecraft.util.Identifier ident = net.minecraft.util.Identifier.tryParse(e.getKey());
+                if (ident == null || !Registries.ITEM.containsId(ident)) throw new IllegalStateException("unknown item");
+                ItemStack st = new ItemStack(Registries.ITEM.get(ident));
+                if (st.isEmpty()) throw new IllegalStateException("empty item");
+                ready.put(e.getKey(), n);
+                sample.put(e.getKey(), st);
+            } catch (Exception ex) {
+                Honor.LOG.error("Could not read old donation pot entry {} ({}); keeping it for the next start", e.getKey(), n, ex);
+                keep.put(e.getKey(), n);
+            }
+        }
+        if (!ready.isEmpty()) shareOut(ready, sample, rec, "an earlier donation");
+        h.data.donatePots = keep;
+        h.markDirty();
+        Honor.LOG.info("Handed out the old donation pots ({} item types, {} kept)", ready.size(), keep.size());
     }
 
     private void settle(Session s) {

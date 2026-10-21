@@ -130,6 +130,8 @@ public class Honor {
         if (data.donatePending == null) data.donatePending = new LinkedHashMap<>();
         if (data.donateBoxes == null) data.donateBoxes = new LinkedHashMap<>();
         if (data.donatePots == null) data.donatePots = new LinkedHashMap<>();
+        if (data.donateRotation == null) data.donateRotation = new LinkedHashMap<>();
+        if (data.donateNotices == null) data.donateNotices = new LinkedHashMap<>();
         if (data.civChestNotices == null) data.civChestNotices = new LinkedHashMap<>();
         if (data.logs == null) data.logs = new ArrayList<>();
         if (data.cases == null) data.cases = new ArrayList<>();

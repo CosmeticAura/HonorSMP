@@ -120,7 +120,27 @@ public final class DonationBox {
 
     // ------------------------------------------------------------ login
 
+    /** Tells a player about a donation share now if online, otherwise on their next login. */
+    public void notifyShare(String uuid, String msg) {
+        ServerPlayerEntity online = null;
+        try {
+            online = h.server.getPlayerManager().getPlayer(UUID.fromString(uuid));
+        } catch (IllegalArgumentException ignored) {
+        }
+        if (online != null) {
+            online.sendMessage(Text.literal(msg).formatted(Formatting.GREEN));
+            return;
+        }
+        com.honorsmp.logic.DonationRotation.addNotice(h.data.donateNotices.computeIfAbsent(uuid, k -> new ArrayList<>()), msg);
+    }
+
     public void onLogin(ServerPlayerEntity p) {
+        List<String> waiting = h.data.donateNotices.remove(p.getUuid().toString());
+        if (waiting != null) {
+            for (String m : waiting) p.sendMessage(Text.literal(m).formatted(Formatting.GREEN));
+            h.markDirty();
+            if (!waiting.isEmpty()) return;
+        }
         long n = itemsFor(p.getUuid().toString());
         if (n > 0) p.sendMessage(Text.literal("You have " + n + " donated items to claim. Use /donation.").formatted(Formatting.GREEN));
     }
@@ -136,7 +156,7 @@ public final class DonationBox {
         }
         String id = p.getUuid().toString();
         if (escrow.boxItems(id) <= 0 || escrow.isBoxOpen(id)) {
-            return "Nothing to claim. Other players' donations show up here when someone donates (/donate); you only share in donations made after you first joined.";
+            return "Nothing to claim right now. When someone uses /donate, your share shows up here.";
         }
         Session s = new Session(p);
         fill(s);
@@ -307,6 +327,8 @@ public final class DonationBox {
         escrow.clear();
         h.data.donateBoxes = new LinkedHashMap<>();
         h.data.donatePots = new LinkedHashMap<>();
+        h.data.donateRotation = new LinkedHashMap<>();
+        h.data.donateNotices = new LinkedHashMap<>();
         for (ServerPlayerEntity p : viewers) p.closeHandledScreen();
     }
 

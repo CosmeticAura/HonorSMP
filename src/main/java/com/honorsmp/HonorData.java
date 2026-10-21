@@ -34,8 +34,12 @@ public class HonorData {
     public Map<String, List<com.google.gson.JsonElement>> donatePending = new LinkedHashMap<>();
     /** Player uuid to the donated stacks (codec JSON) waiting in their /donation claim box. Added in 1.4.0. */
     public Map<String, List<com.google.gson.JsonElement>> donateBoxes = new LinkedHashMap<>();
-    /** Item id to the leftover count that did not split evenly yet. Added in 1.4.0. */
+    /** Old (1.4.0) leftover pot, item id to count. Only read once to hand it out, then emptied (entries that could not be read stay). */
     public Map<String, Long> donatePots = new LinkedHashMap<>();
+    /** Item id to the rotation index of its remainder hand-out (index into the sorted recipient uuids). Added in 1.5.0. */
+    public Map<String, Integer> donateRotation = new LinkedHashMap<>();
+    /** Player uuid to messages waiting for their next login about donation shares (max 20). Added in 1.5.0. */
+    public Map<String, List<String>> donateNotices = new LinkedHashMap<>();
     /** Leader uuid to how many chest items from a disbanded civ were moved to their donation box while offline. Added in 1.5.0. */
     public Map<String, Long> civChestNotices = new LinkedHashMap<>();
     /** Member uuid to the last known respawn point (bed/anchor). Cached so offline members still count for the siege home. Added in 1.5.0. */
@@ -66,6 +70,8 @@ public class HonorData {
         if (donatePending != null) donatePending.clear();
         if (donateBoxes != null) donateBoxes.clear();
         if (donatePots != null) donatePots.clear();
+        if (donateRotation != null) donateRotation.clear();
+        if (donateNotices != null) donateNotices.clear();
         if (civChestNotices != null) civChestNotices.clear();
         logs.clear();
         cases.clear();
