@@ -36,7 +36,8 @@ class PlayerCommandsTest {
             "bounty set Steve", "bounty claim", "bounty list", "bounty list text",
             "civ create My Civ", "civ invite Steve", "civ join My Civ", "civ leave", "civ kick Steve",
             "civ promote Steve", "civ guard Steve", "civ disband",
-            "civ info", "civ info My Civ", "civ list");
+            "civ info", "civ info My Civ", "civ list", "civ top",
+            "cc", "cc hello civ");
 
     /** Commands typed without their argument: allowed, and answer with a Usage line. */
     static final List<String> BARE = List.of("appeal", "bounty set", "civ create", "civ invite", "civ join",
@@ -104,7 +105,7 @@ class PlayerCommandsTest {
 
     @Test
     void everyRootNodeIsUsableAtLevelZero() {
-        for (String root : List.of("honor", "civ", "bounty", "appeal", "fine", "donate", "donation")) {
+        for (String root : List.of("honor", "civ", "cc", "bounty", "appeal", "fine", "donate", "donation")) {
             CommandNode<ServerCommandSource> n = d.getRoot().getChild(root);
             assertNotNull(n, root + " is not registered");
             assertTrue(n.canUse(src), "/" + root + " is hidden from non-ops");

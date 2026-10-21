@@ -59,6 +59,7 @@ public class HonorSMP implements ModInitializer {
             if (h == null) return;
             ServerPlayerEntity p = handler.getPlayer();
             Sidebar.forget(p);
+            CivSafety.CHAT_MODE.remove(p.getUuid());
             h.treasury.closeIfViewer(p);
             h.bounties.closeFor(p);
             h.fines.closeFor(p);
@@ -76,6 +77,9 @@ public class HonorSMP implements ModInitializer {
             if (h != null && player instanceof ServerPlayerEntity sp && Compass.isCompass(st)) Compass.onUse(h, sp, st);
             return ActionResult.PASS;
         });
+        ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> CivSafety.allowDamage(entity, source));
+        net.fabricmc.fabric.api.message.v1.ServerMessageEvents.ALLOW_CHAT_MESSAGE.register(
+                (message, sender, params) -> CivSafety.allowChat(sender, message.getSignedContent()));
         ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, taken, blocked) -> onDamage(entity, source, taken));
         ServerLivingEntityEvents.AFTER_DEATH.register(HonorSMP::onDeath);
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, be) -> {

@@ -105,6 +105,7 @@ public final class Cmds {
     public static void register(CommandDispatcher<ServerCommandSource> d) {
         d.register(honor());
         d.register(civ());
+        d.register(cc());
         d.register(bounty());
         d.register(appeal());
         d.register(fine());
@@ -698,6 +699,10 @@ public final class Cmds {
                             info(c, civ);
                             return 1;
                         })))
+                .then(lit("top").executes(c -> {
+                    civTop(c);
+                    return 1;
+                }))
                 .then(lit("list").executes(c -> {
                     Honor h = h();
                     if (h.data.civs.isEmpty()) say(c, "No civilizations yet.");
@@ -705,6 +710,51 @@ public final class Cmds {
                         say(c, civ.name + "  (" + Honor.sideName(h.civSide(civ)) + ", " + civ.members.size() + " members)  leader "
                                 + h.nameOf(civ.leader));
                     }
+                    return 1;
+                }));
+    }
+
+    private static void civTop(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
+        Honor h = h();
+        List<CivLeaderboard.CivIn> in = new ArrayList<>();
+        for (Civ civ : h.data.civs.values()) in.add(new CivLeaderboard.CivIn(civ.name, civ.members));
+        List<CivLeaderboard.Row> rows = CivLeaderboard.top(in, id -> {
+            PlayerRecord r = h.data.players.get(id);
+            return r == null ? 0 : r.score;
+        }, h::isJudge, 10);
+        if (rows.isEmpty()) {
+            say(c, "No civilizations yet. Start one with /civ create <name>.");
+            return;
+        }
+        say(c, Text.literal("Top civilizations (total honor of members, judges not counted):").formatted(Formatting.GOLD));
+        int i = 1;
+        for (CivLeaderboard.Row r : rows) {
+            say(c, "#" + i++ + " " + r.name() + "  " + r.totalHonor() + " honor, " + r.memberCount() + " members");
+        }
+    }
+
+    private static LiteralArgumentBuilder<ServerCommandSource> cc() {
+        return lit("cc")
+                .executes(c -> {
+                    Honor h = h();
+                    ServerPlayerEntity p = player(c);
+                    if (h.civOf(p.getUuid().toString()) == null) {
+                        CivSafety.CHAT_MODE.remove(p.getUuid());
+                        throw err("You are not in a civilization, so there is no civ chat. Create one with /civ create <name> or ask a leader to /civ invite you.");
+                    }
+                    if (CivSafety.CHAT_MODE.remove(p.getUuid())) say(c, Text.literal("Civ chat OFF: your messages go to everyone again.").formatted(Formatting.AQUA));
+                    else {
+                        CivSafety.CHAT_MODE.add(p.getUuid());
+                        say(c, Text.literal("Civ chat ON: your messages go only to your civ. Type /cc again to turn it off.").formatted(Formatting.AQUA));
+                    }
+                    return 1;
+                })
+                .then(arg("message", StringArgumentType.greedyString()).executes(c -> {
+                    Honor h = h();
+                    ServerPlayerEntity p = player(c);
+                    Civ civ = h.civOf(p.getUuid().toString());
+                    if (civ == null) throw err("You are not in a civilization, so there is no civ chat. Create one with /civ create <name> or ask a leader to /civ invite you.");
+                    CivSafety.sendCivChat(h, p, civ, StringArgumentType.getString(c, "message"));
                     return 1;
                 }));
     }
