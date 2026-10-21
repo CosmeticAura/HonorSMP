@@ -96,6 +96,9 @@ public class HonorData {
         public boolean onlineBonusGiven = false;
         public int secondsSinceDeath = 0;
         public long lastSeen = 0;
+        public String donateDayKey = "";
+        public int donatedHonorToday = 0;
+        public int donateCarry = 0;
     }
 
     public static class Civ {

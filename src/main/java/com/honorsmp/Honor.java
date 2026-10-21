@@ -530,7 +530,7 @@ public class Honor {
             r.lastSeen = now;
             if (!r.onlineBonusGiven && !r.lostHonorToday && r.onlineSecondsToday >= config.onlineBonusHours * 3600L) {
                 r.onlineBonusGiven = true;
-                change(r.uuid, r.name, config.onlineBonusHonor, config.onlineBonusHours + " hours online without losing honor", "auto", p, "", 0);
+                if (config.onlineBonusHonor > 0) change(r.uuid, r.name, config.onlineBonusHonor, config.onlineBonusHours + " hours online without losing honor", "auto", p, "", 0);
             }
             if (seconds % 5 == 0) refreshPlayer(p);
         }

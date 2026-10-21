@@ -36,7 +36,15 @@ public class HonorConfig {
     public int killNoFirstHit = -30;
     public int selfDefenseWindowSeconds = 15;
     public int onlineBonusHours = 3;
-    public int onlineBonusHonor = 5;
+    public int onlineBonusHonor = 0;
+
+    // donations (/donate)
+    public int honorPerHungerPoints = 20;
+    public int donateDailyCap = 25;
+    public java.util.List<String> donateZeroFoods = new java.util.ArrayList<>(java.util.List.of(
+            "minecraft:rotten_flesh", "minecraft:spider_eye", "minecraft:poisonous_potato",
+            "minecraft:pufferfish", "minecraft:suspicious_stew"));
+    public int donateCakeHunger = 14;
 
     // anti farming
     public int sameVictimCooldownMinutes = 30;
