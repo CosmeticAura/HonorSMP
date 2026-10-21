@@ -73,9 +73,16 @@ The mod handles the obvious stuff:
 > Killing in self defense: no change
 > Killing someone unarmed with no armor: -60
 > Not paying your civ's weekly tax: -10 a day for every member
-> Donating food with /donate: 1 honor per 20 hunger points, up to 25 a day
+> Donating with /donate: 1 honor per 20 points, up to 25 a day
+> Curing a zombie villager: +10 (30 a day max)
+> Harvesting 64 grown crops by hand: +1 (10 a day max)
+> Breeding 5 animals: +1 (5 a day max). Trading 10 times with villagers: +1 (5 a day max)
+> Winning a raid: +15
+> Helping kill the Wither, Ender Dragon or Warden: +15 (once per boss a day)
+> Killing a villager or wandering trader: -15
+> Killing another player's tamed pet: -20
 
-The mod decides most kills by itself by checking who hit first, gear and tiers. Only the kills it can't call go to a judge. They get a case book with who hit first and what everyone was wearing, then confirm or change the call. Think a call was wrong? Use /appeal and your reason (your latest change, or /appeal and a case number for an older one). You get one open appeal at a time and each change can be appealed once. Judges are players the admins picked, not ops. Judges can rule on any case, even their own, so expect the other judges to check anything that looks off. They can also award honor for good deeds and big builds, and fine players. A fine is a set of items you pay with /fine pay, and every 2.5 hours it stays unpaid costs you 10 honor. Players can also turn spare food into honor with /donate, and the food goes to the judges' treasury.
+The mod decides most kills by itself by checking who hit first, gear and tiers. Only the kills it can't call go to a judge. They get a case book with who hit first and what everyone was wearing, then confirm or change the call. Think a call was wrong? Use /appeal and your reason (your latest change, or /appeal and a case number for an older one). You get one open appeal at a time and each change can be appealed once. Judges are players the admins picked, not ops. Judges can rule on any case, even their own, so expect the other judges to check anything that looks off. They can also award honor for good deeds and big builds, and fine players. A fine is a set of items you pay with /fine pay, and every 2.5 hours it stays unpaid costs you 10 honor. Players can also turn spare food, golden apples, totems and ender pearls into honor with /donate. Donated items are shared equally with every other player on the server and wait in their /donation box. Judges earn no honor from donating or from the events above.
 
 **Civilizations**
 
@@ -104,7 +111,8 @@ Sharpness is capped at 4, Protection at 3, Density at 4 and Breach at 3. Netheri
 `/appeal <reason>` appeal your latest honor change
 `/fine` see your open fines
 `/fine pay` pay a fine (chest opens)
-`/donate` donate food for honor (chest opens)
+`/donate` donate items for honor, shared with everyone else (chest opens)
+`/donation` collect items others donated to you (chest opens)
 
 **Civilizations**
 `/civ create <name>` start a civ (free)

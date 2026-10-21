@@ -5,11 +5,11 @@ A server-side Fabric mod for Minecraft 1.21.11. Players join with a vanilla clie
 ## Install
 
 1. Java 21 or newer, a Fabric server for 1.21.11 (loader 0.19.5 or newer) and Fabric API 0.141.6+1.21.11.
-2. Put `honorsmp-1.3.0.jar` and Fabric API in the server's `mods/` folder.
+2. Put `honorsmp-1.4.0.jar` and Fabric API in the server's `mods/` folder.
 3. Start the server. `config/honorsmp.json` is created with every number below. Edit it and run `/honor reload`.
 4. Data is saved in the world folder at `honorsmp/data.json` (on every change, and on shutdown).
 
-Build from source: `./gradlew build` (the jar is `build/libs/honorsmp-1.2.1.jar`).
+Build from source: `./gradlew build` (the jar is `build/libs/honorsmp-1.4.0.jar`).
 
 ## Tiers
 
@@ -44,7 +44,7 @@ Dishonored (Outlaw / Marauder / Warlord): hidden from the tab list except to the
 | Kill an unarmed, unarmored honorable/neutral player | -60 |
 | Kill an honorable/neutral player who did not hit first | -30, sent to judge review |
 | Hours online in a day without losing honor | Off by default (`onlineBonusHonor` 0, `onlineBonusHours` 3). Set `onlineBonusHonor` above 0 to give that much once per day |
-| Donate items with `/donate` | 1 per 20 points (bread = 5, golden apple 40, enchanted 300, totem 160, ender pearl 5), max 25 a day; judges earn none |
+| Donate items with `/donate` | 1 per 20 points (bread = 5, golden apple 40, enchanted golden apple 300, totem 160, ender pearl 5), max 25 a day, leftover points carry over; judges earn none. Shown as "Donated items" in `/honor log` |
 | Cure a zombie villager (vanilla cure trigger) | +10, max 30 a day |
 | Harvest a fully grown wheat, carrot, potato, beetroot or nether wart by hand | +1 per 64 harvested, max 10 a day (pistons, water, villagers, explosions, creative don't count) |
 | Breed animals (vanilla bred-animals trigger) | +1 per 5 breeds, max 5 a day |
@@ -143,7 +143,7 @@ Players
 - `/bounty set <player>` (chest UI), `/bounty claim`, `/bounty list` (chest UI)
 - `/appeal <reason>` or `/appeal <id> <reason>`
 - `/fine` (your open fines), `/fine pay [id]` (chest UI)
-- `/donate` (chest UI): put in plain food (anything edible plus cake), golden apples, enchanted golden apples, totems of undying or ender pearls (config `donateExtraItems`, item id to points), then Confirm. Items with a custom name, enchantments or other changed components are refused; rotten flesh, spider eyes, poisonous potatoes, pufferfish and suspicious stew too. 1 honor per `honorPerHungerPoints` (20) points, rounded down, leftover points carry over; daily cap `donateDailyCap` (25 honor): after it you can still donate, you just earn no honor. Judges can donate but earn no honor. Confirm shares the items equally between every player who has ever joined (except you); what does not split evenly stays in a per-item leftover pot for the next donation of that item. With nobody else on the server nothing is taken. Everyone online gets a broadcast. Closing without confirming, disconnect, death and server stop return the items.
+- `/donate` (chest UI; extra words like `/donate food` just open the chest): put in plain food (anything edible plus cake), golden apples, enchanted golden apples, totems of undying or ender pearls (config `donateExtraItems`, item id to points), then Confirm. Items with a custom name, enchantments or other changed components are refused; rotten flesh, spider eyes, poisonous potatoes, pufferfish and suspicious stew too. 1 honor per `honorPerHungerPoints` (20) points, rounded down, leftover points carry over; daily cap `donateDailyCap` (25 honor): after it you can still donate, you just earn no honor. Judges can donate but earn no honor. Confirm shares the items equally between every player who has ever joined (except you); what does not split evenly stays in a per-item leftover pot for the next donation of that item. With nobody else on the server nothing is taken. Everyone online gets a broadcast. Closing without confirming, disconnect, death and server stop return the items.
 - `/donation` (chest UI): your share of donations, take only, paged. Same dupe protection as the bounty chest. Players with items waiting are told on login. Data: `donateBoxes`, `donatePots` in data.json. Food donated before 1.4.0 stays in the treasury.
 
 Judges (added with `/honor judge add`)
@@ -162,6 +162,9 @@ Admins (ops, no judge powers unless also judges)
 
 ## Notes
 
+- Config keys added in 1.4.0: `donateExtraItems` (item id to points: golden apple 40, enchanted golden apple 300, totem of undying 160, ender pearl 5), `zombieCureHonor` (10), `zombieCureDailyCap` (30), `harvestPerCrops` (64), `harvestHonor` (1), `harvestDailyCap` (10), `breedPerBreeds` (5), `breedHonor` (1), `breedDailyCap` (5), `tradePerTrades` (10), `tradeHonor` (1), `tradeDailyCap` (5), `raidWinHonor` (15), `bossKillHonor` (15), `villagerKillPenalty` (15), `petKillPenalty` (20). `donateZeroFoods` is now the refused item list for all donations.
+- 1.4.0 data.json fields: `donateBoxes`, `donatePots`, and per-player counters for the automatic events. Older data loads unchanged.
+- Limits: boss fight damage tracking is in memory, so a server restart in the middle of a boss fight forfeits that fight's rewards. Creative and spectator players earn no harvest honor. Harvest, breed and trade progress carries over days; only the honor earned counts against the daily cap.
 - Config keys added in 1.3.0: `honorPerHungerPoints` (20), `donateDailyCap` (25), `donateCakeHunger` (14, cake has no food component), `donateZeroFoods`. `onlineBonusHonor` now defaults to 0 (off), `onlineBonusHours` stays 3.
 - Config keys added in 1.2.0: `judgeLoot`, `fineIntervalHours`, `fineHonorPenalty`, `enchantCaps`, `combatElytraSeconds`.
 - Admin commands check the op list and judge commands check the judge list in code, so no permission mod is needed.

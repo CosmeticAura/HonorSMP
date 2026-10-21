@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0
+- Fixed `/donate` with extra words (`/donate food`): it now just opens the chest. Command errors now say what to do instead of a bare failure. New automated test runs the player commands as a non-op.
+- Donations are shared: Confirm no longer goes to the treasury. The items are split equally between every other player who has ever joined and land in their `/donation` claim box (chest UI, take only, paged, saved across restarts, dupe protected). What does not split evenly stays in a per-item leftover pot for the next donation of that item. With nobody else to share with, nothing is taken. Players with items waiting are told on login, and everyone online gets a broadcast. Food donated before 1.4.0 stays in the treasury.
+- New donatable items: golden apple (40 points), enchanted golden apple (300), totem of undying (160), ender pearl (5). Same rate of 1 honor per 20 points and the same 25 a day cap. Items with a custom name, enchantments or other changed components are refused. Judges can donate but earn no honor. Honor shows as "Donated items" in `/honor log`.
+- Automatic honor events, all shown with a reason in `/honor log`, judges exempt, daily caps reset at midnight server time: cure a zombie villager +10 (max 30 a day), harvest mature wheat, carrots, potatoes, beetroot or nether wart by hand +1 per 64 (max 10 a day, not in creative or spectator), breed animals +1 per 5 (max 5 a day), trade with villagers +1 per 10 (max 5 a day), win a raid +15, help kill the Wither, Ender Dragon or Warden +15 (once per boss type per day), kill a villager or wandering trader -15, kill another player's tamed animal -20.
+- Known limit: boss fight damage is tracked in memory, so a server restart mid-fight forfeits that fight's rewards.
+- Config: new keys `donateExtraItems`, `zombieCureHonor`, `zombieCureDailyCap`, `harvestPerCrops`, `harvestHonor`, `harvestDailyCap`, `breedPerBreeds`, `breedHonor`, `breedDailyCap`, `tradePerTrades`, `tradeHonor`, `tradeDailyCap`, `raidWinHonor`, `bossKillHonor`, `villagerKillPenalty`, `petKillPenalty`. Existing configs keep their values and get the defaults for new keys.
+- Migration: `data.json` gets `donateBoxes`, `donatePots` and per-player counters for the automatic events. Old data loads unchanged. `/honor reset all` clears the new donation data too.
+
 ## 1.3.0
 - New `/donate` for players (judges cannot use it): opens a 27 slot chest where only food goes in (anything edible plus cake). The bottom row has Back, Close, an info item (honor the contents are worth and honor still earnable today) and a green wool Confirm.
 - 1 honor per 20 hunger points donated, rounded down (a stack of bread is 64 x 5 = 320 hunger = 16 honor). Leftover hunger points carry over to the next donation. Daily cap of 25 honor from donating, reset at midnight server time; once reached the chest says so and refuses more food.
