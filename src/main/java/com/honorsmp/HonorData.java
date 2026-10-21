@@ -117,7 +117,12 @@ public class HonorData {
         public long lastSeen = 0;
         public String donateDayKey = "";
         public int donatedHonorToday = 0;
+        /** Pre-1.5.0 single leftover-points carry; counted as food and folded into donateCarryTypes on the next donation. */
         public int donateCarry = 0;
+        /** Honor earned from donations today per cap type (reset with donatedHonorToday). Added in 1.5.0. */
+        public Map<String, Integer> donatedTypeToday = new LinkedHashMap<>();
+        /** Leftover points per cap type (only types still under their cap keep any). Added in 1.5.0. */
+        public Map<String, Integer> donateCarryTypes = new LinkedHashMap<>();
         // 1.4.0 automatic events. Day-based fields reset when autoDayKey is not today; counts carry over days.
         public String autoDayKey = "";
         public int cureHonorToday = 0;

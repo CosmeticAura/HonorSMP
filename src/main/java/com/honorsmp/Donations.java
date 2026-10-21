@@ -141,14 +141,21 @@ public final class Donations {
         return perItem(st) >= 0;
     }
 
-    private long pointsIn(SimpleInventory inv) {
-        long total = 0;
+    /** Donation points per cap type (food combined, golden_apple, ...) for the stacks in the food slots. */
+    private Map<String, Long> pointsByType(SimpleInventory inv) {
+        Map<String, Long> total = new LinkedHashMap<>();
         for (int i = 0; i < FOOD_SLOTS; i++) {
             ItemStack st = inv.getStack(i);
             int p = perItem(st);
-            if (p > 0) total += (long) p * st.getCount();
+            if (p > 0) total.merge(DonationRules.category(id(st), nutrition(st), h.config), (long) p * st.getCount(), Long::sum);
         }
         return total;
+    }
+
+    private static long sum(Map<String, Long> m) {
+        long t = 0;
+        for (long v : m.values()) t += v;
+        return t;
     }
 
     /** Everyone who has ever joined (player records) except the donor. */
@@ -218,21 +225,36 @@ public final class Donations {
 
         PlayerRecord r = h.record(s.player);
         String today = today();
-        long points = pointsIn(inv);
+        DonateMath.rollDay(r, today);
+        Map<String, Long> pts = pointsByType(inv);
+        long points = sum(pts);
         boolean judge = h.isJudge(s.player);
-        DonateMath.Quote q = DonateMath.quote(points, r, today, h.config, judge);
+        DonateMath.Quote q = DonateMath.quote(pts, r, today, h.config, judge);
         int others = recipients(s.player).size();
         List<Text> lore = new ArrayList<>();
         if (judge) {
             lore.add(line("Judges can donate but earn no honor", Formatting.GOLD));
         } else {
-            lore.add(line("Worth now: " + q.honor() + " honor", Formatting.GOLD));
-            lore.add(line("Points in chest: " + points + " (carry-over " + r.donateCarry + " -> " + q.newCarry() + ")", Formatting.GRAY));
-            lore.add(line(h.config.honorPerHungerPoints + " points = 1 honor", Formatting.DARK_GRAY));
-            lore.add(line(q.remainingToday() <= 0
-                            ? "Daily cap reached: you can still donate, you just earn no more honor today"
-                            : "You can still earn " + q.remainingToday() + " honor today (more is still shared, just no honor)",
-                    q.remainingToday() <= 0 ? Formatting.RED : Formatting.GREEN));
+            lore.add(line("Chest now: +" + q.honor() + " honor", Formatting.GOLD));
+            int overallCap = h.config.donateDailyCap;
+            int overallLeft = q.remainingToday();
+            lore.add(line("Today: " + (overallCap - overallLeft) + "/" + overallCap + " honor"
+                    + (overallLeft <= 0 ? " (cap reached: items are still shared, no honor)" : ", " + overallLeft + " left"),
+                    overallLeft <= 0 ? Formatting.RED : Formatting.GREEN));
+            // one line per type: configured caps first, then any other type that is in the chest
+            java.util.Set<String> types = new java.util.LinkedHashSet<>();
+            if (h.config.donateItemDailyCaps != null) types.addAll(h.config.donateItemDailyCaps.keySet());
+            types.addAll(pts.keySet());
+            for (String t : DonateMath.order(types, h.config)) {
+                int cap = DonateMath.typeCap(h.config, t);
+                int earned = DonateMath.earnedToday(r, today, t);
+                int now = q.byType().getOrDefault(t, 0);
+                int canEarn = DonateMath.earnableToday(r, today, h.config, t);
+                String text = DonateMath.label(t) + ": " + (cap < 0 ? earned + " today, no cap" : earned + "/" + cap + " today, can still earn " + canEarn)
+                        + (now > 0 ? " (chest +" + now + ")" : "");
+                lore.add(line(text, canEarn <= 0 ? Formatting.RED : (now > 0 ? Formatting.YELLOW : Formatting.GRAY)));
+            }
+            lore.add(line(h.config.honorPerHungerPoints + " points = 1 honor. Points in chest: " + points, Formatting.DARK_GRAY));
         }
         lore.add(line(others == 0 ? "Nobody else has joined yet: nothing is taken" : "Shared equally with " + others + " other players", Formatting.AQUA));
         lore.add(line("Only plain items count: no custom names or enchants", Formatting.DARK_GRAY));
@@ -373,7 +395,7 @@ public final class Donations {
         PlayerRecord r = h.record(p);
         String today = today();
         DonateMath.rollDay(r, today);
-        DonateMath.Quote q = DonateMath.quote(pointsIn(s.inv), r, today, h.config, h.isJudge(p));
+        DonateMath.Quote q = DonateMath.quote(pointsByType(s.inv), r, today, h.config, h.isJudge(p));
         List<String> names = new ArrayList<>();
         for (var e : counts.entrySet()) names.add(e.getValue() + "x " + sample.get(e.getKey()).getItemName().getString());
 
@@ -387,7 +409,8 @@ public final class Donations {
         h.markDirty();
         h.saveData();
         if (h.isJudge(p)) tell(p, "Thanks! Your donation was shared with " + rec.size() + " players. Judges earn no honor.", Formatting.GREEN);
-        else tell(p, "+" + q.honor() + " honor for your donation, shared with " + rec.size() + " players. " + q.newCarry() + " points carried over.", Formatting.GREEN);
+        else tell(p, "+" + q.honor() + " honor for your donation, shared with " + rec.size() + " players."
+                + (q.capReached() ? " Some items were past a daily cap and earned no honor." : ""), Formatting.GREEN);
         h.server.getPlayerManager().broadcast(Text.literal(p.getName().getString() + " donated " + String.join(", ", names)
                 + ". Use /donation to claim your share.").formatted(Formatting.GOLD), false);
         p.closeHandledScreen();

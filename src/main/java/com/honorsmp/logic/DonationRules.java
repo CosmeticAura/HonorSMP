@@ -24,6 +24,17 @@ public final class DonationRules {
         return -1;
     }
 
+    /**
+     * Cap type of a donatable item: its bare id ("golden_apple") when that id has an entry in
+     * donateItemDailyCaps, otherwise "food" for anything with nutrition (and cake), otherwise the bare id.
+     */
+    public static String category(String itemId, int nutrition, HonorConfig cfg) {
+        String bare = itemId.startsWith("minecraft:") ? itemId.substring("minecraft:".length()) : itemId;
+        if (cfg.donateItemDailyCaps != null && cfg.donateItemDailyCaps.containsKey(bare)) return bare;
+        if (nutrition >= 0 || CAKE.equals(itemId)) return DonateMath.FOOD;
+        return bare;
+    }
+
     public static boolean donatable(String itemId, int nutrition, boolean plain, HonorConfig cfg) {
         return pointsPerItem(itemId, nutrition, plain, cfg) >= 0;
     }

@@ -52,8 +52,55 @@ public class HonorConfig {
     public int petKillPenalty = 20;
 
     // donations (/donate): "points" convert to honor, honorPerHungerPoints points = 1 honor
-    public int honorPerHungerPoints = 20;
-    public int donateDailyCap = 25;
+    public int honorPerHungerPoints = 10;
+    public int donateDailyCap = 100;
+    /**
+     * Honor per day each donation type can earn on top of donateDailyCap (reset at midnight). Keys: food (all food
+     * combined), or the item id without "minecraft:". Past a cap, items are still accepted and shared, just no honor.
+     * A type missing from the map has no per-type cap; a negative value also means no cap. A file that lists only some
+     * of the default types gets the others filled in with their defaults on load (set -1 to turn one off).
+     */
+    public java.util.Map<String, Integer> donateItemDailyCaps = defaultItemDailyCaps();
+    /** 0 = file written before the 1.5.0 donation rewards (old 20 / 25 defaults get replaced once on load). */
+    public int donateRewardsVersion = 0;
+
+    public static java.util.Map<String, Integer> defaultItemDailyCaps() {
+        java.util.Map<String, Integer> m = new java.util.LinkedHashMap<>();
+        m.put("food", 60);
+        m.put("golden_apple", 20);
+        m.put("enchanted_golden_apple", 30);
+        m.put("totem_of_undying", 32);
+        m.put("ender_pearl", 16);
+        return m;
+    }
+
+    /**
+     * Run after loading config/honorsmp.json. Once (donateRewardsVersion 0 to 1): honorPerHungerPoints 20 becomes 10
+     * and donateDailyCap 25 becomes 100, each only if it still has the old value. Always: a missing/null caps map
+     * becomes the defaults and default types missing from a user map are added (user values win).
+     * Returns true when anything changed (the caller re-saves the file). Running it again changes nothing.
+     */
+    public boolean migrate() {
+        boolean changed = false;
+        if (donateRewardsVersion < 1) {
+            if (honorPerHungerPoints == 20) honorPerHungerPoints = 10;
+            if (donateDailyCap == 25) donateDailyCap = 100;
+            donateRewardsVersion = 1;
+            changed = true;
+        }
+        if (donateItemDailyCaps == null) {
+            donateItemDailyCaps = defaultItemDailyCaps();
+            changed = true;
+        } else {
+            for (var e : defaultItemDailyCaps().entrySet()) {
+                if (!donateItemDailyCaps.containsKey(e.getKey())) {
+                    donateItemDailyCaps.put(e.getKey(), e.getValue());
+                    changed = true;
+                }
+            }
+        }
+        return changed;
+    }
     /** Items refused even though they are food (kept under its 1.3.0 name so old config files still load). */
     public java.util.List<String> donateZeroFoods = new java.util.ArrayList<>(java.util.List.of(
             "minecraft:rotten_flesh", "minecraft:spider_eye", "minecraft:poisonous_potato",

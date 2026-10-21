@@ -98,6 +98,7 @@ public class Honor {
                 if (c == null) throw new IOException("config file is empty");
                 config = c;
             }
+            config.migrate(); // old donation defaults and the per-type caps map; saved just below
             // rewrite so new options show up in the file
             Files.createDirectories(configPath.getParent());
             Files.writeString(configPath, GSON.toJson(config), StandardCharsets.UTF_8);
