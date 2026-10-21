@@ -67,6 +67,27 @@ final class BountyLoot {
         killer.sendMessage(Text.literal(label0 + ": " + String.join(", ", names)).formatted(Formatting.GREEN));
     }
 
+    /** Rolls a table into ready item stacks (stacks may exceed their normal size: callers split them). */
+    static List<ItemStack> rollStacks(LootTable table, DynamicRegistryManager reg, Random rng) {
+        List<ItemStack> out = new ArrayList<>();
+        for (LootRoller.Drop d : LootRoller.roll(table, new java.util.Random())) {
+            try {
+                ItemStack stack = build(d, reg, rng);
+                if (stack == null || stack.isEmpty()) continue;
+                int left = stack.getCount();
+                int max = stack.getMaxCount();
+                while (left > 0) {
+                    ItemStack part = stack.copyWithCount(Math.min(left, max));
+                    left -= part.getCount();
+                    out.add(part);
+                }
+            } catch (Exception e) {
+                Honor.LOG.warn("Skipped bad loot entry {}: {}", d.entry().type, e.toString());
+            }
+        }
+        return out;
+    }
+
     private static ItemStack build(LootRoller.Drop d, DynamicRegistryManager reg, Random rng) {
         switch (d.entry().type) {
             case "item": {

@@ -79,6 +79,9 @@ public class HonorSMP implements ModInitializer {
             if (h != null && player instanceof ServerPlayerEntity sp && Compass.isCompass(st)) Compass.onUse(h, sp, st);
             return ActionResult.PASS;
         });
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+            if (Honor.I != null) Honor.I.sieges.onEntityLoad(entity);
+        });
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> CivSafety.allowDamage(entity, source));
         net.fabricmc.fabric.api.message.v1.ServerMessageEvents.ALLOW_CHAT_MESSAGE.register(
                 (message, sender, params) -> CivSafety.allowChat(sender, message.getSignedContent()));
@@ -96,6 +99,7 @@ public class HonorSMP implements ModInitializer {
         Honor h = Honor.I;
         if (h == null) return;
         AutoHonor.onDamage(entity, source);
+        h.sieges.onDamage(entity, source);
         if (!(entity instanceof ServerPlayerEntity victim)) return;
         if (source.getAttacker() instanceof ServerPlayerEntity attacker && attacker != victim) {
             h.combat.record(victim.getUuid().toString(), System.currentTimeMillis());

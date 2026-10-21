@@ -65,6 +65,7 @@ public class Honor {
     public final Donations donations = new Donations(this);
     public final DonationBox donationBox = new DonationBox(this);
     public final CivChest civChest = new CivChest(this);
+    public final Sieges sieges = new Sieges(this);
     public final com.honorsmp.logic.CombatTimer combat = new com.honorsmp.logic.CombatTimer();
 
     public Honor(MinecraftServer server) {
@@ -85,6 +86,7 @@ public class Honor {
         donations.load();
         civChest.load();
         saveData();
+        sieges.sweepAll();
         LOG.info("HonorSMP loaded: {} players, {} civs, {} open cases", data.players.size(),
                 data.civs.size(), data.cases.stream().filter(c -> c.status.equals("OPEN")).count());
     }
@@ -215,6 +217,7 @@ public class Honor {
     }
 
     public void stop() {
+        sieges.stopAll();
         treasury.closeAll();
         bounties.closeAll();
         fines.closeAll();
@@ -523,8 +526,14 @@ public class Honor {
                 if (cur == null || !cur.getName().equals(wantName)) refreshPlayer(p);
             }
         }
+        sieges.tick();
         if (++tickCounter % 20 != 0) return;
         seconds++;
+        try {
+            sieges.second(seconds);
+        } catch (Exception e) {
+            LOG.error("Siege tick failed", e);
+        }
         secondTick();
     }
 

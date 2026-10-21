@@ -234,7 +234,43 @@ public final class Cmds {
                     if (e != null) throw err("Config not reloaded: " + e);
                     say(c, "Reloaded config/honorsmp.json.");
                     return 1;
-                }));
+                }))
+                .then(lit("siege").executes(usage("/honor siege <civ>  |  /honor siege stop <civ>"))
+                        .then(lit("stop").executes(usage("/honor siege stop <civ>"))
+                                .then(arg("civ", StringArgumentType.greedyString()).suggests(civNames()).executes(c -> {
+                                    needJudge(c);
+                                    Civ civ = siegeCiv(c);
+                                    if (!h().sieges.stop(civ)) throw err("No siege is running for " + civ.name);
+                                    say(c, "The siege of " + civ.name + " was stopped (counted as a loss: no reward).");
+                                    return 1;
+                                })))
+                        .then(arg("civ", StringArgumentType.greedyString()).suggests(civNames()).executes(c -> {
+                            needJudge(c);
+                            Civ civ = siegeCiv(c);
+                            String e = h().sieges.startNow(civ);
+                            if (e != null) throw err(e);
+                            say(c, "Siege of " + civ.name + " starting with a shortened 5 second warning (normal sieges warn "
+                                    + h().config.siegeWarnSeconds + " s).");
+                            return 1;
+                        })));
+    }
+
+    private static Civ siegeCiv(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
+        String name = StringArgumentType.getString(c, "civ").trim();
+        Civ civ = h().civByName(name);
+        if (civ == null) throw err("No civilization named \"" + name + "\". Usage: /honor siege <civ>  |  /honor siege stop <civ>");
+        return civ;
+    }
+
+    private static com.mojang.brigadier.suggestion.SuggestionProvider<ServerCommandSource> civNames() {
+        return (ctx, b) -> {
+            if (Honor.I != null) {
+                for (Civ civ : Honor.I.data.civs.values()) {
+                    if (civ.name.toLowerCase().startsWith(b.getRemainingLowerCase())) b.suggest(civ.name);
+                }
+            }
+            return b.buildFuture();
+        };
     }
 
     private static void showSelf(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {

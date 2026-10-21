@@ -38,6 +38,8 @@ public class HonorData {
     public Map<String, Long> donatePots = new LinkedHashMap<>();
     /** Leader uuid to how many chest items from a disbanded civ were moved to their donation box while offline. Added in 1.5.0. */
     public Map<String, Long> civChestNotices = new LinkedHashMap<>();
+    /** Member uuid to the last known respawn point (bed/anchor). Cached so offline members still count for the siege home. Added in 1.5.0. */
+    public Map<String, RespawnPoint> respawnPoints = new LinkedHashMap<>();
     public List<LogEntry> logs = new ArrayList<>();
     public List<Case> cases = new ArrayList<>();
     public Set<String> judges = new LinkedHashSet<>();
@@ -121,6 +123,13 @@ public class HonorData {
         public int tradeHonorToday = 0;
         /** Boss types (wither, ender_dragon, warden) already paid today. */
         public java.util.List<String> bossesToday = new java.util.ArrayList<>();
+    }
+
+    public static class RespawnPoint {
+        public String dim;
+        public double x;
+        public double y;
+        public double z;
     }
 
     public static class Civ {
