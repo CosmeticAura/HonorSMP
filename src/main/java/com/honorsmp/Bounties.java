@@ -88,6 +88,11 @@ public final class Bounties {
         h.data.bounties = new LinkedHashMap<>();
     }
 
+    /** Puts a stack into the owner's claim box (used to recover items after a crash). */
+    public void addToClaimBox(String id, ItemStack s) {
+        escrow.addToBox(id, s);
+    }
+
     private List<ItemStack> decode(List<JsonElement> l) {
         List<ItemStack> out = new ArrayList<>();
         if (l == null) return out;

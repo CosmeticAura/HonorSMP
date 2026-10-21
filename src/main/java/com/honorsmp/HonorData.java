@@ -31,6 +31,7 @@ public class HonorData {
     public Map<String, List<com.google.gson.JsonElement>> bountyBoxes = new LinkedHashMap<>();
     /** Stacks sitting in an open set-bounty screen at save time; returned to the owner's claim box on load. */
     public Map<String, List<com.google.gson.JsonElement>> bountyPending = new LinkedHashMap<>();
+    public Map<String, List<com.google.gson.JsonElement>> donatePending = new LinkedHashMap<>();
     public List<LogEntry> logs = new ArrayList<>();
     public List<Case> cases = new ArrayList<>();
     public Set<String> judges = new LinkedHashSet<>();
@@ -54,6 +55,7 @@ public class HonorData {
         bountyItems.clear();
         bountyBoxes.clear();
         bountyPending.clear();
+        if (donatePending != null) donatePending.clear();
         logs.clear();
         cases.clear();
         treasuryEmeralds = 0;

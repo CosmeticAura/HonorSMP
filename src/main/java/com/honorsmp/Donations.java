@@ -4,7 +4,10 @@ import com.honorsmp.HonorData.PlayerRecord;
 import com.honorsmp.logic.DonateMath;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import com.google.gson.JsonElement;
+import com.mojang.serialization.JsonOps;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -17,6 +20,7 @@ import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryOps;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.ScreenHandlerType;
@@ -56,6 +60,50 @@ public final class Donations {
 
     public Donations(Honor h) {
         this.h = h;
+    }
+
+    // ------------------------------------------------------------ crash safety
+
+    private RegistryOps<JsonElement> ops() {
+        return RegistryOps.of(JsonOps.INSTANCE, h.server.getRegistryManager());
+    }
+
+    /** Writes the food slots of every live session into data so a crash cannot eat them. */
+    public void sync() {
+        Map<String, List<JsonElement>> pd = new LinkedHashMap<>();
+        for (Session s : open.values()) {
+            if (s.closed) continue;
+            List<JsonElement> l = pd.computeIfAbsent(s.player.getUuid().toString(), k -> new ArrayList<>());
+            for (int i = 0; i < FOOD_SLOTS; i++) {
+                ItemStack st = s.inv.getStack(i);
+                if (st.isEmpty()) continue;
+                try {
+                    l.add(ItemStack.CODEC.encodeStart(ops(), st).getOrThrow());
+                } catch (Exception ex) {
+                    Honor.LOG.error("Could not save a donation stack: {}", st, ex);
+                }
+            }
+            if (l.isEmpty()) pd.remove(s.player.getUuid().toString());
+        }
+        h.data.donatePending = pd;
+    }
+
+    /** Startup: food left in screens at a crash goes to the owner's bounty claim box. */
+    public void load() {
+        if (h.data.donatePending != null) {
+            for (var e : h.data.donatePending.entrySet()) {
+                if (e.getValue() == null) continue;
+                for (JsonElement je : e.getValue()) {
+                    try {
+                        ItemStack st = ItemStack.CODEC.parse(ops(), je).getOrThrow();
+                        if (!st.isEmpty()) h.bounties.addToClaimBox(e.getKey(), st);
+                    } catch (Exception ex) {
+                        Honor.LOG.error("Skipping unreadable donation stack: {}", je, ex);
+                    }
+                }
+            }
+        }
+        h.data.donatePending = new LinkedHashMap<>();
     }
 
     private static void tell(ServerPlayerEntity p, String m, Formatting f) {
@@ -114,6 +162,7 @@ public final class Donations {
         SimpleInventory inv = new SimpleInventory(27);
         Session s = new Session(p, inv);
         open.put(p.getUuid(), s);
+        h.markDirty();
         refresh(s);
         s.handler = ChestUi.openCustom(p, Text.literal("Donate food to the treasury"),
                 (syncId, playerInv, player) -> new DonateHandler(syncId, playerInv, inv, s));
@@ -254,6 +303,7 @@ public final class Donations {
                 }
             }
             super.onSlotClick(slotIndex, button, type, player);
+            h.markDirty();
             refresh(s);
             sendContentUpdates();
         }
@@ -307,12 +357,19 @@ public final class Donations {
             tell(p, "Put some food in first.", Formatting.YELLOW);
             return;
         }
-        s.closed = true;
-        if (open.get(p.getUuid()) == s) open.remove(p.getUuid());
         PlayerRecord r = h.record(p);
         String today = today();
         DonateMath.rollDay(r, today);
         DonateMath.Quote q = DonateMath.quote(hungerIn(s.inv), r, today, h.config);
+        long raw = (hungerIn(s.inv) + r.donateCarry) / Math.max(1, h.config.honorPerHungerPoints);
+        long remaining = q.remainingToday();
+        if (raw > remaining) {
+            if (remaining <= 0) tell(p, "You have reached today's donation limit.", Formatting.RED);
+            else tell(p, "Too much food for today's limit: take some out. You can still earn " + remaining + " honor today.", Formatting.YELLOW);
+            return;
+        }
+        s.closed = true;
+        if (open.get(p.getUuid()) == s) open.remove(p.getUuid());
         for (int i = 0; i < FOOD_SLOTS; i++) {
             ItemStack st = s.inv.getStack(i);
             if (!st.isEmpty()) h.treasury.addItem(st);

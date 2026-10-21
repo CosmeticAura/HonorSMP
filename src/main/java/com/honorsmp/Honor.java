@@ -79,6 +79,7 @@ public class Honor {
         data.antiFarm = antiFarm.raw();
         treasury.load();
         bounties.load();
+        donations.load();
         saveData();
         LOG.info("HonorSMP loaded: {} players, {} civs, {} open cases", data.players.size(),
                 data.civs.size(), data.cases.stream().filter(c -> c.status.equals("OPEN")).count());
@@ -120,6 +121,7 @@ public class Honor {
         if (data.bountyItems == null) data.bountyItems = new LinkedHashMap<>();
         if (data.bountyBoxes == null) data.bountyBoxes = new LinkedHashMap<>();
         if (data.bountyPending == null) data.bountyPending = new LinkedHashMap<>();
+        if (data.donatePending == null) data.donatePending = new LinkedHashMap<>();
         if (data.logs == null) data.logs = new ArrayList<>();
         if (data.cases == null) data.cases = new ArrayList<>();
         if (data.judges == null) data.judges = new LinkedHashSet<>();
@@ -158,6 +160,7 @@ public class Honor {
             Files.createDirectories(dataPath.getParent());
             treasury.sync();
             bounties.sync();
+            donations.sync();
             Path tmp = dataPath.resolveSibling("data.json.tmp");
             Files.writeString(tmp, GSON.toJson(data), StandardCharsets.UTF_8);
             Files.move(tmp, dataPath, StandardCopyOption.REPLACE_EXISTING);
