@@ -107,6 +107,17 @@ public class HonorData {
         public String donateDayKey = "";
         public int donatedHonorToday = 0;
         public int donateCarry = 0;
+        // 1.4.0 automatic events. Day-based fields reset when autoDayKey is not today; counts carry over days.
+        public String autoDayKey = "";
+        public int cureHonorToday = 0;
+        public int harvestCount = 0;
+        public int harvestHonorToday = 0;
+        public int breedCount = 0;
+        public int breedHonorToday = 0;
+        public int tradeCount = 0;
+        public int tradeHonorToday = 0;
+        /** Boss types (wither, ender_dragon, warden) already paid today. */
+        public java.util.List<String> bossesToday = new java.util.ArrayList<>();
     }
 
     public static class Civ {

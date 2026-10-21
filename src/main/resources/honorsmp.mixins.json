@@ -4,6 +4,10 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "AnvilScreenHandlerMixin",
+    "BredAnimalsCriterionMixin",
+    "CuredZombieVillagerCriterionMixin",
+    "TickCriterionMixin",
+    "VillagerTradeCriterionMixin",
     "EnchantmentScreenHandlerMixin",
     "ForgingScreenHandlerAccessor",
     "ItemEntityMixin",

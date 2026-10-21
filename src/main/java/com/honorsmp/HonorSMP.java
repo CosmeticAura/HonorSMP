@@ -7,6 +7,8 @@ import java.util.List;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
+import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -77,6 +79,9 @@ public class HonorSMP implements ModInitializer {
         });
         ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, taken, blocked) -> onDamage(entity, source, taken));
         ServerLivingEntityEvents.AFTER_DEATH.register(HonorSMP::onDeath);
+        PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, be) -> {
+            if (player instanceof ServerPlayerEntity sp && !(player instanceof FakePlayer)) AutoHonor.onHarvest(sp, state);
+        });
         ServerPlayerEvents.AFTER_RESPAWN.register((old, now, alive) -> {
             if (Honor.I != null) { Honor.I.combat.clear(now.getUuid().toString()); Honor.I.refreshPlayer(now); }
         });
@@ -84,7 +89,9 @@ public class HonorSMP implements ModInitializer {
 
     private static void onDamage(LivingEntity entity, DamageSource source, float taken) {
         Honor h = Honor.I;
-        if (h == null || !(entity instanceof ServerPlayerEntity victim)) return;
+        if (h == null) return;
+        AutoHonor.onDamage(entity, source);
+        if (!(entity instanceof ServerPlayerEntity victim)) return;
         if (source.getAttacker() instanceof ServerPlayerEntity attacker && attacker != victim) {
             h.combat.record(victim.getUuid().toString(), System.currentTimeMillis());
             h.damage.add(new DamageEvent(System.currentTimeMillis(), attacker.getUuid().toString(), victim.getUuid().toString(), taken));
@@ -94,6 +101,7 @@ public class HonorSMP implements ModInitializer {
     private static void onDeath(LivingEntity entity, DamageSource source) {
         Honor h = Honor.I;
         if (h == null) return;
+        AutoHonor.onDeath(entity, source);
         Entity attacker = source.getAttacker();
         if (entity instanceof ServerPlayerEntity dead) { h.treasury.closeIfViewer(dead); h.bounties.closeFor(dead); h.fines.closeFor(dead); h.donations.closeFor(dead); h.donationBox.closeFor(dead); Menu.closeFor(dead); SignPrompt.cancel(dead); }
         if (!(attacker instanceof ServerPlayerEntity killer) || attacker == entity) {

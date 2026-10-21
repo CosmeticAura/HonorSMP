@@ -38,6 +38,23 @@ public class HonorConfig {
     public int onlineBonusHours = 3;
     public int onlineBonusHonor = 0;
 
+    // automatic events (1.4.0). Daily caps reset at midnight server time. Judges are exempt.
+    public int zombieCureHonor = 10;
+    public int zombieCureDailyCap = 30;
+    public int harvestPerCrops = 64;
+    public int harvestHonor = 1;
+    public int harvestDailyCap = 10;
+    public int breedPerBreeds = 5;
+    public int breedHonor = 1;
+    public int breedDailyCap = 5;
+    public int tradePerTrades = 10;
+    public int tradeHonor = 1;
+    public int tradeDailyCap = 5;
+    public int raidWinHonor = 15;
+    public int bossKillHonor = 15;
+    public int villagerKillPenalty = 15;
+    public int petKillPenalty = 20;
+
     // donations (/donate): "points" convert to honor, honorPerHungerPoints points = 1 honor
     public int honorPerHungerPoints = 20;
     public int donateDailyCap = 25;

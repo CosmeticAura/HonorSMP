@@ -45,7 +45,17 @@ Dishonored (Outlaw / Marauder / Warlord): hidden from the tab list except to the
 | Kill an honorable/neutral player who did not hit first | -30, sent to judge review |
 | Hours online in a day without losing honor | Off by default (`onlineBonusHonor` 0, `onlineBonusHours` 3). Set `onlineBonusHonor` above 0 to give that much once per day |
 | Donate items with `/donate` | 1 per 20 points (bread = 5, golden apple 40, enchanted 300, totem 160, ender pearl 5), max 25 a day; judges earn none |
+| Cure a zombie villager (vanilla cure trigger) | +10, max 30 a day |
+| Harvest a fully grown wheat, carrot, potato, beetroot or nether wart by hand | +1 per 64 harvested, max 10 a day (pistons, water, villagers, explosions, creative don't count) |
+| Breed animals (vanilla bred-animals trigger) | +1 per 5 breeds, max 5 a day |
+| Trade with villagers or wandering traders (vanilla trade trigger) | +1 per 10 trades, max 5 a day |
+| Win a raid (Hero of the Village trigger) | +15 |
+| Help kill the Wither, Ender Dragon or Warden (damaged it during the fight) | +15 each, once per boss type per day |
+| Kill a villager or wandering trader (you or your projectile) | -15 |
+| Kill another player's tamed animal | -20 (your own pet costs nothing) |
 | Civ taxes unpaid | -10 per day late, for every member |
+
+All of these are automatic: no judge, no case, not part of anti-farming, shown in `/honor log` with their reason, numbers and caps in the config (`zombieCureHonor`, `harvestPerCrops`, `bossKillHonor`, `petKillPenalty`, ...). Daily caps reset at midnight server time; judges are exempt.
 
 Anti-farming: the same killer/victim pair counts once per 30 minutes. Kills between players on the same IP never count, never pay out a player-set bounty (the bounty stays on the target) and are flagged as a case. A victim with under 5 minutes of playtime since their last death never gives positive honor.
 
