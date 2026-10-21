@@ -133,6 +133,9 @@ public class HonorData {
         public long created;
         /** Shared /civ chest contents as ItemStack codec JSON. Added in 1.5.0; null or missing = empty. */
         public List<com.google.gson.JsonElement> chest = null;
+        /** Siege schedule (1.5.0), epoch ms. 0 = not scheduled yet (rolled from the first time it is seen). */
+        public long nextSiegeAt = 0;
+        public long lastSiegeAt = 0;
     }
 
     public static class LogEntry {

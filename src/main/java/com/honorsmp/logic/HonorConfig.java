@@ -99,6 +99,26 @@ public class HonorConfig {
     /** Seconds after taking player damage during which an elytra cannot open. 0 disables. */
     public int combatElytraSeconds = 30;
 
+    // sieges (1.5.0). Only civs get sieges. Distances are blocks (horizontal for home/abandon checks).
+    public boolean siegesEnabled = true;
+    public double siegeMinDays = 2.0;
+    public double siegeMaxDays = 4.0;
+    public int siegeHomeRadius = 100;
+    public int siegeMinMembersOnline = 2;
+    public int siegeWarnSeconds = 60;
+    public int siegeSpawnMinDistance = 40;
+    public int siegeSpawnMaxDistance = 60;
+    public int siegeMobsPerMember = 3;
+    public int siegeMaxMobsPerWave = 60;
+    public int siegeWaveDelaySeconds = 20;
+    public int siegeAbandonRadius = 150;
+    public int siegeAbandonSeconds = 120;
+    public int siegeMaxMinutes = 15;
+    public int siegeRewardHonor = 10;
+    public double siegeCaptainHealth = 60;
+    /** Loot chest given to the civ after a won siege. */
+    public LootTable siegeLoot = defaultSiegeLoot();
+
     // admin
     public int seasonResetConfirmSeconds = 10;
     public int maxLogEntries = 50000;
@@ -147,5 +167,16 @@ public class HonorConfig {
                 LootEntry.item(5, 1, 1, "minecraft:totem_of_undying"),
                 LootEntry.item(3, 1, 1, "minecraft:enchanted_golden_apple"),
                 LootEntry.book(6, 1, 1, true))));
+    }
+
+    public static LootTable defaultSiegeLoot() {
+        return new LootTable(6, new java.util.ArrayList<>(java.util.List.of(
+                LootEntry.item(10, 8, 16, "minecraft:iron_ingot"),
+                LootEntry.item(8, 4, 8, "minecraft:gold_ingot"),
+                LootEntry.item(10, 8, 16, "minecraft:emerald"),
+                LootEntry.item(8, 16, 32, "minecraft:arrow"),
+                LootEntry.item(5, 1, 3, "minecraft:golden_apple"),
+                LootEntry.book(3, 1, 1, true),
+                LootEntry.item(1, 1, 1, "minecraft:totem_of_undying"))));
     }
 }
