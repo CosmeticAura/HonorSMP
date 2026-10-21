@@ -64,6 +64,7 @@ public class Honor {
     public final Fines fines = new Fines(this);
     public final Donations donations = new Donations(this);
     public final DonationBox donationBox = new DonationBox(this);
+    public final CivChest civChest = new CivChest(this);
     public final com.honorsmp.logic.CombatTimer combat = new com.honorsmp.logic.CombatTimer();
 
     public Honor(MinecraftServer server) {
@@ -82,6 +83,7 @@ public class Honor {
         bounties.load();
         donationBox.load();
         donations.load();
+        civChest.load();
         saveData();
         LOG.info("HonorSMP loaded: {} players, {} civs, {} open cases", data.players.size(),
                 data.civs.size(), data.cases.stream().filter(c -> c.status.equals("OPEN")).count());
@@ -126,6 +128,7 @@ public class Honor {
         if (data.donatePending == null) data.donatePending = new LinkedHashMap<>();
         if (data.donateBoxes == null) data.donateBoxes = new LinkedHashMap<>();
         if (data.donatePots == null) data.donatePots = new LinkedHashMap<>();
+        if (data.civChestNotices == null) data.civChestNotices = new LinkedHashMap<>();
         if (data.logs == null) data.logs = new ArrayList<>();
         if (data.cases == null) data.cases = new ArrayList<>();
         if (data.judges == null) data.judges = new LinkedHashSet<>();
@@ -164,6 +167,7 @@ public class Honor {
             bounties.sync();
             donationBox.sync();
             donations.sync();
+            civChest.sync();
             Path tmp = dataPath.resolveSibling("data.json.tmp");
             Files.writeString(tmp, GSON.toJson(data), StandardCharsets.UTF_8);
             Files.move(tmp, dataPath, StandardCopyOption.REPLACE_EXISTING);
@@ -190,6 +194,7 @@ public class Honor {
         fines.wipe();
         donations.wipe();
         donationBox.wipe();
+        civChest.wipe(); // deletes the contents, does not hand them out (reset all wipes everything)
         SignPrompt.clearAll();
         Menu.closeAll();
         data.wipeAllExceptJudges();
@@ -215,6 +220,7 @@ public class Honor {
         fines.closeAll();
         donations.closeAll();
         donationBox.closeAll();
+        civChest.closeAll();
         Menu.closeAll();
         saveData();
         I = null;
@@ -503,6 +509,8 @@ public class Honor {
     // ------------------------------------------------------------ tick
 
     public void tick() {
+        // an open civ chest is saved at least every 30 s so a crash loses little (the save writes the live screen)
+        if (tickCounter % 600 == 0 && civChest.anyOpen()) dirty = true;
         if (dirty && tickCounter % 20 == 0) saveData();
         // sneak toggles the name tag for dishonored players, so check that every tick
         for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {

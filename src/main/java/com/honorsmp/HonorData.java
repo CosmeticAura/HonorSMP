@@ -36,6 +36,8 @@ public class HonorData {
     public Map<String, List<com.google.gson.JsonElement>> donateBoxes = new LinkedHashMap<>();
     /** Item id to the leftover count that did not split evenly yet. Added in 1.4.0. */
     public Map<String, Long> donatePots = new LinkedHashMap<>();
+    /** Leader uuid to how many chest items from a disbanded civ were moved to their donation box while offline. Added in 1.5.0. */
+    public Map<String, Long> civChestNotices = new LinkedHashMap<>();
     public List<LogEntry> logs = new ArrayList<>();
     public List<Case> cases = new ArrayList<>();
     public Set<String> judges = new LinkedHashSet<>();
@@ -62,6 +64,7 @@ public class HonorData {
         if (donatePending != null) donatePending.clear();
         if (donateBoxes != null) donateBoxes.clear();
         if (donatePots != null) donatePots.clear();
+        if (civChestNotices != null) civChestNotices.clear();
         logs.clear();
         cases.clear();
         treasuryEmeralds = 0;
@@ -128,6 +131,8 @@ public class HonorData {
         public Set<String> members = new LinkedHashSet<>();
         public Set<String> guards = new LinkedHashSet<>();
         public long created;
+        /** Shared /civ chest contents as ItemStack codec JSON. Added in 1.5.0; null or missing = empty. */
+        public List<com.google.gson.JsonElement> chest = null;
     }
 
     public static class LogEntry {
