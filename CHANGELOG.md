@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0
+- New `/donate` for players (judges cannot use it): opens a 27 slot chest where only food goes in (anything edible plus cake). The bottom row has Back, Close, an info item (honor the contents are worth and honor still earnable today) and a green wool Confirm.
+- 1 honor per 20 hunger points donated, rounded down (a stack of bread is 64 x 5 = 320 hunger = 16 honor). Leftover hunger points carry over to the next donation. Daily cap of 25 honor from donating, reset at midnight server time; once reached the chest says so and refuses more food.
+- Rotten flesh, spider eyes, poisonous potatoes, pufferfish and suspicious stew are worth 0.
+- Confirm takes the food, gives honor logged as "Donated food" and puts the food in the judges' treasury. Closing without confirming gives everything back; disconnect, death and server stop also return the items.
+- New config keys `honorPerHungerPoints` (20), `donateDailyCap` (25), `donateCakeHunger` (14, cake has no food component) and `donateZeroFoods` (the five foods above).
+- The playtime bonus is off by default: `onlineBonusHonor` now defaults to 0 (`onlineBonusHours` stays 3). With 0 it gives no honor and writes no log entry. Existing configs that set a value keep it. Honor now comes from PvP, judge awards and donations.
+
 ## 1.2.1
 - Fixed the netherite smithing upgrade losing the upgrade template: the diamond item, the template and the ingot all come back. The found-netherite conversion path never takes a template.
 - New `/honor reset all` (ops only, run twice within 10 s, backs up `data.json` first). Wipes honor, civs, taxes, bounties and bounty boxes, cases, appeals, fines, treasury, logs and anti-farm data. Judges stay. Items in bounty boxes, the treasury and open chest screens are deleted. Announced in chat.

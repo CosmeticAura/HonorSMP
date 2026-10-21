@@ -62,6 +62,7 @@ public class Honor {
     public final Treasury treasury = new Treasury(this);
     public final Bounties bounties = new Bounties(this);
     public final Fines fines = new Fines(this);
+    public final Donations donations = new Donations(this);
     public final com.honorsmp.logic.CombatTimer combat = new com.honorsmp.logic.CombatTimer();
 
     public Honor(MinecraftServer server) {
@@ -181,6 +182,7 @@ public class Honor {
         treasury.wipe();
         bounties.wipe();
         fines.wipe();
+        donations.wipe();
         SignPrompt.clearAll();
         Menu.closeAll();
         data.wipeAllExceptJudges();
@@ -204,6 +206,7 @@ public class Honor {
         treasury.closeAll();
         bounties.closeAll();
         fines.closeAll();
+        donations.closeAll();
         Menu.closeAll();
         saveData();
         I = null;

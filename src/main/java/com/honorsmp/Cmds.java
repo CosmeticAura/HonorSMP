@@ -102,6 +102,7 @@ public final class Cmds {
         d.register(bounty());
         d.register(appeal());
         d.register(fine());
+        d.register(donate());
     }
 
     // =============================================================== /honor
@@ -393,6 +394,16 @@ public final class Cmds {
             say(c, "Appeal #" + k.id + " sent to the judges for honor change #" + target.id + " (" + Cases.signed(target.delta) + ").");
             return 1;
         }));
+    }
+
+    // =============================================================== /donate
+
+    private static LiteralArgumentBuilder<ServerCommandSource> donate() {
+        return lit("donate").executes(c -> {
+            String e = h().donations.open(player(c));
+            if (e != null) throw err(e);
+            return 1;
+        });
     }
 
     // =============================================================== /fine

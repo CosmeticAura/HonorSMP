@@ -5,7 +5,7 @@ A server-side Fabric mod for Minecraft 1.21.11. Players join with a vanilla clie
 ## Install
 
 1. Java 21 or newer, a Fabric server for 1.21.11 (loader 0.19.5 or newer) and Fabric API 0.141.6+1.21.11.
-2. Put `honorsmp-1.2.1.jar` and Fabric API in the server's `mods/` folder.
+2. Put `honorsmp-1.3.0.jar` and Fabric API in the server's `mods/` folder.
 3. Start the server. `config/honorsmp.json` is created with every number below. Edit it and run `/honor reload`.
 4. Data is saved in the world folder at `honorsmp/data.json` (on every change, and on shutdown).
 
@@ -43,7 +43,8 @@ Dishonored (Outlaw / Marauder / Warlord): hidden from the tab list except to the
 | Kill an honorable/neutral player who hit you first within 15 s | 0, no review |
 | Kill an unarmed, unarmored honorable/neutral player | -60 |
 | Kill an honorable/neutral player who did not hit first | -30, sent to judge review |
-| 3 hours online in a day without losing honor | +5 once per day |
+| Hours online in a day without losing honor | Off by default (`onlineBonusHonor` 0, `onlineBonusHours` 3). Set `onlineBonusHonor` above 0 to give that much once per day |
+| Donate food with `/donate` | 1 per 20 hunger points, max 25 a day |
 | Civ taxes unpaid | -10 per day late, for every member |
 
 Anti-farming: the same killer/victim pair counts once per 30 minutes. Kills between players on the same IP never count, never pay out a player-set bounty (the bounty stays on the target) and are flagged as a case. A victim with under 5 minutes of playtime since their last death never gives positive honor.
@@ -132,6 +133,7 @@ Players
 - `/bounty set <player>` (chest UI), `/bounty claim`, `/bounty list` (chest UI)
 - `/appeal <reason>` or `/appeal <id> <reason>`
 - `/fine` (your open fines), `/fine pay [id]` (chest UI)
+- `/donate` (chest UI, players only, judges cannot use it): put in food (anything edible plus cake), then Confirm. 1 honor per `honorPerHungerPoints` (20) hunger points, rounded down, leftover points carry over. Daily cap `donateDailyCap` (25 honor, resets at midnight server time). Rotten flesh, spider eyes, poisonous potatoes, pufferfish and suspicious stew are worth 0. Confirm takes the food, logs honor as "Donated food" and puts the food in the judges' treasury. Closing without confirming, disconnect, death and server stop return the items.
 
 Judges (added with `/honor judge add`)
 - `/honor treasury`
@@ -149,6 +151,7 @@ Admins (ops, no judge powers unless also judges)
 
 ## Notes
 
+- Config keys added in 1.3.0: `honorPerHungerPoints` (20), `donateDailyCap` (25), `donateCakeHunger` (14, cake has no food component), `donateZeroFoods`. `onlineBonusHonor` now defaults to 0 (off), `onlineBonusHours` stays 3.
 - Config keys added in 1.2.0: `judgeLoot`, `fineIntervalHours`, `fineHonorPenalty`, `enchantCaps`, `combatElytraSeconds`.
 - Admin commands check the op list and judge commands check the judge list in code, so no permission mod is needed.
 - There is no land claiming. Old claim data in `data.json` is dropped on load.
