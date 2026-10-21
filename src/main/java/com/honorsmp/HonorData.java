@@ -32,6 +32,10 @@ public class HonorData {
     /** Stacks sitting in an open set-bounty screen at save time; returned to the owner's claim box on load. */
     public Map<String, List<com.google.gson.JsonElement>> bountyPending = new LinkedHashMap<>();
     public Map<String, List<com.google.gson.JsonElement>> donatePending = new LinkedHashMap<>();
+    /** Player uuid to the donated stacks (codec JSON) waiting in their /donation claim box. Added in 1.4.0. */
+    public Map<String, List<com.google.gson.JsonElement>> donateBoxes = new LinkedHashMap<>();
+    /** Item id to the leftover count that did not split evenly yet. Added in 1.4.0. */
+    public Map<String, Long> donatePots = new LinkedHashMap<>();
     public List<LogEntry> logs = new ArrayList<>();
     public List<Case> cases = new ArrayList<>();
     public Set<String> judges = new LinkedHashSet<>();
@@ -56,6 +60,8 @@ public class HonorData {
         bountyBoxes.clear();
         bountyPending.clear();
         if (donatePending != null) donatePending.clear();
+        if (donateBoxes != null) donateBoxes.clear();
+        if (donatePots != null) donatePots.clear();
         logs.clear();
         cases.clear();
         treasuryEmeralds = 0;

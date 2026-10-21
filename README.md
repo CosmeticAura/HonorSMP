@@ -44,7 +44,7 @@ Dishonored (Outlaw / Marauder / Warlord): hidden from the tab list except to the
 | Kill an unarmed, unarmored honorable/neutral player | -60 |
 | Kill an honorable/neutral player who did not hit first | -30, sent to judge review |
 | Hours online in a day without losing honor | Off by default (`onlineBonusHonor` 0, `onlineBonusHours` 3). Set `onlineBonusHonor` above 0 to give that much once per day |
-| Donate food with `/donate` | 1 per 20 hunger points, max 25 a day |
+| Donate items with `/donate` | 1 per 20 points (bread = 5, golden apple 40, enchanted 300, totem 160, ender pearl 5), max 25 a day; judges earn none |
 | Civ taxes unpaid | -10 per day late, for every member |
 
 Anti-farming: the same killer/victim pair counts once per 30 minutes. Kills between players on the same IP never count, never pay out a player-set bounty (the bounty stays on the target) and are flagged as a case. A victim with under 5 minutes of playtime since their last death never gives positive honor.
@@ -133,7 +133,8 @@ Players
 - `/bounty set <player>` (chest UI), `/bounty claim`, `/bounty list` (chest UI)
 - `/appeal <reason>` or `/appeal <id> <reason>`
 - `/fine` (your open fines), `/fine pay [id]` (chest UI)
-- `/donate` (chest UI, players only, judges cannot use it): put in food (anything edible plus cake), then Confirm. 1 honor per `honorPerHungerPoints` (20) hunger points, rounded down, leftover points carry over. Daily cap `donateDailyCap` (25 honor, resets at midnight server time). Rotten flesh, spider eyes, poisonous potatoes, pufferfish and suspicious stew are worth 0. Confirm takes the food, logs honor as "Donated food" and puts the food in the judges' treasury. Closing without confirming, disconnect, death and server stop return the items.
+- `/donate` (chest UI): put in plain food (anything edible plus cake), golden apples, enchanted golden apples, totems of undying or ender pearls (config `donateExtraItems`, item id to points), then Confirm. Items with a custom name, enchantments or other changed components are refused; rotten flesh, spider eyes, poisonous potatoes, pufferfish and suspicious stew too. 1 honor per `honorPerHungerPoints` (20) points, rounded down, leftover points carry over; daily cap `donateDailyCap` (25 honor): after it you can still donate, you just earn no honor. Judges can donate but earn no honor. Confirm shares the items equally between every player who has ever joined (except you); what does not split evenly stays in a per-item leftover pot for the next donation of that item. With nobody else on the server nothing is taken. Everyone online gets a broadcast. Closing without confirming, disconnect, death and server stop return the items.
+- `/donation` (chest UI): your share of donations, take only, paged. Same dupe protection as the bounty chest. Players with items waiting are told on login. Data: `donateBoxes`, `donatePots` in data.json. Food donated before 1.4.0 stays in the treasury.
 
 Judges (added with `/honor judge add`)
 - `/honor treasury`

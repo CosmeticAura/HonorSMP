@@ -37,7 +37,7 @@ public final class Bounties {
     private static final int SET_ROWS = 3;
     private static final int CLAIM_ROWS = 6;
 
-    private static final BountyEscrow.Ops<ItemStack> OPS = new BountyEscrow.Ops<>() {
+    static final BountyEscrow.Ops<ItemStack> OPS = new BountyEscrow.Ops<>() {
         public boolean same(ItemStack a, ItemStack b) { return ItemStack.areItemsAndComponentsEqual(a, b); }
         public int count(ItemStack t) { return t.getCount(); }
         public ItemStack withCount(ItemStack t, int n) { return t.copyWithCount(n); }

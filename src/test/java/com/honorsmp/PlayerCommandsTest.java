@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 class PlayerCommandsTest {
     static final List<String> PLAYER_COMMANDS = List.of(
             "honor", "honor top", "honor tracker",
-            "donate", "donate food", "donate food and more words",
+            "donate", "donate food", "donate food and more words", "donation", "donation claim",
             "appeal I was framed", "appeal 3 I was framed",
             "fine", "fine pay", "fine pay 3",
             "bounty set Steve", "bounty claim", "bounty list", "bounty list text",
@@ -104,7 +104,7 @@ class PlayerCommandsTest {
 
     @Test
     void everyRootNodeIsUsableAtLevelZero() {
-        for (String root : List.of("honor", "civ", "bounty", "appeal", "fine", "donate")) {
+        for (String root : List.of("honor", "civ", "bounty", "appeal", "fine", "donate", "donation")) {
             CommandNode<ServerCommandSource> n = d.getRoot().getChild(root);
             assertNotNull(n, root + " is not registered");
             assertTrue(n.canUse(src), "/" + root + " is hidden from non-ops");

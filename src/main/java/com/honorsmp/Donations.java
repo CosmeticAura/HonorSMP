@@ -2,6 +2,8 @@ package com.honorsmp;
 
 import com.honorsmp.HonorData.PlayerRecord;
 import com.honorsmp.logic.DonateMath;
+import com.honorsmp.logic.DonationRules;
+import com.honorsmp.logic.DonationSplit;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import com.google.gson.JsonElement;
@@ -33,7 +35,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.ItemScatterer;
 
 /**
- * /donate: a 3 row chest. Slots 0..17 take only food, the bottom row holds Close / info / Confirm.
+ * /donate: a 3 row chest. Slots 0..17 take only donatable plain items, the bottom row holds Close / info / Confirm.
  * While open the live inventory owns the items; they leave it exactly once (confirm, close,
  * disconnect, death or server stop), guarded by {@link Session#closed}.
  */
@@ -88,7 +90,7 @@ public final class Donations {
         h.data.donatePending = pd;
     }
 
-    /** Startup: food left in screens at a crash goes to the owner's bounty claim box. */
+    /** Startup: items left in screens at a crash go to the owner's /donation box. */
     public void load() {
         if (h.data.donatePending != null) {
             for (var e : h.data.donatePending.entrySet()) {
@@ -96,7 +98,7 @@ public final class Donations {
                 for (JsonElement je : e.getValue()) {
                     try {
                         ItemStack st = ItemStack.CODEC.parse(ops(), je).getOrThrow();
-                        if (!st.isEmpty()) h.bounties.addToClaimBox(e.getKey(), st);
+                        if (!st.isEmpty()) h.donationBox.addToBox(e.getKey(), st);
                     } catch (Exception ex) {
                         Honor.LOG.error("Skipping unreadable donation stack: {}", je, ex);
                     }
@@ -125,21 +127,35 @@ public final class Donations {
         return Registries.ITEM.getId(st.getItem()).toString();
     }
 
-    private boolean isFood(ItemStack st) {
-        if (st.isEmpty()) return false;
-        if (!(st.contains(DataComponentTypes.FOOD) || st.isOf(Items.CAKE))) return false;
-        return DonateMath.donatable(id(st), nutrition(st), h.config);
+    private static boolean plain(ItemStack st) {
+        return st.getComponentChanges().isEmpty();
     }
 
-    private long hungerIn(SimpleInventory inv) {
+    private int perItem(ItemStack st) {
+        if (st.isEmpty()) return -1;
+        return DonationRules.pointsPerItem(id(st), nutrition(st), plain(st), h.config);
+    }
+
+    private boolean isDonatable(ItemStack st) {
+        return perItem(st) >= 0;
+    }
+
+    private long pointsIn(SimpleInventory inv) {
         long total = 0;
         for (int i = 0; i < FOOD_SLOTS; i++) {
             ItemStack st = inv.getStack(i);
-            if (st.isEmpty()) continue;
-            int v = DonateMath.hungerValue(id(st), nutrition(st), st.getCount(), h.config);
-            if (v > 0) total += v;
+            int p = perItem(st);
+            if (p > 0) total += (long) p * st.getCount();
         }
         return total;
+    }
+
+    /** Everyone who has ever joined (player records) except the donor. */
+    private List<String> recipients(ServerPlayerEntity donor) {
+        String me = donor.getUuid().toString();
+        List<String> out = new ArrayList<>();
+        for (String u : h.data.players.keySet()) if (!u.equals(me)) out.add(u);
+        return out;
     }
 
     private static String today() {
@@ -150,7 +166,6 @@ public final class Donations {
 
     /** Returns an error message, or null when the chest opened. */
     public String open(ServerPlayerEntity p) {
-        if (h.isJudge(p)) return "Judges cannot donate: judges are outside the honor system and earn no honor. Nothing to do here.";
         Session old = open.get(p.getUuid());
         if (old != null) {
             if (!old.closed && p.currentScreenHandler == old.handler) return "Your donation chest is already open. Press Esc to close it, then type /donate again.";
@@ -164,14 +179,14 @@ public final class Donations {
         open.put(p.getUuid(), s);
         h.markDirty();
         refresh(s);
-        s.handler = ChestUi.openCustom(p, Text.literal("Donate food to the treasury"),
+        s.handler = ChestUi.openCustom(p, Text.literal("Donate items to other players"),
                 (syncId, playerInv, player) -> new DonateHandler(syncId, playerInv, inv, s));
         if (s.handler == null) {
             open.remove(p.getUuid());
             return "Could not open the donation chest. Press Esc to close any other screen and type /donate again. If it keeps failing, tell an op.";
         }
-        if (DonateMath.remainingToday(r, today, h.config) <= 0) {
-            tell(p, "You have already reached today's donation limit (" + h.config.donateDailyCap + " honor). Come back tomorrow.", Formatting.YELLOW);
+        if (recipients(p).isEmpty()) {
+            tell(p, "Nobody else has joined the server yet, so there is nobody to share with. Items you put in will not be taken.", Formatting.YELLOW);
         }
         return null;
     }
@@ -190,9 +205,9 @@ public final class Donations {
 
     private void refresh(Session s) {
         SimpleInventory inv = s.inv;
-        ItemStack close = named(new ItemStack(Items.BARRIER), "Close", Formatting.RED, List.of(line("Gives your food back.", Formatting.GRAY)));
+        ItemStack close = named(new ItemStack(Items.BARRIER), "Close", Formatting.RED, List.of(line("Gives your items back.", Formatting.GRAY)));
         ItemStack confirm = named(new ItemStack(Items.LIME_WOOL), "Confirm donation", Formatting.GREEN,
-                List.of(line("Food goes to the treasury.", Formatting.GRAY)));
+                List.of(line("Items are shared equally with every other player.", Formatting.GRAY)));
         for (int i = FOOD_SLOTS; i < 27; i++) {
             ItemStack f = named(new ItemStack(Items.GRAY_STAINED_GLASS_PANE), " ", Formatting.GRAY, null);
             inv.setStack(i, f);
@@ -202,21 +217,25 @@ public final class Donations {
 
         PlayerRecord r = h.record(s.player);
         String today = today();
-        long hunger = hungerIn(inv);
-        DonateMath.Quote q = DonateMath.quote(hunger, r, today, h.config);
+        long points = pointsIn(inv);
+        boolean judge = h.isJudge(s.player);
+        DonateMath.Quote q = DonateMath.quote(points, r, today, h.config, judge);
+        int others = recipients(s.player).size();
         List<Text> lore = new ArrayList<>();
-        lore.add(line("Worth now: " + q.honor() + " honor", Formatting.GOLD));
-        lore.add(line("Hunger points in chest: " + hunger, Formatting.GRAY));
-        lore.add(line("Carry-over points: " + r.donateCarry + " -> " + q.newCarry(), Formatting.GRAY));
-        lore.add(line(h.config.honorPerHungerPoints + " hunger points = 1 honor", Formatting.DARK_GRAY));
-        lore.add(line(q.remainingToday() <= 0 ? "Daily cap reached" : "You can still earn " + q.remainingToday() + " honor today",
-                q.remainingToday() <= 0 ? Formatting.RED : Formatting.GREEN));
+        if (judge) {
+            lore.add(line("Judges can donate but earn no honor", Formatting.GOLD));
+        } else {
+            lore.add(line("Worth now: " + q.honor() + " honor", Formatting.GOLD));
+            lore.add(line("Points in chest: " + points + " (carry-over " + r.donateCarry + " -> " + q.newCarry() + ")", Formatting.GRAY));
+            lore.add(line(h.config.honorPerHungerPoints + " points = 1 honor", Formatting.DARK_GRAY));
+            lore.add(line(q.remainingToday() <= 0
+                            ? "Daily cap reached: you can still donate, you just earn no more honor today"
+                            : "You can still earn " + q.remainingToday() + " honor today (more is still shared, just no honor)",
+                    q.remainingToday() <= 0 ? Formatting.RED : Formatting.GREEN));
+        }
+        lore.add(line(others == 0 ? "Nobody else has joined yet: nothing is taken" : "Shared equally with " + others + " other players", Formatting.AQUA));
+        lore.add(line("Only plain items count: no custom names or enchants", Formatting.DARK_GRAY));
         inv.setStack(INFO_SLOT, named(new ItemStack(Items.PAPER), "Donation value", Formatting.YELLOW, lore));
-    }
-
-    private boolean chestFull(Session s) {
-        PlayerRecord r = h.record(s.player);
-        return DonateMath.chestFull(hungerIn(s.inv), r, today(), h.config);
     }
 
     // ------------------------------------------------------------ handler
@@ -231,10 +250,6 @@ public final class Donations {
 
         private boolean inChest(int idx) {
             return idx >= 0 && idx < 27;
-        }
-
-        private void refuseFull() {
-            tell(s.player, "You have reached today's donation limit. You can't add more food today; click Close to get it back.", Formatting.RED);
         }
 
         @Override
@@ -269,12 +284,7 @@ public final class Donations {
                     if (food) {
                         ItemStack cur = getCursorStack();
                         if (!cur.isEmpty()) {
-                            if (!isFood(cur)) {
-                                syncState();
-                                return;
-                            }
-                            if (chestFull(s)) {
-                                refuseFull();
+                            if (!isDonatable(cur)) {
                                 syncState();
                                 return;
                             }
@@ -285,12 +295,7 @@ public final class Donations {
                     if (food) {
                         ItemStack hot = button == 40 ? player.getInventory().getStack(40)
                                 : (button >= 0 && button < 9 ? player.getInventory().getStack(button) : null);
-                        if (hot == null || (!hot.isEmpty() && !isFood(hot))) {
-                            syncState();
-                            return;
-                        }
-                        if (!hot.isEmpty() && chestFull(s)) {
-                            refuseFull();
+                        if (hot == null || (!hot.isEmpty() && !isDonatable(hot))) {
                             syncState();
                             return;
                         }
@@ -320,11 +325,7 @@ public final class Donations {
             if (index < FOOD_SLOTS) {
                 moved = insertItem(orig, 27, slots.size(), true);
             } else {
-                if (!isFood(orig)) return ItemStack.EMPTY;
-                if (chestFull(s)) {
-                    refuseFull();
-                    return ItemStack.EMPTY;
-                }
+                if (!isDonatable(orig)) return ItemStack.EMPTY;
                 moved = insertItem(orig, 0, FOOD_SLOTS, false);
             }
             if (!moved) return ItemStack.EMPTY;
@@ -335,7 +336,7 @@ public final class Donations {
 
         @Override
         public boolean canInsertIntoSlot(ItemStack stack, Slot slot) {
-            if (slot.inventory == s.inv) return slot.getIndex() < FOOD_SLOTS && isFood(stack);
+            if (slot.inventory == s.inv) return slot.getIndex() < FOOD_SLOTS && isDonatable(stack);
             return super.canInsertIntoSlot(stack, slot);
         }
 
@@ -351,35 +352,48 @@ public final class Donations {
     private void confirm(Session s) {
         if (s.closed) return;
         ServerPlayerEntity p = s.player;
-        List<ItemStack> items = new ArrayList<>();
-        for (int i = 0; i < FOOD_SLOTS; i++) if (!s.inv.getStack(i).isEmpty()) items.add(s.inv.getStack(i));
-        if (items.isEmpty()) {
-            tell(p, "Put some food in the top two rows of the chest first, then click Confirm.", Formatting.YELLOW);
+        Map<String, Long> counts = new LinkedHashMap<>();
+        Map<String, ItemStack> sample = new LinkedHashMap<>();
+        for (int i = 0; i < FOOD_SLOTS; i++) {
+            ItemStack st = s.inv.getStack(i);
+            if (st.isEmpty()) continue;
+            counts.merge(id(st), (long) st.getCount(), Long::sum);
+            sample.putIfAbsent(id(st), st.copyWithCount(1));
+        }
+        if (counts.isEmpty()) {
+            tell(p, "Put some food or other donatable items in the top two rows of the chest first, then click Confirm.", Formatting.YELLOW);
+            return;
+        }
+        List<String> rec = recipients(p);
+        if (rec.isEmpty()) {
+            tell(p, "Nobody else has joined the server yet, so there is nobody to share with. Nothing was taken; Close gives your items back.", Formatting.YELLOW);
             return;
         }
         PlayerRecord r = h.record(p);
         String today = today();
         DonateMath.rollDay(r, today);
-        DonateMath.Quote q = DonateMath.quote(hungerIn(s.inv), r, today, h.config);
-        long raw = (hungerIn(s.inv) + r.donateCarry) / Math.max(1, h.config.honorPerHungerPoints);
-        long remaining = q.remainingToday();
-        if (raw > remaining) {
-            if (remaining <= 0) tell(p, "You have reached today's donation limit. Take your food out (Close gives it back) and come back tomorrow.", Formatting.RED);
-            else tell(p, "Too much food for today's limit: take some out. You can still earn " + remaining + " honor today.", Formatting.YELLOW);
-            return;
-        }
+        DonateMath.Quote q = DonateMath.quote(pointsIn(s.inv), r, today, h.config, h.isJudge(p));
+        List<String> names = new ArrayList<>();
+        for (var e : counts.entrySet()) names.add(e.getValue() + "x " + sample.get(e.getKey()).getItemName().getString());
+
+        // from here on the items leave the screen exactly once
         s.closed = true;
         if (open.get(p.getUuid()) == s) open.remove(p.getUuid());
-        for (int i = 0; i < FOOD_SLOTS; i++) {
-            ItemStack st = s.inv.getStack(i);
-            if (!st.isEmpty()) h.treasury.addItem(st);
-            s.inv.setStack(i, ItemStack.EMPTY);
+        for (int i = 0; i < FOOD_SLOTS; i++) s.inv.setStack(i, ItemStack.EMPTY);
+        Map<String, Long> each = DonationSplit.apply(h.data.donatePots, counts, rec.size());
+        for (var e : each.entrySet()) {
+            if (e.getValue() <= 0) continue;
+            int n = (int) Math.min(Integer.MAX_VALUE, e.getValue());
+            for (String uuid : rec) h.donationBox.give(uuid, sample.get(e.getKey()), n);
         }
         DonateMath.apply(q, r, today);
-        if (q.honor() > 0) h.change(p.getUuid().toString(), p.getName().getString(), q.honor(), "Donated food", "donate", p, "", 0);
+        if (q.honor() > 0) h.change(p.getUuid().toString(), p.getName().getString(), q.honor(), "Donated items", "donate", p, "", 0);
         h.markDirty();
         h.saveData();
-        tell(p, "+" + q.honor() + " honor for your donation. " + q.newCarry() + " hunger points carried over.", Formatting.GREEN);
+        if (h.isJudge(p)) tell(p, "Thanks! Your donation was shared with " + rec.size() + " players. Judges earn no honor.", Formatting.GREEN);
+        else tell(p, "+" + q.honor() + " honor for your donation, shared with " + rec.size() + " players. " + q.newCarry() + " points carried over.", Formatting.GREEN);
+        h.server.getPlayerManager().broadcast(Text.literal(p.getName().getString() + " donated " + String.join(", ", names)
+                + ". Use /donation to claim your share.").formatted(Formatting.GOLD), false);
         p.closeHandledScreen();
     }
 

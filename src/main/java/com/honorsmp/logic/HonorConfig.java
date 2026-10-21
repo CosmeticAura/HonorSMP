@@ -38,13 +38,26 @@ public class HonorConfig {
     public int onlineBonusHours = 3;
     public int onlineBonusHonor = 0;
 
-    // donations (/donate)
+    // donations (/donate): "points" convert to honor, honorPerHungerPoints points = 1 honor
     public int honorPerHungerPoints = 20;
     public int donateDailyCap = 25;
+    /** Items refused even though they are food (kept under its 1.3.0 name so old config files still load). */
     public java.util.List<String> donateZeroFoods = new java.util.ArrayList<>(java.util.List.of(
             "minecraft:rotten_flesh", "minecraft:spider_eye", "minecraft:poisonous_potato",
             "minecraft:pufferfish", "minecraft:suspicious_stew"));
+    /** Cake has no food component; this is its points value. */
     public int donateCakeHunger = 14;
+    /** Non-food donatable items (and overrides for food): item id to points per item. Add more here. */
+    public java.util.Map<String, Integer> donateExtraItems = defaultExtraItems();
+
+    public static java.util.Map<String, Integer> defaultExtraItems() {
+        java.util.Map<String, Integer> m = new java.util.LinkedHashMap<>();
+        m.put("minecraft:golden_apple", 40);
+        m.put("minecraft:enchanted_golden_apple", 300);
+        m.put("minecraft:totem_of_undying", 160);
+        m.put("minecraft:ender_pearl", 5);
+        return m;
+    }
 
     // anti farming
     public int sameVictimCooldownMinutes = 30;

@@ -63,6 +63,7 @@ public class Honor {
     public final Bounties bounties = new Bounties(this);
     public final Fines fines = new Fines(this);
     public final Donations donations = new Donations(this);
+    public final DonationBox donationBox = new DonationBox(this);
     public final com.honorsmp.logic.CombatTimer combat = new com.honorsmp.logic.CombatTimer();
 
     public Honor(MinecraftServer server) {
@@ -79,6 +80,7 @@ public class Honor {
         data.antiFarm = antiFarm.raw();
         treasury.load();
         bounties.load();
+        donationBox.load();
         donations.load();
         saveData();
         LOG.info("HonorSMP loaded: {} players, {} civs, {} open cases", data.players.size(),
@@ -122,6 +124,8 @@ public class Honor {
         if (data.bountyBoxes == null) data.bountyBoxes = new LinkedHashMap<>();
         if (data.bountyPending == null) data.bountyPending = new LinkedHashMap<>();
         if (data.donatePending == null) data.donatePending = new LinkedHashMap<>();
+        if (data.donateBoxes == null) data.donateBoxes = new LinkedHashMap<>();
+        if (data.donatePots == null) data.donatePots = new LinkedHashMap<>();
         if (data.logs == null) data.logs = new ArrayList<>();
         if (data.cases == null) data.cases = new ArrayList<>();
         if (data.judges == null) data.judges = new LinkedHashSet<>();
@@ -160,6 +164,7 @@ public class Honor {
             Files.createDirectories(dataPath.getParent());
             treasury.sync();
             bounties.sync();
+            donationBox.sync();
             donations.sync();
             Path tmp = dataPath.resolveSibling("data.json.tmp");
             Files.writeString(tmp, GSON.toJson(data), StandardCharsets.UTF_8);
@@ -186,6 +191,7 @@ public class Honor {
         bounties.wipe();
         fines.wipe();
         donations.wipe();
+        donationBox.wipe();
         SignPrompt.clearAll();
         Menu.closeAll();
         data.wipeAllExceptJudges();
@@ -210,6 +216,7 @@ public class Honor {
         bounties.closeAll();
         fines.closeAll();
         donations.closeAll();
+        donationBox.closeAll();
         Menu.closeAll();
         saveData();
         I = null;

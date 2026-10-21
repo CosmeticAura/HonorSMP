@@ -109,6 +109,7 @@ public final class Cmds {
         d.register(appeal());
         d.register(fine());
         d.register(donate());
+        d.register(donation());
     }
 
     // =============================================================== /honor
@@ -421,6 +422,30 @@ public final class Cmds {
         } catch (RuntimeException ex) {
             Honor.LOG.error("/donate failed to open the chest", ex);
             throw err("Usage: /donate, then put food in the chest. The chest could not be opened (see the server log); tell an op.");
+        }
+        if (e != null) throw err(e);
+        return 1;
+    }
+
+    // =============================================================== /donation
+
+    private static LiteralArgumentBuilder<ServerCommandSource> donation() {
+        // "/donation claim" and other extra words just open the claim box too.
+        return lit("donation").executes(DONATION)
+                .then(arg("ignored", StringArgumentType.greedyString()).executes(DONATION));
+    }
+
+    private static final com.mojang.brigadier.Command<ServerCommandSource> DONATION = Cmds::donationOpen;
+
+    private static int donationOpen(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
+        String e;
+        try {
+            e = h().donationBox.open(player(c));
+        } catch (CommandSyntaxException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            Honor.LOG.error("/donation failed to open the claim box", ex);
+            throw err("Usage: /donation. The claim box could not be opened (see the server log); tell an op.");
         }
         if (e != null) throw err(e);
         return 1;
