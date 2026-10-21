@@ -72,8 +72,7 @@ The mod handles the obvious stuff:
 > Killing a dishonored player: +25 (+35 if you're a guard)
 > Killing in self defense: no change
 > Killing someone unarmed with no armor: -60
-> Not paying your civ's weekly tax: -10 a day for every member
-> Donating with /donate: 1 honor per 20 points, up to 25 a day
+> Donating with /donate: 1 honor per 10 points (a stack of bread is 32), up to 100 a day. Food, golden apples, totems and ender pearls also have their own daily limits.
 > Curing a zombie villager: +10 (30 a day max)
 > Harvesting 64 grown crops by hand: +1 (10 a day max)
 > Breeding 5 animals: +1 (5 a day max). Trading 10 times with villagers: +1 (5 a day max)
@@ -81,12 +80,19 @@ The mod handles the obvious stuff:
 > Helping kill the Wither, Ender Dragon or Warden: +15 (once per boss a day)
 > Killing a villager or wandering trader: -15
 > Killing another player's tamed pet: -20
+> Defending your civ from a siege: +10
 
-The mod decides most kills by itself by checking who hit first, gear and tiers. Only the kills it can't call go to a judge. They get a case book with who hit first and what everyone was wearing, then confirm or change the call. Think a call was wrong? Use /appeal and your reason (your latest change, or /appeal and a case number for an older one). You get one open appeal at a time and each change can be appealed once. Judges are players the admins picked, not ops. Judges can rule on any case, even their own, so expect the other judges to check anything that looks off. They can also award honor for good deeds and big builds, and fine players. A fine is a set of items you pay with /fine pay, and every 2.5 hours it stays unpaid costs you 10 honor. Players can also turn spare food, golden apples, totems and ender pearls into honor with /donate. Donated items are shared equally with every other player on the server and wait in their /donation box. Judges earn no honor from donating or from the events above.
+The mod decides most kills by itself by checking who hit first, gear and tiers. Only the kills it can't call go to a judge. They get a case book with who hit first and what everyone was wearing, then confirm or change the call. Think a call was wrong? Use /appeal and your reason (your latest change, or /appeal and a case number for an older one). You get one open appeal at a time and each change can be appealed once. Judges are players the admins picked, not ops. Judges can rule on any case, even their own, so expect the other judges to check anything that looks off. They can also award honor for good deeds and big builds, and fine players. A fine is a set of items you pay with /fine pay, and every 2.5 hours it stays unpaid costs you 10 honor. Players can also turn spare food, golden apples, totems and ender pearls into honor with /donate. Donated items are shared equally with every other player on the server and wait in their /donation box. What does not split evenly rotates between players, so everyone gets the same over time, and you get a message when you receive something. Past a daily limit you can still donate, you just earn no honor. Judges earn no honor from donating or from the events above.
 
 **Civilizations**
 
-Start one with /civ create. It's free, and there's no land to claim. Every week your civ owes the judges a tax of 8 emeralds per member. The leader or an officer pays it with /civ tax pay, and /civ tax shows what's owed and when. Miss the deadline and every member loses 10 honor a day until it's paid, and your civ shows [Unpaid]. You get a warning on login and 24 hours before it's due. The tax goes to the judges' treasury.
+Start one with /civ create. It's free, and there's no land to claim.
+
+Your civ has its own chat (/cc turns it on and off), a shared 54 slot chest (/civ chest, one person at a time), and a leaderboard (/civ top). Members can't hurt each other, not even with arrows, potions or pets.
+
+**Sieges**
+
+If at least 2 members of your civ have their bed (respawn point) within 100 blocks of each other, that is your civ's home. Every 2 to 4 days, when 2 or more members are online near home, a raid comes. You get 60 seconds of warning ("A raid is coming to your civ in 60 seconds!") and the whole server hears about it. Three waves of pillagers and vindicators, then witches and evokers, then a ravager and the Siege Captain. A boss bar shows how it's going. Hold the home: everyone who fought gets +10 honor and a loot chest appears at home. Leave (nobody within 150 blocks for 2 minutes) or take longer than 15 minutes and you lose.
 
 Leaders can name guards. Guards are the PvP players of an honorable civ: they hunt outlaws and get more honor for it.
 
@@ -117,8 +123,9 @@ Sharpness is capped at 4, Protection at 3, Density at 4 and Breach at 3. Netheri
 **Civilizations**
 `/civ create <name>` start a civ (free)
 `/civ invite <player>` / `/civ join <name>` / `/civ leave`
-`/civ tax` see what your civ owes and when
-`/civ tax pay` pay it (leaders and officers)
+`/cc` turn civ chat on or off
+`/civ chest` open your civ's shared chest
+`/civ top` top civs by total honor
 `/civ guard <player>` make a member a guard (leaders and officers)
 `/civ promote <player>` make a member an officer (leader)
 `/civ kick <player>` / `/civ disband`
@@ -133,7 +140,9 @@ Every menu page you open from another page has a Back button in the bottom left.
 `/fine list` / `/fine cancel <id>` open fines
 `/honor give <player> <amount> <reason>` award or take honor
 `/honor log <player>` honor history
-`/honor treasury` open the tax treasury
+`/honor treasury` open the treasury (paid fines)
+`/honor siege <civ>` start a siege on a civ now
+`/honor siege stop <civ>` stop a running siege
 
 **Admins**
 `/honor reset all` wipe all honor, civs, bounties, cases, fines and the treasury (run twice within 10 seconds, judges stay)

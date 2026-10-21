@@ -5,11 +5,11 @@ A server-side Fabric mod for Minecraft 1.21.11. Players join with a vanilla clie
 ## Install
 
 1. Java 21 or newer, a Fabric server for 1.21.11 (loader 0.19.5 or newer) and Fabric API 0.141.6+1.21.11.
-2. Put `honorsmp-1.4.0.jar` and Fabric API in the server's `mods/` folder.
+2. Put `honorsmp-1.5.0.jar` and Fabric API in the server's `mods/` folder.
 3. Start the server. `config/honorsmp.json` is created with every number below. Edit it and run `/honor reload`.
 4. Data is saved in the world folder at `honorsmp/data.json` (on every change, and on shutdown).
 
-Build from source: `./gradlew build` (the jar is `build/libs/honorsmp-1.4.0.jar`).
+Build from source: `./gradlew build` (the jar is `build/libs/honorsmp-1.5.0.jar`).
 
 ## Tiers
 
@@ -44,7 +44,7 @@ Dishonored (Outlaw / Marauder / Warlord): hidden from the tab list except to the
 | Kill an unarmed, unarmored honorable/neutral player | -60 |
 | Kill an honorable/neutral player who did not hit first | -30, sent to judge review |
 | Hours online in a day without losing honor | Off by default (`onlineBonusHonor` 0, `onlineBonusHours` 3). Set `onlineBonusHonor` above 0 to give that much once per day |
-| Donate items with `/donate` | 1 per 20 points (bread = 5, golden apple 40, enchanted golden apple 300, totem 160, ender pearl 5), max 25 a day, leftover points carry over; judges earn none. Shown as "Donated items" in `/honor log` |
+| Donate items with `/donate` | 1 per 10 points (bread = 5 points, so a stack of bread = 32 honor; golden apple 40, enchanted golden apple 300, totem 160, ender pearl 5), leftover points carry over per type, max 100 a day in total, plus per-type daily caps (food 60, golden apple 20, enchanted golden apple 30, totem 32, ender pearl 16); items past a cap are still accepted and shared, they just stop earning honor. Judges earn none. Shown as "Donated items" in `/honor log` |
 | Cure a zombie villager (vanilla cure trigger) | +10, max 30 a day |
 | Harvest a fully grown wheat, carrot, potato, beetroot or nether wart by hand | +1 per 64 harvested, max 10 a day (pistons, water, villagers, explosions, creative don't count) |
 | Breed animals (vanilla bred-animals trigger) | +1 per 5 breeds, max 5 a day |
@@ -53,7 +53,7 @@ Dishonored (Outlaw / Marauder / Warlord): hidden from the tab list except to the
 | Help kill the Wither, Ender Dragon or Warden (damaged it during the fight) | +15 each, once per boss type per day |
 | Kill a villager or wandering trader (you or your projectile) | -15 |
 | Kill another player's tamed animal | -20 (your own pet costs nothing) |
-| Civ taxes unpaid | -10 per day late, for every member |
+| Win a siege on your civ | +10 for each member who damaged siege mobs (judges excepted), see Sieges |
 
 All of these are automatic: no judge, no case, not part of anti-farming, shown in `/honor log` with their reason, numbers and caps in the config (`zombieCureHonor`, `harvestPerCrops`, `bossKillHonor`, `petKillPenalty`, ...). Daily caps reset at midnight server time; judges are exempt.
 
@@ -96,13 +96,28 @@ Judges can fine a player. `/fine <player>` (or the Fine button in a case menu) o
 - For every `fineIntervalHours` (default 2.5 real hours) a fine stays unpaid the player loses `fineHonorPenalty` (default 10) honor. This also runs while they are offline and catches up on login.
 - Judges can cancel a fine from the case menu or with `/fine cancel <id>`. `/fine list` shows all open fines.
 
-## Civilizations, taxes and the treasury
+## Civilizations, sieges and the treasury
 
-`/civ create` is free. Each civ pays a weekly tax to the judges: 8 emeralds per member, due every 7 real days from creation (`taxPerMember`, `taxIntervalDays`). `/civ tax` shows what is owed and when it is due. The leader or an officer pays with `/civ tax pay` from their inventory, and can pay early.
+`/civ create` is free.
 
-If a civ is late, every member loses 10 honor per day late (`taxLatePenaltyHonor`) and the civ shows `[Unpaid]` in `/civ info` and `/civ list`. The leader and officers are warned on login and 24 hours before the due time (`taxWarnHours`).
+- **Civ chat:** `/cc` toggles civ chat. While it is on, your chat messages go only to online members of your civ, shown as `[CivName] <player> message`. Type `/cc` again to switch it off. It is not saved across restarts.
+- **No friendly fire:** members of the same civ cannot hurt each other with melee, arrows, tridents, other projectiles or harmful potion effects, and cannot hurt each other's tamed pets. Your own pet and yourself are unchanged.
+- **Civ chest:** see "Civilization command replies" below.
+- **Civ leaderboard:** `/civ top` lists the top 10 civs by the total honor of their members (judges not counted).
+- **Treasury:** paid fines go into the Treasury. Only judges can open it, with `/honor treasury` (chest UI).
 
-Paid tax and paid fines go into the Treasury. Only judges can open it, with `/honor treasury` (chest UI).
+## Sieges
+
+Raid sieges (1.5.0) are random pillager attacks on civs. Only civs get them.
+
+- **Home:** a civ's home is found from the overworld bed respawn points of its members. It needs at least 2 members whose beds are within `siegeHomeRadius` (100) blocks of each other. A civ without a home gets no siege.
+- **When:** each civ gets a random siege every 2 to 4 real days (`siegeMinDays`, `siegeMaxDays`), and only when at least `siegeMinMembersOnline` (2) members are online within 100 blocks of home.
+- **Warning:** 60 seconds (`siegeWarnSeconds`) before the first wave, members get a title and the chat message "A raid is coming to <civ> in 60 seconds!". The whole server gets "Pillagers are marching on <civ>!".
+- **Waves:** 3 waves. Wave 1 pillagers and vindicators, wave 2 adds a witch and an evoker, wave 3 adds a ravager and a "Siege Captain" (`siegeCaptainHealth` 60). Mobs per wave scale with members online (`siegeMobsPerMember` 3, up to `siegeMaxMobsPerWave` 60) and spawn 40 to 60 blocks from home. The next wave starts `siegeWaveDelaySeconds` (20) after the last mob of the previous wave dies. A boss bar shows the progress.
+- **Loss:** nobody from the civ within `siegeAbandonRadius` (150) blocks of home for `siegeAbandonSeconds` (120) seconds, or `siegeMaxMinutes` (15) passed. The remaining siege mobs are removed and the civ is told.
+- **Win:** every member who damaged siege mobs gets +`siegeRewardHonor` (10) honor (judges are excepted), a loot chest appears at home (`siegeLoot`) and the server sees "<civ> defended their home!".
+- **Judge commands:** `/honor siege <civ>` starts a siege right now with a 5 second warning (only if the civ has a home and members online), `/honor siege stop <civ>` ends a running siege (counts as a loss, no reward).
+- **Config keys:** `siegesEnabled` (true), `siegeMinDays` (2), `siegeMaxDays` (4), `siegeHomeRadius` (100), `siegeMinMembersOnline` (2), `siegeWarnSeconds` (60), `siegeSpawnMinDistance` (40), `siegeSpawnMaxDistance` (60), `siegeMobsPerMember` (3), `siegeMaxMobsPerWave` (60), `siegeWaveDelaySeconds` (20), `siegeAbandonRadius` (150), `siegeAbandonSeconds` (120), `siegeMaxMinutes` (15), `siegeRewardHonor` (10), `siegeCaptainHealth` (60), `siegeLoot`.
 
 ## Bounties
 
@@ -124,6 +139,8 @@ Bounty Compass: Noble and up get one with `/honor tracker`, or craft it shapeles
 
 ## Civilization command replies
 
+`/civ chest` (1.5.0) opens a shared 54 slot chest for your civ: leader, officers, members and guards can put items in and take them out. Only one member can have it open at a time; others get "Someone in your civ is using the chest". Contents are saved to data.json (`chest` on each civ) when the chest closes (also on disconnect, death, being kicked or leaving the civ, and server stop) and at least every 30 seconds while it is open; after a crash the last saved state wins, so moves in the last 30 seconds can be reverted. If the civ is disbanded, the chest contents go to the leader's `/donation` claim box (the leader is told, on login if offline). `/honor reset all` deletes chest contents with everything else.
+
 `/civ promote` on an officer says "Already an officer" and changes nothing. `/civ guard` is a toggle and says whether the player became or stopped being a guard. `/civ invite` on someone already in your civ says they are already a member.
 
 ## Nerfs (apply to everyone)
@@ -139,15 +156,17 @@ Players
 - `/honor` score (or `Judge`), tier, perks, last 10 changes
 - `/honor top` top 10 and bottom 10 (honorable and dishonored only)
 - `/honor tracker` get a Bounty Compass (Noble+)
-- `/civ create <name>` (free), `invite <player>`, `join <name>`, `leave`, `kick <player>`, `promote <player>`, `guard <player>` (toggle), `tax`, `tax pay` (leader or officer), `disband`, `info [name]`, `list`
+- `/civ create <name>` (free), `invite <player>`, `join <name>`, `leave`, `kick <player>`, `promote <player>`, `guard <player>` (toggle), `chest`, `disband`, `info [name]`, `list`, `top`
+- `/cc` toggle civ chat
 - `/bounty set <player>` (chest UI), `/bounty claim`, `/bounty list` (chest UI)
 - `/appeal <reason>` or `/appeal <id> <reason>`
 - `/fine` (your open fines), `/fine pay [id]` (chest UI)
-- `/donate` (chest UI; extra words like `/donate food` just open the chest): put in plain food (anything edible plus cake), golden apples, enchanted golden apples, totems of undying or ender pearls (config `donateExtraItems`, item id to points), then Confirm. Items with a custom name, enchantments or other changed components are refused; rotten flesh, spider eyes, poisonous potatoes, pufferfish and suspicious stew too. 1 honor per `honorPerHungerPoints` (20) points, rounded down, leftover points carry over; daily cap `donateDailyCap` (25 honor): after it you can still donate, you just earn no honor. Judges can donate but earn no honor. Confirm shares the items equally between every player who has ever joined (except you); what does not split evenly stays in a per-item leftover pot for the next donation of that item. With nobody else on the server nothing is taken. Everyone online gets a broadcast. Closing without confirming, disconnect, death and server stop return the items.
-- `/donation` (chest UI): your share of donations, take only, paged. Same dupe protection as the bounty chest. Players with items waiting are told on login. Data: `donateBoxes`, `donatePots` in data.json. Food donated before 1.4.0 stays in the treasury.
+- `/donate` (chest UI; extra words like `/donate food` just open the chest): put in plain food (anything edible plus cake), golden apples, enchanted golden apples, totems of undying or ender pearls (config `donateExtraItems`, item id to points), then Confirm. Items with a custom name, enchantments or other changed components are refused; rotten flesh, spider eyes, poisonous potatoes, pufferfish and suspicious stew too. 1 honor per `honorPerHungerPoints` (10) points, rounded down, so a stack of bread is 32 honor; leftover points carry over per type. Daily cap `donateDailyCap` (100 honor) plus per-type caps in `donateItemDailyCaps` (food combined 60, `golden_apple` 20, `enchanted_golden_apple` 30, `totem_of_undying` 32, `ender_pearl` 16; -1 or a missing type means no cap). Past a cap you can still donate, you just earn no honor, and the items are still shared. The info item in the chest's bottom row lists each type's remaining honor today and what the chest would give. Judges can donate but earn no honor. Confirm shares the items equally between every player who has ever joined (except you). What does not split evenly is handed out by rotation: the extra items go to different players each time, so everyone gets the same amount over time. Recipients who are online are told "You got ... from <donor>'s donation. Use /donation to claim it." With nobody else on the server nothing is taken. Everyone online gets a broadcast. Closing without confirming, disconnect, death and server stop return the items.
+- `/donation` (chest UI): your share of donations, take only, paged. Same dupe protection as the bounty chest. Players with items waiting are told on login; with nothing waiting it says "Nothing to claim right now...". Data: `donateBoxes` in data.json (old `donatePots` are emptied on load). Food donated before 1.4.0 stays in the treasury.
 
 Judges (added with `/honor judge add`)
 - `/honor treasury`
+- `/honor siege <civ>`, `/honor siege stop <civ>`
 - `/honor cases` (chest GUI with the case menu), `/honor cases text`, `/honor case <id>`, `/honor case <id> confirm | cancel [reason] | set <amount> [reason] | rename <name>`
 - `/fine <player>` (chest UI), `/fine list`, `/fine cancel <id>`
 - `/honor give <player> <amount> <reason>`
@@ -158,14 +177,16 @@ Admins (ops, no judge powers unless also judges)
 - `/honor judge add|remove <player>`
 - `/honor season reset` (run twice within 10 s; backs up the data file first)
 - `/honor reload`
-- `/honor reset all` (run twice within 10 s; backs up the data file first). Wipes every score, civ, tax, bounty, bounty box, case, appeal, fine, treasury, log and anti-farm entry. Judges stay judges. Items in bounty boxes, the treasury and open chest screens are deleted, not returned. Online players are updated at once and the server is told in chat.
+- `/honor reset all` (run twice within 10 s; backs up the data file first). Wipes every score, civ, bounty, bounty box, case, appeal, fine, treasury, log and anti-farm entry. Judges stay judges. Items in bounty boxes, the treasury and open chest screens are deleted, not returned. Online players are updated at once and the server is told in chat.
 
 ## Notes
 
+- Changes in 1.5.0: civ taxes removed (`taxPerMember`, `taxIntervalDays`, `taxWarnHours`, `taxLatePenaltyHonor` and the per-civ tax fields in data.json are gone; no more `[Unpaid]`), `/cc`, no friendly fire, `/civ top`, `/civ chest` (`chest` on each civ in data.json), sieges (`siege*` keys; the next siege time is kept per civ as `nextSiegeAt` and members' bed positions in `respawnPoints` in data.json), donation rotation, new donation numbers and per-type caps. New config keys: `siegesEnabled`, `siegeMinDays`, `siegeMaxDays`, `siegeHomeRadius`, `siegeMinMembersOnline`, `siegeWarnSeconds`, `siegeSpawnMinDistance`, `siegeSpawnMaxDistance`, `siegeMobsPerMember`, `siegeMaxMobsPerWave`, `siegeWaveDelaySeconds`, `siegeAbandonRadius`, `siegeAbandonSeconds`, `siegeMaxMinutes`, `siegeRewardHonor`, `siegeCaptainHealth`, `siegeLoot`, `donateItemDailyCaps`, `donateRewardsVersion`.
+- Config migration in 1.5.0: on first load `honorPerHungerPoints` 20 becomes 10 and `donateDailyCap` 25 becomes 100, each only if it still has the old value (a changed value is kept); `donateRewardsVersion` is then set to 1. Missing `donateItemDailyCaps` entries are added with their defaults. Old `donatePots` contents are moved into the players' `donateBoxes` at startup. The file is re-saved.
 - Config keys added in 1.4.0: `donateExtraItems` (item id to points: golden apple 40, enchanted golden apple 300, totem of undying 160, ender pearl 5), `zombieCureHonor` (10), `zombieCureDailyCap` (30), `harvestPerCrops` (64), `harvestHonor` (1), `harvestDailyCap` (10), `breedPerBreeds` (5), `breedHonor` (1), `breedDailyCap` (5), `tradePerTrades` (10), `tradeHonor` (1), `tradeDailyCap` (5), `raidWinHonor` (15), `bossKillHonor` (15), `villagerKillPenalty` (15), `petKillPenalty` (20). `donateZeroFoods` is now the refused item list for all donations.
-- 1.4.0 data.json fields: `donateBoxes`, `donatePots`, and per-player counters for the automatic events. Older data loads unchanged.
+- 1.4.0 data.json fields: `donateBoxes`, `donatePots` (emptied by 1.5.0), and per-player counters for the automatic events. Older data loads unchanged.
 - Limits: boss fight damage tracking is in memory, so a server restart in the middle of a boss fight forfeits that fight's rewards. Creative and spectator players earn no harvest honor. Harvest, breed and trade progress carries over days; only the honor earned counts against the daily cap.
-- Config keys added in 1.3.0: `honorPerHungerPoints` (20), `donateDailyCap` (25), `donateCakeHunger` (14, cake has no food component), `donateZeroFoods`. `onlineBonusHonor` now defaults to 0 (off), `onlineBonusHours` stays 3.
+- Config keys added in 1.3.0: `honorPerHungerPoints` (20, now 10), `donateDailyCap` (25, now 100), `donateCakeHunger` (14, cake has no food component), `donateZeroFoods`. `onlineBonusHonor` now defaults to 0 (off), `onlineBonusHours` stays 3.
 - Config keys added in 1.2.0: `judgeLoot`, `fineIntervalHours`, `fineHonorPenalty`, `enchantCaps`, `combatElytraSeconds`.
 - Admin commands check the op list and judge commands check the judge list in code, so no permission mod is needed.
 - There is no land claiming. Old claim data in `data.json` is dropped on load.
