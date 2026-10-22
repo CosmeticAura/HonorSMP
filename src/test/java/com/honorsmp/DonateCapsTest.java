@@ -116,7 +116,8 @@ class DonateCapsTest {
         assertEquals("golden_apple", DonationRules.category("minecraft:golden_apple", 4, cfg));
         assertEquals("enchanted_golden_apple", DonationRules.category("minecraft:enchanted_golden_apple", 4, cfg));
         assertEquals("totem_of_undying", DonationRules.category("minecraft:totem_of_undying", -1, cfg));
-        assertEquals("diamond", DonationRules.category("minecraft:diamond", -1, cfg)); // extra item, no cap
+        assertEquals("rare_materials", DonationRules.category("minecraft:diamond", -1, cfg));
+        assertEquals("bedrock", DonationRules.category("minecraft:bedrock", -1, cfg)); // other extra items: own id
         // bread and steak share the 60
         var q = donate(pts("food", 5L * 400 + 8L * 400));
         assertEquals(60, q.honor());
@@ -124,8 +125,8 @@ class DonateCapsTest {
     }
 
     @Test void uncappedTypeHasNoTypeCapButOverallStillApplies() {
-        assertEquals(-1, DonateMath.typeCap(cfg, "diamond"));
-        assertEquals(100, donate(pts("diamond", 5000)).honor());
+        assertEquals(-1, DonateMath.typeCap(cfg, "bedrock"));
+        assertEquals(100, donate(pts("bedrock", 5000)).honor());
     }
 
     @Test void negativeCapMeansNoTypeCap() {
@@ -204,12 +205,12 @@ class DonateCapsTest {
     @Test void configWithoutMapGetsDefaults() {
         HonorConfig c = Honor.GSON.fromJson("{\"minScore\":-500}", HonorConfig.class);
         assertEquals(60, c.donateItemDailyCaps.get("food"));
-        assertEquals(5, c.donateItemDailyCaps.size());
+        assertEquals(7, c.donateItemDailyCaps.size());
         c.migrate();
-        assertEquals(5, c.donateItemDailyCaps.size());
+        assertEquals(7, c.donateItemDailyCaps.size());
         HonorConfig n = Honor.GSON.fromJson("{\"donateItemDailyCaps\":null}", HonorConfig.class);
         n.migrate();
-        assertEquals(5, n.donateItemDailyCaps.size());
+        assertEquals(7, n.donateItemDailyCaps.size());
     }
 
     @Test void partialMapKeepsUserEntriesAndFillsMissingDefaults() {

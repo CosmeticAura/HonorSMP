@@ -114,7 +114,63 @@ public class HonorConfig {
         m.put("enchanted_golden_apple", 30);
         m.put("totem_of_undying", 32);
         m.put("ender_pearl", 16);
+        m.put(DonateMath.COMMON_MATERIALS, 30);
+        m.put(DonateMath.RARE_MATERIALS, 40);
         return m;
+    }
+
+    /** 0 = file written before 1.6.0: missing default ingots, ores and blocks are added once to donateExtraItems / donateCapTypes. */
+    public int donateMaterialsVersion = 0;
+    /**
+     * Item id to the cap type its honor counts toward (see donateItemDailyCaps). Checked before the food and
+     * bare-id rules. Ore blocks sit under the type of the item they drop.
+     */
+    public java.util.Map<String, String> donateCapTypes = defaultMaterialCapTypes();
+
+    private static void mat(java.util.Map<String, Integer> pts, java.util.Map<String, String> types, String type, int points, String... ids) {
+        for (String id : ids) {
+            pts.put("minecraft:" + id, points);
+            if (types != null) types.put("minecraft:" + id, type);
+        }
+    }
+
+    private static void materials(java.util.Map<String, Integer> pts, java.util.Map<String, String> types) {
+        String c = DonateMath.COMMON_MATERIALS;
+        String r = DonateMath.RARE_MATERIALS;
+        mat(pts, types, c, 1, "coal", "coal_ore", "deepslate_coal_ore");
+        mat(pts, types, c, 9, "coal_block");
+        mat(pts, types, c, 1, "raw_copper", "copper_ingot", "copper_ore", "deepslate_copper_ore");
+        mat(pts, types, c, 9, "copper_block", "raw_copper_block");
+        mat(pts, types, c, 5, "raw_iron", "iron_ingot", "iron_ore", "deepslate_iron_ore");
+        mat(pts, types, c, 45, "iron_block", "raw_iron_block");
+        mat(pts, types, c, 5, "raw_gold", "gold_ingot", "gold_ore", "deepslate_gold_ore", "nether_gold_ore");
+        mat(pts, types, c, 45, "gold_block", "raw_gold_block");
+        mat(pts, types, c, 1, "redstone", "redstone_ore", "deepslate_redstone_ore");
+        mat(pts, types, c, 9, "redstone_block");
+        mat(pts, types, c, 2, "lapis_lazuli", "lapis_ore", "deepslate_lapis_ore");
+        mat(pts, types, c, 18, "lapis_block");
+        mat(pts, types, c, 1, "quartz", "nether_quartz_ore");
+        mat(pts, types, c, 4, "quartz_block");
+        mat(pts, types, c, 1, "amethyst_shard");
+        mat(pts, types, r, 20, "emerald", "emerald_ore", "deepslate_emerald_ore");
+        mat(pts, types, r, 180, "emerald_block");
+        mat(pts, types, r, 50, "diamond", "diamond_ore", "deepslate_diamond_ore");
+        mat(pts, types, r, 450, "diamond_block");
+        mat(pts, types, r, 150, "netherite_scrap", "ancient_debris");
+        mat(pts, types, r, 600, "netherite_ingot");
+        mat(pts, types, r, 5400, "netherite_block");
+    }
+
+    public static java.util.Map<String, Integer> defaultMaterialPoints() {
+        java.util.Map<String, Integer> m = new java.util.LinkedHashMap<>();
+        materials(m, null);
+        return m;
+    }
+
+    public static java.util.Map<String, String> defaultMaterialCapTypes() {
+        java.util.Map<String, String> t = new java.util.LinkedHashMap<>();
+        materials(new java.util.LinkedHashMap<>(), t);
+        return t;
     }
 
     /**
@@ -137,6 +193,15 @@ public class HonorConfig {
             if (java.util.Arrays.equals(hungerSlowPercent, new int[] {10, 15, 20})) hungerSlowPercent = new int[] {15, 25, 35};
             if (healthBonusHp == null) healthBonusHp = new int[] {2, 4, 6};
             perksVersion = 1;
+            changed = true;
+        }
+        if (donateMaterialsVersion < 1) {
+            // add what is missing, never touch entries the admin already has
+            if (donateExtraItems == null) donateExtraItems = defaultExtraItems();
+            for (var e : defaultMaterialPoints().entrySet()) donateExtraItems.putIfAbsent(e.getKey(), e.getValue());
+            if (donateCapTypes == null) donateCapTypes = new java.util.LinkedHashMap<>();
+            for (var e : defaultMaterialCapTypes().entrySet()) donateCapTypes.putIfAbsent(e.getKey(), e.getValue());
+            donateMaterialsVersion = 1;
             changed = true;
         }
         if (donateItemDailyCaps == null) {
@@ -167,6 +232,7 @@ public class HonorConfig {
         m.put("minecraft:enchanted_golden_apple", 300);
         m.put("minecraft:totem_of_undying", 160);
         m.put("minecraft:ender_pearl", 5);
+        materials(m, null);
         return m;
     }
 

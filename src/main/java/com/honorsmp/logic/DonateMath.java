@@ -12,12 +12,14 @@ import java.util.TreeSet;
  * daily caps ({@code donateItemDailyCaps}). Donations are never refused: points that cannot earn honor are dropped.
  *
  * <p>Types: "food" (all food combined), "golden_apple", "enchanted_golden_apple", "totem_of_undying",
- * "ender_pearl", or the bare id of any other configured extra item. See {@link DonationRules#category}.
+ * "ender_pearl", "common_materials", "rare_materials" (ingots, ores, blocks), or the bare id of any other configured extra item. See {@link DonationRules#category}.
  */
 public final class DonateMath {
     private DonateMath() {}
 
     public static final String FOOD = "food";
+    public static final String COMMON_MATERIALS = "common_materials";
+    public static final String RARE_MATERIALS = "rare_materials";
 
     /**
      * @param honor          total honor awarded (sum of byType, already limited by every cap)

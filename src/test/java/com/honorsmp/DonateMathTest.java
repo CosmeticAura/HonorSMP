@@ -38,7 +38,7 @@ class DonateMathTest {
         assertEquals(160, cfg.donateExtraItems.get("minecraft:totem_of_undying"));
         assertEquals(5, cfg.donateExtraItems.get("minecraft:ender_pearl"));
         assertEquals(Map.of("food", 60, "golden_apple", 20, "enchanted_golden_apple", 30,
-                "totem_of_undying", 32, "ender_pearl", 16), cfg.donateItemDailyCaps);
+                "totem_of_undying", 32, "ender_pearl", 16, "common_materials", 30, "rare_materials", 40), cfg.donateItemDailyCaps);
     }
 
     @Test void breadStack() {

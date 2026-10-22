@@ -29,6 +29,10 @@ public final class DonationRules {
      * donateItemDailyCaps, otherwise "food" for anything with nutrition (and cake), otherwise the bare id.
      */
     public static String category(String itemId, int nutrition, HonorConfig cfg) {
+        if (cfg.donateCapTypes != null) {
+            String t = cfg.donateCapTypes.get(itemId);
+            if (t != null && !t.isEmpty()) return t;
+        }
         String bare = itemId.startsWith("minecraft:") ? itemId.substring("minecraft:".length()) : itemId;
         if (cfg.donateItemDailyCaps != null && cfg.donateItemDailyCaps.containsKey(bare)) return bare;
         if (nutrition >= 0 || CAKE.equals(itemId)) return DonateMath.FOOD;
