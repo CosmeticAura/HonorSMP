@@ -93,7 +93,7 @@ public class HonorSMP implements ModInitializer {
             if (player instanceof ServerPlayerEntity sp && !(player instanceof FakePlayer)) AutoHonor.onHarvest(sp, state);
         });
         ServerPlayerEvents.AFTER_RESPAWN.register((old, now, alive) -> {
-            if (Honor.I != null) { Honor.I.combat.clear(now.getUuid().toString()); Honor.I.refreshPlayer(now); KeepStash.restore(now); }
+            if (Honor.I != null) { Honor.I.combat.clear(now.getUuid().toString()); Honor.I.refreshPlayer(now); KeepStash.restore(now); Donor.onRespawn(Honor.I, now, alive); }
         });
     }
 

@@ -52,6 +52,22 @@ public class HonorConfig {
     public int taxIntervalDays = 7;
     public int taxWarningHours = 24;
 
+    // donor perks (1.6.0): tiers by lifetime honor earned from donating. Judges get none.
+    public int donorSupporterMin = 200;
+    public int donorPatronMin = 750;
+    public int donorBenefactorMin = 2000;
+    /** Supporter and up: hunger drains this much slower, added to the rank perk. */
+    public int donorHungerSlowPercent = 20;
+    /** Rank + donor hunger slowdown never goes above this (it never lowers the rank perk itself). */
+    public int donorHungerCapPercent = 50;
+    /** Patron and up: extra Luck attribute. */
+    public double donorLuckBonus = 1.0;
+    /** Benefactor: Regeneration I for this many seconds on every respawn. */
+    public int donorRespawnRegenSeconds = 30;
+    /** Weekly top donor (Monday 00:00 server time): Hero of the Village I for this many days. */
+    public boolean topDonorEnabled = true;
+    public int topDonorHeroDays = 7;
+
     // automatic honor events
     public int killDishonored = 25;
     public int killDishonoredGuard = 35;

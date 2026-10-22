@@ -256,6 +256,7 @@ public final class Donations {
             }
             lore.add(line(h.config.honorPerHungerPoints + " points = 1 honor. Points in chest: " + points, Formatting.DARK_GRAY));
         }
+        if (!judge) for (String l : Donor.summary(h, r)) lore.add(line(l, Formatting.LIGHT_PURPLE));
         lore.add(line(others == 0 ? "Nobody else has joined yet: nothing is taken" : "Shared equally with " + others + " other players", Formatting.AQUA));
         lore.add(line("Only plain items count: no custom names or enchants", Formatting.DARK_GRAY));
         inv.setStack(INFO_SLOT, named(new ItemStack(Items.PAPER), "Donation value", Formatting.YELLOW, lore));
@@ -405,7 +406,10 @@ public final class Donations {
         for (int i = 0; i < FOOD_SLOTS; i++) s.inv.setStack(i, ItemStack.EMPTY);
         shareOut(counts, sample, rec, p.getName().getString());
         DonateMath.apply(q, r, today);
-        if (q.honor() > 0) h.change(p.getUuid().toString(), p.getName().getString(), q.honor(), "Donated items", "donate", p, "", 0);
+        if (q.honor() > 0) {
+            h.change(p.getUuid().toString(), p.getName().getString(), q.honor(), "Donated items", "donate", p, "", 0);
+            Donor.recordAward(h, p, q.honor()); // lifetime total + weekly window (judges earn none: q.honor() is 0 for them)
+        }
         h.markDirty();
         h.saveData();
         if (h.isJudge(p)) tell(p, "Thanks! Your donation was shared with " + rec.size() + " players. Judges earn no honor.", Formatting.GREEN);

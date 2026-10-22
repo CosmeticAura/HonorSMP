@@ -159,6 +159,11 @@ public class Honor {
         }
         data.version = 2;
         if (data.antiFarm == null) data.antiFarm = new LinkedHashMap<>();
+        if (data.topDonorUuid == null) data.topDonorUuid = "";
+        if (data.topDonorName == null) data.topDonorName = "";
+        if (data.topDonorClear == null) data.topDonorClear = new LinkedHashSet<>();
+        for (PlayerRecord pr : data.players.values()) if (pr.donationAwards == null) pr.donationAwards = new ArrayList<>();
+        Donor.backfillOnce(this);
     }
 
     public void markDirty() {
@@ -385,15 +390,16 @@ public class Honor {
 
     // ------------------------------------------------------------ teams (prefix, name tag) and perks
 
-    private String teamName(Tier t, boolean hiddenTag) {
+    /** donor = donor tag name without brackets ("Supporter"/"Benefactor") or null. Judges never have one. */
+    private String teamName(Tier t, boolean hiddenTag, String donor) {
         // Team names sort alphabetically in the tab list, so "0" puts judges above everyone else.
         if (t == Tier.JUDGE) return "hsmp_0judge";
-        return "hsmp_" + t.name().toLowerCase() + (hiddenTag ? "_h" : "");
+        return "hsmp_" + t.name().toLowerCase() + (hiddenTag ? "_h" : "") + (donor == null ? "" : "_" + donor.toLowerCase());
     }
 
-    private Team ensureTeam(Tier t, boolean hiddenTag) {
+    private Team ensureTeam(Tier t, boolean hiddenTag, String donor) {
         Scoreboard sb = server.getScoreboard();
-        String n = teamName(t, hiddenTag);
+        String n = teamName(t, hiddenTag, donor);
         Team team = sb.getTeam(n);
         if (team == null) team = sb.addTeam(n);
         Formatting c = colorOf(t.side);
@@ -401,6 +407,10 @@ public class Honor {
         team.setColor(t.isHonorable() && !RankPerks.goldName(t, config) ? Formatting.WHITE : c);
         team.setPrefix(t == Tier.NEUTRAL ? Text.literal("[Neutral] ").formatted(c)
                 : Text.literal("[" + t.display + "] ").formatted(c));
+        if (donor != null) {
+            team.setPrefix(team.getPrefix().copy().append(Text.literal("[" + donor + "] ")
+                    .formatted(Donor.tagColor(donor))));
+        }
         team.setNameTagVisibilityRule(hiddenTag ? AbstractTeam.VisibilityRule.NEVER : AbstractTeam.VisibilityRule.ALWAYS);
         return team;
     }
@@ -410,7 +420,7 @@ public class Honor {
         PlayerRecord r = record(p);
         Tier t = tier(r);
         boolean hide = t.isDishonored() && p.isSneaking();
-        Team want = ensureTeam(t, hide);
+        Team want = ensureTeam(t, hide, Donor.tag(this, r));
         Scoreboard sb = server.getScoreboard();
         String holder = p.getNameForScoreboard();
         Team cur = sb.getScoreHolderTeam(holder);
@@ -447,6 +457,7 @@ public class Honor {
     private void applyAttributes(ServerPlayerEntity p, Tier t, boolean removeCiv) {
         applyHealth(p, t);
         CivPerks.apply(this, p, removeCiv);
+        Donor.apply(this, p, removeCiv);
         EntityAttributeInstance dmg = p.getAttributeInstance(EntityAttributes.ATTACK_DAMAGE);
         EntityAttributeInstance spd = p.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED);
         if (dmg == null || spd == null) return;
@@ -490,8 +501,9 @@ public class Honor {
 
     public float hungerFactor(ServerPlayerEntity p) {
         Tier t = tier(p);
-        if (!t.isHonorable()) return 1.0f;
-        return 1.0f - config.hungerSlowPercent[t.perkIndex()] / 100.0f;
+        int rank = t.isHonorable() ? config.hungerSlowPercent[t.perkIndex()] : 0;
+        int pct = Donor.hungerPercent(this, p, rank); // rank + donor, capped
+        return pct <= 0 ? 1.0f : 1.0f - pct / 100.0f;
     }
 
     /** Change to a villager trade's special price for this player, in items. Negative is cheaper. */
@@ -549,7 +561,7 @@ public class Honor {
                 boolean hide = p.isSneaking();
                 Scoreboard sb = server.getScoreboard();
                 Team cur = sb.getScoreHolderTeam(p.getNameForScoreboard());
-                String wantName = teamName(t, hide);
+                String wantName = teamName(t, hide, Donor.tag(this, record(p)));
                 if (cur == null || !cur.getName().equals(wantName)) refreshPlayer(p);
             }
         }
@@ -562,6 +574,11 @@ public class Honor {
             LOG.error("Siege tick failed", e);
         }
         secondTick();
+        try {
+            Donor.second(this, seconds);
+        } catch (Exception e) {
+            LOG.error("Weekly top donor check failed", e);
+        }
         try {
             CivPerks.second(this);
         } catch (Exception e) {

@@ -59,6 +59,18 @@ public class HonorData {
     /** "killer>victim" to the time of the last counted kill (ms). */
     public Map<String, Long> antiFarm = new LinkedHashMap<>();
 
+    /** True once the 1.6.0 donor backfill (donatedHonorTotal from the honor log) has run. Missing in 1.5.0 data = false. */
+    public boolean donorBackfilled = false;
+    /** Monday 00:00 (epoch ms, server time) of the last weekly top donor run. 0 = never. */
+    public long lastWeeklyDonorRun = 0;
+    /** Current weekly top donor (uuid empty = none), their name, the amount they earned and when their Hero effect ends (epoch ms). */
+    public String topDonorUuid = "";
+    public String topDonorName = "";
+    public int topDonorAmount = 0;
+    public long topDonorExpiresAt = 0;
+    /** Former top donors who were offline when their week ended: their leftover Hero effect is removed on next login. */
+    public Set<String> topDonorClear = new LinkedHashSet<>();
+
     /** Full wipe for /honor reset all: everything except the judge list. Clears in place (antiFarm is shared with the live AntiFarm). */
     public void wipeAllExceptJudges() {
         players.clear();
@@ -80,6 +92,11 @@ public class HonorData {
         pendingBooks.clear();
         fines.clear();
         antiFarm.clear();
+        topDonorUuid = "";
+        topDonorName = "";
+        topDonorAmount = 0;
+        topDonorExpiresAt = 0;
+        if (topDonorClear != null) topDonorClear.clear();
         nextLogId = 1;
         nextCaseId = 1;
         nextFineId = 1;
@@ -117,6 +134,10 @@ public class HonorData {
         public long lastSeen = 0;
         public String donateDayKey = "";
         public int donatedHonorToday = 0;
+        /** Lifetime honor earned from donating (drives the donor tiers). Added in 1.6.0; backfilled once from the honor log. */
+        public long donatedHonorTotal = 0;
+        /** Recent donation honor awards for the weekly top donor, newest last; pruned to about 14 days. Added in 1.6.0. */
+        public List<DonationAward> donationAwards = new ArrayList<>();
         /** Pre-1.5.0 single leftover-points carry; counted as food and folded into donateCarryTypes on the next donation. */
         public int donateCarry = 0;
         /** Honor earned from donations today per cap type (reset with donatedHonorToday). Added in 1.5.0. */
@@ -134,6 +155,18 @@ public class HonorData {
         public int tradeHonorToday = 0;
         /** Boss types (wither, ender_dragon, warden) already paid today. */
         public java.util.List<String> bossesToday = new java.util.ArrayList<>();
+    }
+
+    public static class DonationAward {
+        public long time;
+        public int amount;
+
+        public DonationAward() {}
+
+        public DonationAward(long time, int amount) {
+            this.time = time;
+            this.amount = amount;
+        }
     }
 
     public static class RespawnPoint {

@@ -302,6 +302,7 @@ public final class Cmds {
         } else {
             say(c, "Perks: none (reach " + k.honorableMin + " for the honorable side).");
         }
+        for (String l : Donor.summary(h, r)) say(c, l);
         Civ civ = h.civOf(r.uuid);
         if (civ != null) say(c, "Civilization: " + civ.name);
         List<LogEntry> mine = new ArrayList<>();
