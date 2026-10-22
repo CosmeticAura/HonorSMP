@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.2
+- Donations never go to the judges' treasury. The treasury holds only paid fines and the civ upgrade tax.
+- Migration: on the first start of 1.6.2 every donatable stack still in the treasury (any food, golden apples, enchanted golden apples, totems of undying, ender pearls, and the ores, ingots and blocks from 1.6.0, including food donated before 1.4.0) is shared out like a new donation: equal split between everyone who has joined, leftover rotation, login notice in `/donation`. Emeralds, emerald blocks and stacks with a changed name or enchantments stay in the treasury. A treasury that was open at shutdown is included. It runs once (`treasuryDonationsMoved` in data.json); if nobody has joined yet it waits for the next start.
+- No new config keys.
+
 ## 1.6.1
 - Civ chests are removed. `/civ chest`, the shared chest screen, its saved data and the "chest contents moved to your donation box" notices are gone.
 - Migration: on the first start of 1.6.1 every item still in any civ's chest (including a chest that was open when the server stopped) is moved into that civ leader's `/donation` claim box. The leader gets "Your civ chest was removed. Its items are in /donation." on login. The old chest data is then dropped from `data.json`. Nothing is lost or copied twice, and a leader who has not logged in since still gets the box.
@@ -31,7 +36,7 @@
 
 ## 1.4.0
 - Fixed `/donate` with extra words (`/donate food`): it now just opens the chest. Command errors now say what to do instead of a bare failure. New automated test runs the player commands as a non-op.
-- Donations are shared: Confirm no longer goes to the treasury. The items are split equally between every other player who has ever joined and land in their `/donation` claim box (chest UI, take only, paged, saved across restarts, dupe protected). What does not split evenly stays in a per-item leftover pot for the next donation of that item. With nobody else to share with, nothing is taken. Players with items waiting are told on login, and everyone online gets a broadcast. Food donated before 1.4.0 stays in the treasury.
+- Donations are shared: Confirm no longer goes to the treasury. The items are split equally between every other player who has ever joined and land in their `/donation` claim box (chest UI, take only, paged, saved across restarts, dupe protected). What does not split evenly stays in a per-item leftover pot for the next donation of that item. With nobody else to share with, nothing is taken. Players with items waiting are told on login, and everyone online gets a broadcast.
 - New donatable items: golden apple (40 points), enchanted golden apple (300), totem of undying (160), ender pearl (5). Same rate of 1 honor per 20 points and the same 25 a day cap. Items with a custom name, enchantments or other changed components are refused. Judges can donate but earn no honor. Honor shows as "Donated items" in `/honor log`.
 - Automatic honor events, all shown with a reason in `/honor log`, judges exempt, daily caps reset at midnight server time: cure a zombie villager +10 (max 30 a day), harvest mature wheat, carrots, potatoes, beetroot or nether wart by hand +1 per 64 (max 10 a day, not in creative or spectator), breed animals +1 per 5 (max 5 a day), trade with villagers +1 per 10 (max 5 a day), win a raid +15, help kill the Wither, Ender Dragon or Warden +15 (once per boss type per day), kill a villager or wandering trader -15, kill another player's tamed animal -20.
 - Known limit: boss fight damage is tracked in memory, so a server restart mid-fight forfeits that fight's rewards.

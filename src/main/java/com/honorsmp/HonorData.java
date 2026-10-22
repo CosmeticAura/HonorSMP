@@ -59,6 +59,8 @@ public class HonorData {
     /** "killer>victim" to the time of the last counted kill (ms). */
     public Map<String, Long> antiFarm = new LinkedHashMap<>();
 
+    /** True once the 1.6.2 move of donatable treasury stacks into the /donation boxes has run. Missing in older data = false. */
+    public boolean treasuryDonationsMoved = false;
     /** True once the 1.6.0 donor backfill (donatedHonorTotal from the honor log) has run. Missing in 1.5.0 data = false. */
     public boolean donorBackfilled = false;
     /** Monday 00:00 (epoch ms, server time) of the last weekly top donor run. 0 = never. */

@@ -84,6 +84,7 @@ public class Honor {
         bounties.load();
         donationBox.load();
         donations.load();
+        donations.migrateTreasury(); // 1.6.2: donatable stacks in the treasury go to the /donation boxes, once
         saveData();
         sieges.sweepAll();
         LOG.info("HonorSMP loaded: {} players, {} civs, {} open cases", data.players.size(),

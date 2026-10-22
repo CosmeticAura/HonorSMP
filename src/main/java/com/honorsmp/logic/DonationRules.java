@@ -47,4 +47,20 @@ public final class DonationRules {
         int p = pointsPerItem(itemId, nutrition, plain, cfg);
         return p < 0 ? 0 : (long) p * count;
     }
+
+    /**
+     * 1.6.2 treasury clean-up: does a treasury stack of this kind move to the /donation boxes? True for anything a
+     * player could donate (food, golden apples, totems, pearls, ores, ingots, blocks) and for any food at all, even
+     * the ones worth 0 points. Emeralds and emerald blocks stay: they are the judges' tax money. Stacks with a
+     * changed name, enchantments or other components stay too, because /donate refuses them.
+     */
+    public static boolean treasuryMoves(String itemId, int nutrition, boolean plain, HonorConfig cfg) {
+        if (!plain || itemId == null) return false;
+        if ("minecraft:emerald".equals(itemId) || "minecraft:emerald_block".equals(itemId)) return false;
+        if (cfg.donateExtraItems != null && cfg.donateExtraItems.containsKey(itemId)) {
+            Integer p = cfg.donateExtraItems.get(itemId);
+            if (p != null && p >= 0) return true;
+        }
+        return CAKE.equals(itemId) || nutrition >= 0;
+    }
 }

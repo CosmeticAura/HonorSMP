@@ -4,6 +4,7 @@ import com.honorsmp.HonorData.PlayerRecord;
 import com.honorsmp.logic.DonateMath;
 import com.honorsmp.logic.DonationRules;
 import com.honorsmp.logic.DonationRotation;
+import com.honorsmp.logic.TreasuryMigration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import com.google.gson.JsonElement;
@@ -423,7 +424,7 @@ public final class Donations {
     }
 
     /** Hands counts (item id to amount) to the recipients by rotation, files them in their claim boxes and tells them. */
-    private void shareOut(Map<String, Long> counts, Map<String, ItemStack> sample, List<String> rec, String donor) {
+    void shareOut(Map<String, Long> counts, Map<String, ItemStack> sample, List<String> rec, String donor) {
         Map<String, Map<String, Long>> shares = DonationRotation.share(h.data.donateRotation, counts, rec);
         if (shares == null) return;
         for (var r : shares.entrySet()) {
@@ -473,6 +474,41 @@ public final class Donations {
         h.data.donatePots = keep;
         h.markDirty();
         Honor.LOG.info("Handed out the old donation pots ({} item types, {} kept)", ready.size(), keep.size());
+    }
+
+    /**
+     * 1.6.2, once: donatable stacks still in the judges' treasury (food donated before 1.4.0 and the like) are shared
+     * out like a new donation. Emeralds, emerald blocks and stacks with changed components stay. Runs after the
+     * treasury and the claim boxes are loaded and before the first save, so the removal and the new box contents
+     * are written together. With nobody to share with it waits for the next start.
+     */
+    public void migrateTreasury() {
+        List<String> rec = new ArrayList<>(h.data.players.keySet());
+        List<ItemStack> list = h.treasury.closedItems();
+        List<ItemStack> backup = new ArrayList<>(list);
+        boolean flag = h.data.treasuryDonationsMoved;
+        List<ItemStack> moved = TreasuryMigration.runOnce(h.data, list, rec,
+                st -> DonationRules.treasuryMoves(id(st), nutrition(st), plain(st), h.config));
+        if (h.data.treasuryDonationsMoved != flag) h.markDirty();
+        if (moved.isEmpty()) return;
+        Map<String, Long> counts = new LinkedHashMap<>();
+        Map<String, ItemStack> sample = new LinkedHashMap<>();
+        for (ItemStack st : moved) {
+            counts.merge(id(st), (long) st.getCount(), Long::sum);
+            sample.putIfAbsent(id(st), st.copyWithCount(1));
+        }
+        try {
+            shareOut(counts, sample, rec, "an earlier donation");
+        } catch (RuntimeException ex) {
+            // put everything back so nothing is lost; the next start tries again
+            Honor.LOG.error("Could not move donations out of the treasury; leaving them there", ex);
+            list.clear();
+            list.addAll(backup);
+            h.data.treasuryDonationsMoved = false;
+            return;
+        }
+        h.markDirty();
+        Honor.LOG.info("Moved {} donated treasury stacks ({} item types) into the /donation boxes", moved.size(), counts.size());
     }
 
     private void settle(Session s) {

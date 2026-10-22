@@ -53,6 +53,11 @@ public final class Treasury {
         }
     }
 
+    /** The stacks held while the UI is closed (startup migration only; the caller must not keep or copy them). */
+    List<ItemStack> closedItems() {
+        return items;
+    }
+
     /** Writes the current contents (live inventory if open) into data.treasury. */
     public void sync() {
         List<ItemStack> all = new ArrayList<>();
