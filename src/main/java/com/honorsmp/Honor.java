@@ -397,7 +397,8 @@ public class Honor {
         Team team = sb.getTeam(n);
         if (team == null) team = sb.addTeam(n);
         Formatting c = colorOf(t.side);
-        team.setColor(c);
+        // honorable names are gold only from goldNameMinRank up (Paragon, Judge); the [Tier] prefix keeps the side color
+        team.setColor(t.isHonorable() && !RankPerks.goldName(t, config) ? Formatting.WHITE : c);
         team.setPrefix(t == Tier.NEUTRAL ? Text.literal("[Neutral] ").formatted(c)
                 : Text.literal("[" + t.display + "] ").formatted(c));
         team.setNameTagVisibilityRule(hiddenTag ? AbstractTeam.VisibilityRule.NEVER : AbstractTeam.VisibilityRule.ALWAYS);
@@ -422,7 +423,25 @@ public class Honor {
     private static final Identifier DMG_ID = Identifier.of("honorsmp", "combat_damage");
     private static final Identifier SPD_ID = Identifier.of("honorsmp", "combat_speed");
 
+    private static final Identifier HP_ID = Identifier.of("honorsmp", "rank_health");
+
+    private void applyHealth(ServerPlayerEntity p, Tier t) {
+        EntityAttributeInstance hp = p.getAttributeInstance(EntityAttributes.MAX_HEALTH);
+        if (hp == null) return;
+        int bonus = RankPerks.healthBonus(t, config);
+        EntityAttributeModifier cur = hp.getModifier(HP_ID);
+        if (bonus <= 0) {
+            if (cur != null) hp.removeModifier(HP_ID);
+        } else if (cur == null || cur.value() != bonus) {
+            if (cur != null) hp.removeModifier(HP_ID);
+            hp.addTemporaryModifier(new EntityAttributeModifier(HP_ID, bonus, EntityAttributeModifier.Operation.ADD_VALUE));
+        }
+        float max = p.getMaxHealth();
+        if (p.getHealth() > max) p.setHealth(RankPerks.clampHealth(p.getHealth(), max));
+    }
+
     private void applyAttributes(ServerPlayerEntity p, Tier t) {
+        applyHealth(p, t);
         EntityAttributeInstance dmg = p.getAttributeInstance(EntityAttributes.ATTACK_DAMAGE);
         EntityAttributeInstance spd = p.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED);
         if (dmg == null || spd == null) return;

@@ -31,7 +31,7 @@ Honor sidebar: every player sees their own tier and honor on the right side of t
 
 ## Perks
 
-Honorable (Honorable / Noble / Paragon): beneficial potions last +15/30/50% longer, villager trades 5/10/15% cheaper, hunger drains 10/15/20% slower, and Noble+ can use the Bounty Compass.
+Honorable (Honorable / Noble / Paragon): +2/4/6 max health, beneficial potions last +20/35/50% longer, villager trades 10/20/30% cheaper, hunger drains 15/25/35% slower. Noble+ keep XP on death and can use the Bounty Compass. Paragon also keeps the hotbar and offhand on death and has a gold name in chat.
 
 Dishonored (Outlaw / Marauder / Warlord): hidden from the tab list except to their own civ and ops, name tag hidden while sneaking, +0.5/1/1.5 attack damage, +3/5/7% speed, loot pool payouts for killing honorable players. Downsides: beneficial potions -20% and villagers +20%.
 

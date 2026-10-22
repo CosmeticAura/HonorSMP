@@ -13,9 +13,17 @@ public class HonorConfig {
     public int warlordMax = -800;
 
     // perks, indexed [Honorable/Outlaw, Noble/Marauder, Paragon/Warlord]
-    public int[] potionBonusPercent = {15, 30, 50};
-    public int[] tradeDiscountPercent = {5, 10, 15};
-    public int[] hungerSlowPercent = {10, 15, 20};
+    public int[] potionBonusPercent = {20, 35, 50};
+    public int[] tradeDiscountPercent = {10, 20, 30};
+    public int[] hungerSlowPercent = {15, 25, 35};
+    /** Extra max health in HP (2 = one heart) for Honorable / Noble / Paragon. */
+    public int[] healthBonusHp = {2, 4, 6};
+    /** Lowest honorable rank (1 Honorable, 2 Noble, 3 Paragon) that keeps XP / hotbar+offhand on death / has a gold name. 0 = nobody. */
+    public int keepXpMinRank = 2;
+    public int keepHotbarMinRank = 3;
+    public int goldNameMinRank = 3;
+    /** 0 = file written before 1.6.0: the old honorable perk defaults get replaced once on load. */
+    public int perksVersion = 0;
     public double[] attackDamageBonus = {0.5, 1.0, 1.5};
     public int[] speedBonusPercent = {3, 5, 7};
     public int dishonoredPotionPenaltyPercent = 20;
@@ -75,7 +83,7 @@ public class HonorConfig {
     }
 
     /**
-     * Run after loading config/honorsmp.json. Once (donateRewardsVersion 0 to 1): honorPerHungerPoints 20 becomes 10
+     * Run after loading config/honorsmp.json. Once (perksVersion 0 to 1): old honorable perk arrays still at the 1.5.0 defaults become the 1.6.0 ones. Once (donateRewardsVersion 0 to 1): honorPerHungerPoints 20 becomes 10
      * and donateDailyCap 25 becomes 100, each only if it still has the old value. Always: a missing/null caps map
      * becomes the defaults and default types missing from a user map are added (user values win).
      * Returns true when anything changed (the caller re-saves the file). Running it again changes nothing.
@@ -86,6 +94,14 @@ public class HonorConfig {
             if (honorPerHungerPoints == 20) honorPerHungerPoints = 10;
             if (donateDailyCap == 25) donateDailyCap = 100;
             donateRewardsVersion = 1;
+            changed = true;
+        }
+        if (perksVersion < 1) {
+            if (java.util.Arrays.equals(potionBonusPercent, new int[] {15, 30, 50})) potionBonusPercent = new int[] {20, 35, 50};
+            if (java.util.Arrays.equals(tradeDiscountPercent, new int[] {5, 10, 15})) tradeDiscountPercent = new int[] {10, 20, 30};
+            if (java.util.Arrays.equals(hungerSlowPercent, new int[] {10, 15, 20})) hungerSlowPercent = new int[] {15, 25, 35};
+            if (healthBonusHp == null) healthBonusHp = new int[] {2, 4, 6};
+            perksVersion = 1;
             changed = true;
         }
         if (donateItemDailyCaps == null) {

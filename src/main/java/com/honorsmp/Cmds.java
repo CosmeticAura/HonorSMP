@@ -288,8 +288,11 @@ public final class Cmds {
                 .append(Text.literal(" (" + Honor.sideName(t.side) + ")").formatted(Formatting.GRAY)));
         int i = t.perkIndex();
         if (t.isHonorable()) {
-            say(c, "Perks: potions +" + k.potionBonusPercent[i] + "% longer, villager trades " + k.tradeDiscountPercent[i]
-                    + "% cheaper, hunger " + k.hungerSlowPercent[i] + "% slower" + (t.isNobleOrHigher() ? ", Bounty Compass (/honor tracker)" : ""));
+            say(c, "Perks: +" + RankPerks.healthBonus(t, k) + " max health, potions +" + k.potionBonusPercent[i] + "% longer, villager trades "
+                    + k.tradeDiscountPercent[i] + "% cheaper, hunger " + k.hungerSlowPercent[i] + "% slower"
+                    + (t.isNobleOrHigher() ? ", Bounty Compass (/honor tracker)" : "")
+                    + (RankPerks.keepsHotbar(t, k) ? ", keep XP and hotbar on death" : RankPerks.keepsXp(t, k) ? ", keep XP on death" : "")
+                    + (RankPerks.goldName(t, k) ? ", gold name in chat" : ""));
         } else if (t.isDishonored()) {
             say(c, "Perks: hidden from tab list, name tag hidden when sneaking, +" + k.attackDamageBonus[i] + " attack damage, +"
                     + k.speedBonusPercent[i] + "% speed, bounty payouts. Downsides: potions -" + k.dishonoredPotionPenaltyPercent
