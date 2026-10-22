@@ -139,6 +139,8 @@ Bounty Compass: Noble and up get one with `/honor tracker`, or craft it shapeles
 
 ## Civilization command replies
 
+`/civ upgrades` (1.6.0) opens the civ upgrade menu (leader/officers buy, members can look); `/civ tax` shows the weekly upgrade tax and `/civ tax pay` (leader/officer) pays it into the judges' treasury. Late tax switches all upgrades off and shows `[Unpaid]` in `/civ info` and `/civ list` until paid.
+
 `/civ chest` (1.5.0) opens a shared 54 slot chest for your civ: leader, officers, members and guards can put items in and take them out. Only one member can have it open at a time; others get "Someone in your civ is using the chest". Contents are saved to data.json (`chest` on each civ) when the chest closes (also on disconnect, death, being kicked or leaving the civ, and server stop) and at least every 30 seconds while it is open; after a crash the last saved state wins, so moves in the last 30 seconds can be reverted. If the civ is disbanded, the chest contents go to the leader's `/donation` claim box (the leader is told, on login if offline). `/honor reset all` deletes chest contents with everything else.
 
 `/civ promote` on an officer says "Already an officer" and changes nothing. `/civ guard` is a toggle and says whether the player became or stopped being a guard. `/civ invite` on someone already in your civ says they are already a member.

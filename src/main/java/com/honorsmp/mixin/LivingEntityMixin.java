@@ -29,4 +29,13 @@ public class LivingEntityMixin {
     private void honorsmp$noFriendlyEffects(StatusEffectInstance effect, Entity source, CallbackInfoReturnable<Boolean> cir) {
         if (CivSafety.blockEffect((Entity) (Object) this, effect, source)) cir.setReturnValue(false);
     }
+
+    /** Civ upgrade Resistance: members take less damage while the upgrades are active. */
+    @Inject(method = "modifyAppliedDamage", at = @At("RETURN"), cancellable = true)
+    private void honorsmp$civResistance(net.minecraft.entity.damage.DamageSource source, float amount, CallbackInfoReturnable<Float> cir) {
+        if ((Object) this instanceof ServerPlayerEntity sp && Honor.I != null) {
+            float m = com.honorsmp.CivPerks.damageMultiplier(sp);
+            if (m < 1f) cir.setReturnValue(cir.getReturnValue() * m);
+        }
+    }
 }

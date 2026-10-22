@@ -2,6 +2,8 @@ package com.honorsmp;
 
 import com.honorsmp.HonorData.Case;
 import com.honorsmp.HonorData.Civ;
+import com.honorsmp.logic.CivEffects;
+import com.honorsmp.logic.CivUpgrades;
 import com.honorsmp.HonorData.Hit;
 import com.honorsmp.HonorData.LogEntry;
 import com.honorsmp.HonorData.PlayerRecord;
@@ -652,6 +654,7 @@ public final class Cmds {
                     }
                     h.invites.remove(p.getUuid());
                     civ.members.add(p.getUuid().toString());
+                    CivPerks.syncPlayer(h, p.getUuid().toString());
                     h.markDirty();
                     say(c, "You joined " + civ.name + ".");
                     broadcastCiv(h, civ, p.getName().getString() + " joined the civilization.");
@@ -668,6 +671,7 @@ public final class Cmds {
                     civ.officers.remove(id);
                     civ.guards.remove(id);
                     h.markDirty();
+                    CivPerks.syncPlayer(h, id);
                     say(c, "You left " + civ.name + ".");
                     broadcastCiv(h, civ, p.getName().getString() + " left the civilization.");
                     return 1;
@@ -686,6 +690,7 @@ public final class Cmds {
                     civ.officers.remove(r.uuid);
                     civ.guards.remove(r.uuid);
                     h.markDirty();
+                    CivPerks.syncPlayer(h, r.uuid);
                     broadcastCiv(h, civ, r.name + " was kicked by " + p.getName().getString() + ".");
                     return 1;
                 })))
@@ -741,9 +746,24 @@ public final class Cmds {
                     CivUpgradeApi.clear(civ); // upgrades are lost, no refund
                     h.data.civs.remove(civ.id);
                     h.markDirty();
+                    for (String mid : civ.members) CivPerks.syncPlayer(h, mid); // civOf is null now: effects come off
                     h.server.getPlayerManager().broadcast(Text.literal(civ.name + " has been disbanded.").formatted(Formatting.GOLD), false);
                     return 1;
                 }))
+                .then(lit("upgrades").executes(c -> {
+                    h();
+                    CivUpgradeMenu.open(player(c));
+                    return 1;
+                }))
+                .then(lit("tax")
+                        .executes(c -> {
+                            civTax(c);
+                            return 1;
+                        })
+                        .then(lit("pay").executes(c -> {
+                            civTaxPay(c);
+                            return 1;
+                        })))
                 .then(lit("info")
                         .executes(c -> {
                             info(c, myCiv(c));
@@ -764,7 +784,7 @@ public final class Cmds {
                     if (h.data.civs.isEmpty()) say(c, "No civilizations yet.");
                     for (Civ civ : h.data.civs.values()) {
                         say(c, civ.name + "  (" + Honor.sideName(h.civSide(civ)) + ", " + civ.members.size() + " members)  leader "
-                                + h.nameOf(civ.leader));
+                                + h.nameOf(civ.leader) + (CivUpgradeApi.isLate(civ, System.currentTimeMillis()) ? " [Unpaid]" : ""));
                     }
                     return 1;
                 }));
@@ -826,6 +846,58 @@ public final class Cmds {
         say(c, "Officers: " + (off.isEmpty() ? "none" : String.join(", ", off)));
         say(c, "Guards: " + (gu.isEmpty() ? "none" : String.join(", ", gu)));
         say(c, "Members (" + mem.size() + "): " + String.join(", ", mem));
+        if (CivUpgradeApi.hasUpgrades(civ)) {
+            boolean late = CivUpgradeApi.isLate(civ, System.currentTimeMillis());
+            List<String> ups = new ArrayList<>();
+            for (CivUpgrades.Upgrade u : CivUpgrades.Upgrade.values()) {
+                int l = CivUpgradeApi.ownedLevel(civ, u);
+                if (l > 0) ups.add(u.display + " " + l);
+            }
+            say(c, Text.literal("Upgrades: " + String.join(", ", ups) + (late ? " [Unpaid] (off until the tax is paid)" : ""))
+                    .formatted(late ? Formatting.RED : Formatting.GREEN));
+        }
+    }
+
+    private static void civTax(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
+        Honor h = h();
+        Civ civ = myCiv(c);
+        long now = System.currentTimeMillis();
+        if (!CivUpgradeApi.hasUpgrades(civ)) {
+            say(c, "Your civ owns no upgrades, so it owes no tax. See /civ upgrades.");
+            return;
+        }
+        int levels = CivUpgradeApi.totalLevels(civ);
+        int members = civ.members.size();
+        long owed = CivUpgradeApi.taxOwed(civ, h.config);
+        say(c, Text.literal("Upgrade tax: " + owed + " emeralds per " + h.config.taxIntervalDays + " days (" + levels + " levels x " + members
+                + " members x " + h.config.taxPerLevelPerMemberPerWeek + " emeralds)").formatted(Formatting.GOLD));
+        long due = CivUpgradeApi.taxDueAt(civ);
+        if (CivUpgradeApi.isLate(civ, now)) {
+            say(c, Text.literal("LATE since " + CivUpgradeMenu.date(due) + " (" + CivEffects.duration(now - due) + " ago). Upgrades are off until you pay: /civ tax pay")
+                    .formatted(Formatting.RED));
+        } else {
+            say(c, "Due " + CivUpgradeMenu.date(due) + " (in " + CivEffects.duration(due - now) + "). Not late.");
+            if (!CivUpgradeApi.canPay(civ, h.config, now)) say(c, "Paying opens " + h.config.taxWarningHours + " hours before the due date.");
+        }
+    }
+
+    private static void civTaxPay(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
+        Honor h = h();
+        ServerPlayerEntity p = player(c);
+        Civ civ = myCiv(c);
+        if (!canManage(civ, p.getUuid().toString())) throw err("Only the leader or officers can pay the tax. Ask one of them.");
+        long owed = CivUpgradeApi.taxOwed(civ, h.config);
+        var res = CivUpgradeApi.pay(civ, h.config, System.currentTimeMillis(), CivUpgradeMenu.wallet(p), h.treasury::addEmeralds);
+        switch (res) {
+            case NOTHING_OWED -> throw err("Your civ owes no tax. See /civ tax.");
+            case NOT_YET_DUE -> throw err("The tax is not due yet (due " + CivUpgradeMenu.date(civ.taxDueAt) + "). You can pay " + h.config.taxWarningHours + " hours before.");
+            case NOT_ENOUGH_EMERALDS -> throw err("Not enough emeralds: you need " + owed + " plain emeralds in your inventory (unnamed, unenchanted).");
+            case PAID -> {
+                h.markDirty();
+                CivPerks.syncCiv(h, civ); // upgrades back on straight away
+                broadcastCiv(h, civ, p.getName().getString() + " paid the upgrade tax (" + owed + " emeralds). Next due " + CivUpgradeMenu.date(civ.taxDueAt) + ".");
+            }
+        }
     }
 
     private static void broadcastCiv(Honor h, Civ civ, String msg) {

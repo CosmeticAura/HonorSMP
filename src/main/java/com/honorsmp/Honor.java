@@ -441,7 +441,12 @@ public class Honor {
     }
 
     private void applyAttributes(ServerPlayerEntity p, Tier t) {
+        applyAttributes(p, t, false);
+    }
+
+    private void applyAttributes(ServerPlayerEntity p, Tier t, boolean removeCiv) {
         applyHealth(p, t);
+        CivPerks.apply(this, p, removeCiv);
         EntityAttributeInstance dmg = p.getAttributeInstance(EntityAttributes.ATTACK_DAMAGE);
         EntityAttributeInstance spd = p.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED);
         if (dmg == null || spd == null) return;
@@ -466,7 +471,7 @@ public class Honor {
     }
 
     public void clearAttributes(ServerPlayerEntity p) {
-        applyAttributes(p, Tier.NEUTRAL);
+        applyAttributes(p, Tier.NEUTRAL, true);
     }
 
     // perks used by mixins -------------------------------------------------
@@ -557,6 +562,11 @@ public class Honor {
             LOG.error("Siege tick failed", e);
         }
         secondTick();
+        try {
+            CivPerks.second(this);
+        } catch (Exception e) {
+            LOG.error("Civ upgrade check failed", e);
+        }
     }
 
     private void secondTick() {

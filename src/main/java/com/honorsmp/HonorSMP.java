@@ -54,6 +54,7 @@ public class HonorSMP implements ModInitializer {
             h.fines.onLogin(p);
             h.donationBox.onLogin(p);
             h.civChest.onLogin(p);
+            CivPerks.onLogin(h, p);
             if (h.isJudge(p)) Cases.deliverPending(h, p);
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
