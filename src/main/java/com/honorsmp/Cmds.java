@@ -738,6 +738,7 @@ public final class Cmds {
                     Civ civ = myCiv(c);
                     if (!civ.leader.equals(p.getUuid().toString())) throw err("Only the leader can disband. Ask the leader, or use /civ leave.");
                     h.civChest.disband(civ); // closes a viewer, moves the chest into the leader's /donation box
+                    CivUpgradeApi.clear(civ); // upgrades are lost, no refund
                     h.data.civs.remove(civ.id);
                     h.markDirty();
                     h.server.getPlayerManager().broadcast(Text.literal(civ.name + " has been disbanded.").formatted(Formatting.GOLD), false);

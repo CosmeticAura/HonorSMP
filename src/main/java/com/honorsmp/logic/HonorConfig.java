@@ -33,6 +33,25 @@ public class HonorConfig {
     public int civNameMaxLength = 24;
     public int inviteExpirySeconds = 120;
 
+    // civ upgrades and weekly upgrade tax (1.6.0). Arrays are indexed by level - 1 (level 1, level 2).
+    public boolean civUpgradesEnabled = true;
+    public int[] upgradeEmeraldCost = {32, 64};
+    public int[] upgradeDiamondCost = {0, 8};
+    /** Damage members take less, in percent. */
+    public int[] upgradeResistancePercent = {5, 10};
+    /** Extra attack damage. */
+    public double[] upgradeStrengthBonus = {0.5, 1.0};
+    /** Extra movement speed, in percent. */
+    public int[] upgradeSpeedPercent = {5, 10};
+    /** Haste level shown to players (1 = Haste I, 2 = Haste II). */
+    public int[] upgradeHasteLevel = {1, 2};
+    /** Extra max health in HP (2 = one heart). Adds to the rank health perk. */
+    public int[] upgradeFortitudeHp = {2, 4};
+    /** Emeralds per owned upgrade level, per civ member, per tax period. */
+    public int taxPerLevelPerMemberPerWeek = 4;
+    public int taxIntervalDays = 7;
+    public int taxWarningHours = 24;
+
     // automatic honor events
     public int killDishonored = 25;
     public int killDishonoredGuard = 35;

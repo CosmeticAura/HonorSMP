@@ -156,6 +156,15 @@ public class HonorData {
         /** Siege schedule (1.5.0), epoch ms. 0 = not scheduled yet (rolled from the first time it is seen). */
         public long nextSiegeAt = 0;
         public long lastSiegeAt = 0;
+        /**
+         * Civ upgrades (1.6.0): upgrade id (resistance, strength, speed, haste, fortitude) to level 1..2. Null or
+         * missing (data written by 1.5.0) = no upgrades. Read it through CivUpgradeApi, which handles null.
+         */
+        public java.util.Map<String, Integer> upgrades = null;
+        /** Epoch ms the weekly upgrade tax is next due. 0 = no upgrades, nothing due. Set when the first upgrade is bought. */
+        public long taxDueAt = 0;
+        /** The taxDueAt value the "due in 24 hours" warning was already sent for (so it is sent once). 0 = none. */
+        public long taxWarnedFor = 0;
     }
 
     public static class LogEntry {

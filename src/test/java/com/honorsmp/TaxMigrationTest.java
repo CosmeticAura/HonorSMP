@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.honorsmp.logic.HonorConfig;
 import org.junit.jupiter.api.Test;
 
-/** 1.4.0 files that still carry tax fields must load, keep civs and treasury, and drop the tax fields on save. */
+/** 1.4.0 files that still carry the OLD tax fields must load, keep civs and treasury, and drop those fields on save (1.6.0 reuses taxIntervalDays and adds new upgrade-tax fields). */
 class TaxMigrationTest {
     private static final String OLD_DATA = """
             {
@@ -32,7 +32,7 @@ class TaxMigrationTest {
         assertEquals(24, d.treasury.get(0).getAsJsonObject().get("count").getAsInt());
 
         String out = Honor.GSON.toJson(d);
-        assertFalse(out.toLowerCase().contains("tax"), out);
+        for (String old : new String[] {"\"taxDue\"", "\"taxPaid\"", "\"taxPenaltyDays\"", "\"taxWarned\""}) assertFalse(out.contains(old), out);
         HonorData back = HonorData.parse(out);
         assertEquals(2, back.civs.size());
         assertEquals(2, back.treasury.size());
@@ -44,6 +44,7 @@ class TaxMigrationTest {
                 "{\"taxPerMember\": 8, \"taxIntervalDays\": 7, \"taxLatePenaltyHonor\": 10, \"taxWarnHours\": 24, \"civNameMaxLength\": 20}",
                 HonorConfig.class);
         assertEquals(20, c.civNameMaxLength);
-        assertFalse(Honor.GSON.toJson(c).toLowerCase().contains("tax"));
+        String out = Honor.GSON.toJson(c);
+        for (String old : new String[] {"taxPerMember", "taxLatePenaltyHonor", "taxWarnHours"}) assertFalse(out.contains(old), out);
     }
 }
