@@ -28,7 +28,7 @@ Everything else is allowed, including PvP and raiding. It just costs honor.
 
 **Goes up when you:**
 > Kill a player with negative honor: +25
-> Donate food with `/donate`: up to +100 a day
+> Donate food, ores and gems with `/donate`: up to +100 a day
 > Help your civ win a siege: +10
 > Do something good and show the Judge proof
 
@@ -50,7 +50,7 @@ Self defense is free: if they hit you first, you lose nothing.
 > Marauder: -400 or less
 > Warlord: -800 or less
 
-**High honor:** longer potions, cheaper villagers, less hunger.
+**High honor:** more hearts, longer potions, cheaper villagers, less hunger. Noble keeps XP when you die. Paragon keeps XP and hotbar. Judges get the Paragon perks.
 **Low honor:** hidden from tab, extra damage and speed, but anyone can put a bounty on you.
 
 === how-3
@@ -58,6 +58,8 @@ Self defense is free: if they hit you first, you lose nothing.
 
 **Bounties:** `/bounty set <player>` to put items on an outlaw. Kill them, then `/bounty claim`.
 **Civs (teams):** `/civ create <name>` is free. Use `/cc` for team chat and `/civ chest` for a shared chest. Teammates can't hurt each other.
+**Civ upgrades:** `/civ upgrades` buys team boosts with emeralds and diamonds. They cost a weekly tax: `/civ tax pay`. Late tax turns them off until it's paid.
+**Donor ranks:** donate a lot and you get a tag, then Luck, then healing when you respawn. The top donor each week gets Hero of the Village.
 **Sieges:** every few days pillagers attack a team's home. Defend it for +10 honor and a loot chest.
 **Unfair call?** `/appeal <reason>`
 
@@ -73,7 +75,7 @@ Self defense is free: if they hit you first, you lose nothing.
 
 `/honor` your honor
 `/honor top` leaderboard
-`/donate` give food for honor
+`/donate` give food and ores for honor
 `/bounty set <player>` put a bounty on an outlaw
 `/bounty claim` get bounty loot
 `/bounty list` see who's wanted
@@ -83,6 +85,8 @@ Self defense is free: if they hit you first, you lose nothing.
 `/cc` team chat on or off
 `/civ chest` shared team chest
 `/civ top` best teams
+`/civ upgrades` team upgrades
+`/civ tax pay` pay the upgrade tax
 `/fine pay` pay a fine
 `/appeal <reason>` think a call was unfair?
 

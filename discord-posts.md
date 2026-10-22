@@ -72,7 +72,7 @@ The mod handles the obvious stuff:
 > Killing a dishonored player: +25 (+35 if you're a guard)
 > Killing in self defense: no change
 > Killing someone unarmed with no armor: -60
-> Donating with /donate: 1 honor per 10 points (a stack of bread is 32), up to 100 a day. Food, golden apples, totems and ender pearls also have their own daily limits.
+> Donating with /donate: 1 honor per 10 points (a stack of bread is 32), up to 100 a day. Food, golden apples, totems, ender pearls, common ores and rare gems also have their own daily limits. Ores, ingots and silk-touched ore blocks count too (a diamond is 5 honor).
 > Curing a zombie villager: +10 (30 a day max)
 > Harvesting 64 grown crops by hand: +1 (10 a day max)
 > Breeding 5 animals: +1 (5 a day max). Trading 10 times with villagers: +1 (5 a day max)
@@ -93,6 +93,18 @@ Your civ has its own chat (/cc turns it on and off), a shared 54 slot chest (/ci
 **Sieges**
 
 If at least 2 members of your civ have their bed (respawn point) within 100 blocks of each other, that is your civ's home. Every 2 to 4 days, when 2 or more members are online near home, a raid comes. You get 60 seconds of warning ("A raid is coming to your civ in 60 seconds!") and the whole server hears about it. Three waves of pillagers and vindicators, then witches and evokers, then a ravager and the Siege Captain. A boss bar shows how it's going. Hold the home: everyone who fought gets +10 honor and a loot chest appears at home. Leave (nobody within 150 blocks for 2 minutes) or take longer than 15 minutes and you lose.
+
+**Civ upgrades**
+
+`/civ upgrades` opens a menu where your leader or an officer can buy five upgrades for the whole civ: Resistance (5% then 10% less damage), Strength (+0.5 then +1 attack damage), Speed (+5% then +10%), Haste (I then II) and Fortitude (+2 then +4 max health). Level 1 costs 32 emeralds, level 2 costs 64 emeralds and 8 diamonds. Upgrades stack with your rank perks. Every upgrade level adds a tax of 4 emeralds per member per week, paid by the leader or an officer with /civ tax pay into the judges' treasury. A civ with no upgrades pays nothing. If the tax is late, all upgrades switch off and your civ shows [Unpaid] until it's paid. Nobody loses honor.
+
+**Donor perks**
+
+Honor you earn from donating adds up for good. At 200 you become a Supporter (a tag in chat and 20% slower hunger), at 750 a Patron (permanent Luck) and at 2,000 a Benefactor (gold tag and Regeneration for 30 seconds every time you respawn). Every Monday at midnight server time, whoever earned the most donation honor in the last 7 days gets Hero of the Village for a week, and the server is told. /honor shows your total and the next tier.
+
+**Rank perks (1.6.0)**
+
+Higher ranks are stronger now. Honorable, Noble and Paragon get +1, +2 and +3 hearts, 10, 20 and 30% cheaper villager trades, 20, 35 and 50% longer good potions and 15, 25 and 35% slower hunger. Noble and up keep their XP when they die. Paragon also keeps the hotbar and offhand and has a gold name. Judges get the same perks as Paragon.
 
 Leaders can name guards. Guards are the PvP players of an honorable civ: they hunt outlaws and get more honor for it.
 
@@ -126,6 +138,9 @@ Sharpness is capped at 4, Protection at 3, Density at 4 and Breach at 3. Netheri
 `/cc` turn civ chat on or off
 `/civ chest` open your civ's shared chest
 `/civ top` top civs by total honor
+`/civ upgrades` buy civ upgrades (leaders and officers)
+`/civ tax` see the upgrade tax
+`/civ tax pay` pay it (leaders and officers)
 `/civ guard <player>` make a member a guard (leaders and officers)
 `/civ promote <player>` make a member an officer (leader)
 `/civ kick <player>` / `/civ disband`

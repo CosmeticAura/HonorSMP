@@ -5,11 +5,11 @@ A server-side Fabric mod for Minecraft 1.21.11. Players join with a vanilla clie
 ## Install
 
 1. Java 21 or newer, a Fabric server for 1.21.11 (loader 0.19.5 or newer) and Fabric API 0.141.6+1.21.11.
-2. Put `honorsmp-1.5.0.jar` and Fabric API in the server's `mods/` folder.
+2. Put `honorsmp-1.6.0.jar` and Fabric API in the server's `mods/` folder.
 3. Start the server. `config/honorsmp.json` is created with every number below. Edit it and run `/honor reload`.
 4. Data is saved in the world folder at `honorsmp/data.json` (on every change, and on shutdown).
 
-Build from source: `./gradlew build` (the jar is `build/libs/honorsmp-1.5.0.jar`).
+Build from source: `./gradlew build` (the jar is `build/libs/honorsmp-1.6.0.jar`).
 
 ## Tiers
 
@@ -138,6 +138,36 @@ Bounty Compass: Noble and up get one with `/honor tracker`, or craft it shapeles
 
 `/honor top` lists the top 10 only among players who are honorable right now, and the bottom 10 only among players who are dishonored right now. Someone who went from Marauder back to Neutral drops off the bottom list.
 
+## Civ upgrades and the weekly tax (1.6.0)
+
+`/civ upgrades` opens a chest menu. The leader and officers buy (click, then confirm; the cost is taken from their inventory), other members can open it to look. Each upgrade has 2 levels and applies to all online members everywhere. It stacks with rank perks (max health from rank and Fortitude add up).
+
+| Upgrade | Level 1 | Level 2 |
+|---|---|---|
+| Resistance | 5% less damage | 10% less damage |
+| Strength | +0.5 attack damage | +1 attack damage |
+| Speed | +5% speed | +10% speed |
+| Haste | Haste I | Haste II |
+| Fortitude | +2 max health | +4 max health |
+| Cost | 32 emeralds | 64 emeralds + 8 diamonds |
+
+- **Tax:** every upgrade level a civ owns adds 4 emeralds per member per week (`taxPerLevelPerMemberPerWeek`). A civ with no upgrades owes nothing. Due every 7 days (`taxIntervalDays`) from when the first upgrade was bought. `/civ tax` shows what is owed and when, `/civ tax pay` (leader or officer) pays from the inventory into the judges' treasury. The leader and officers get a warning on login and 24 hours before (`taxWarningHours`).
+- **Unpaid:** when the tax is late all of the civ's upgrades switch off and `[Unpaid]` shows in `/civ info` and `/civ list`. Nobody loses honor. Paying turns them back on at once.
+- **Disband:** upgrades are lost, no refund.
+- **Config:** `civUpgradesEnabled`, `upgradeEmeraldCost`, `upgradeDiamondCost`, `upgradeResistancePercent`, `upgradeStrengthBonus`, `upgradeSpeedPercent`, `upgradeHasteLevel`, `upgradeFortitudeHp` (arrays: level 1, level 2), `taxPerLevelPerMemberPerWeek`, `taxIntervalDays`, `taxWarningHours`.
+
+## Donor perks (1.6.0)
+
+Each player has a lifetime total of honor earned from donating (`donatedHonorTotal`). On the first load of 1.6.0 it is filled in from the honor log entries "Donated items" and "Donated food", so existing donors keep their credit. Judges get no donor perks.
+
+| Tier | Lifetime donation honor | Perks |
+|---|---|---|
+| Supporter | 200 (`donorSupporterMin`) | `[Supporter]` tag after the rank tag in chat; hunger drains 20% slower (`donorHungerSlowPercent`), added to the rank perk, never above 50% in total (`donorHungerCapPercent`) |
+| Patron | 750 (`donorPatronMin`) | Permanent Luck +1 (`donorLuckBonus`) |
+| Benefactor | 2000 (`donorBenefactorMin`) | Regeneration I for 30 seconds on every respawn (`donorRespawnRegenSeconds`); gold `[Benefactor]` tag instead of Supporter |
+
+Weekly top donor (`topDonorEnabled`): every Monday 00:00 server time the player who earned the most donation honor in the past 7 days gets Hero of the Village I for `topDonorHeroDays` (7) days, and the server is told in chat. Ties go to whoever reached the amount first. `/honor` and the `/donate` info item show your lifetime donation honor, your tier and how much is left to the next one.
+
 ## Civilization command replies
 
 `/civ upgrades` (1.6.0) opens the civ upgrade menu (leader/officers buy, members can look); `/civ tax` shows the weekly upgrade tax and `/civ tax pay` (leader/officer) pays it into the judges' treasury. Late tax switches all upgrades off and shows `[Unpaid]` in `/civ info` and `/civ list` until paid.
@@ -184,6 +214,9 @@ Admins (ops, no judge powers unless also judges)
 
 ## Notes
 
+- Changes in 1.6.0: stronger honorable perks (+2/4/6 max health, 10/20/30% cheaper trades, +20/35/50% potions, 15/25/35% slower hunger, keep XP from Noble, keep hotbar and offhand and gold name at Paragon), civ upgrades and the weekly upgrade tax (`/civ upgrades`, `/civ tax`, `/civ tax pay`), donor tiers and the weekly top donor, judges get the Paragon perks, and donating ores, ingots and ore blocks (`common_materials` cap 30 a day, `rare_materials` cap 40 a day). New config keys: `healthBonusHp`, `keepXpMinRank`, `keepHotbarMinRank`, `goldNameMinRank`, `perksVersion`, the civ upgrade and tax keys and donor keys listed above, `donateCapTypes`, `donateMaterialsVersion`. New data.json fields: per-civ upgrade levels and tax dates, per-player `donatedHonorTotal`, weekly top donor state.
+- Admin notes for 1.6.0: the rank perk values changed. On first load (`perksVersion` 0 to 1) `potionBonusPercent`, `tradeDiscountPercent` and `hungerSlowPercent` are replaced by the new values only if they are still exactly the old defaults (15/30/50, 5/10/15, 10/15/20); anything you edited is kept. `healthBonusHp` is added. The material entries are added to `donateExtraItems` and `donateCapTypes` only where missing (`donateMaterialsVersion`), and the new cap types are added to `donateItemDailyCaps`. Old data loads unchanged and the donor backfill runs once.
+- Known limit: items kept on death (XP and hotbar) are held in memory until the player respawns. If the server restarts while a player is on the death screen, those kept items are lost.
 - Changes in 1.5.0: civ taxes removed (`taxPerMember`, `taxIntervalDays`, `taxWarnHours`, `taxLatePenaltyHonor` and the per-civ tax fields in data.json are gone; no more `[Unpaid]`), `/cc`, no friendly fire, `/civ top`, `/civ chest` (`chest` on each civ in data.json), sieges (`siege*` keys; the next siege time is kept per civ as `nextSiegeAt` and members' bed positions in `respawnPoints` in data.json), donation rotation, new donation numbers and per-type caps. New config keys: `siegesEnabled`, `siegeMinDays`, `siegeMaxDays`, `siegeHomeRadius`, `siegeMinMembersOnline`, `siegeWarnSeconds`, `siegeSpawnMinDistance`, `siegeSpawnMaxDistance`, `siegeMobsPerMember`, `siegeMaxMobsPerWave`, `siegeWaveDelaySeconds`, `siegeAbandonRadius`, `siegeAbandonSeconds`, `siegeMaxMinutes`, `siegeRewardHonor`, `siegeCaptainHealth`, `siegeLoot`, `donateItemDailyCaps`, `donateRewardsVersion`.
 - Config migration in 1.5.0: on first load `honorPerHungerPoints` 20 becomes 10 and `donateDailyCap` 25 becomes 100, each only if it still has the old value (a changed value is kept); `donateRewardsVersion` is then set to 1. Missing `donateItemDailyCaps` entries are added with their defaults. Old `donatePots` contents are moved into the players' `donateBoxes` at startup. The file is re-saved.
 - Config keys added in 1.4.0: `donateExtraItems` (item id to points: golden apple 40, enchanted golden apple 300, totem of undying 160, ender pearl 5), `zombieCureHonor` (10), `zombieCureDailyCap` (30), `harvestPerCrops` (64), `harvestHonor` (1), `harvestDailyCap` (10), `breedPerBreeds` (5), `breedHonor` (1), `breedDailyCap` (5), `tradePerTrades` (10), `tradeHonor` (1), `tradeDailyCap` (5), `raidWinHonor` (15), `bossKillHonor` (15), `villagerKillPenalty` (15), `petKillPenalty` (20). `donateZeroFoods` is now the refused item list for all donations.
