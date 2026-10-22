@@ -64,7 +64,6 @@ public class Honor {
     public final Fines fines = new Fines(this);
     public final Donations donations = new Donations(this);
     public final DonationBox donationBox = new DonationBox(this);
-    public final CivChest civChest = new CivChest(this);
     public final Sieges sieges = new Sieges(this);
     public final com.honorsmp.logic.CombatTimer combat = new com.honorsmp.logic.CombatTimer();
 
@@ -78,13 +77,13 @@ public class Honor {
         dataPath = server.getSavePath(WorldSavePath.ROOT).resolve("honorsmp").resolve("data.json");
         loadConfig();
         loadData();
+        CivChestMigration.run(data); // 1.6.1: civ chests are gone; their items go to the leaders' /donation boxes
         antiFarm.raw().putAll(data.antiFarm);
         data.antiFarm = antiFarm.raw();
         treasury.load();
         bounties.load();
         donationBox.load();
         donations.load();
-        civChest.load();
         saveData();
         sieges.sweepAll();
         LOG.info("HonorSMP loaded: {} players, {} civs, {} open cases", data.players.size(),
@@ -133,7 +132,6 @@ public class Honor {
         if (data.donatePots == null) data.donatePots = new LinkedHashMap<>();
         if (data.donateRotation == null) data.donateRotation = new LinkedHashMap<>();
         if (data.donateNotices == null) data.donateNotices = new LinkedHashMap<>();
-        if (data.civChestNotices == null) data.civChestNotices = new LinkedHashMap<>();
         if (data.logs == null) data.logs = new ArrayList<>();
         if (data.cases == null) data.cases = new ArrayList<>();
         if (data.judges == null) data.judges = new LinkedHashSet<>();
@@ -177,7 +175,6 @@ public class Honor {
             bounties.sync();
             donationBox.sync();
             donations.sync();
-            civChest.sync();
             Path tmp = dataPath.resolveSibling("data.json.tmp");
             Files.writeString(tmp, GSON.toJson(data), StandardCharsets.UTF_8);
             Files.move(tmp, dataPath, StandardCopyOption.REPLACE_EXISTING);
@@ -204,7 +201,6 @@ public class Honor {
         fines.wipe();
         donations.wipe();
         donationBox.wipe();
-        civChest.wipe(); // deletes the contents, does not hand them out (reset all wipes everything)
         SignPrompt.clearAll();
         Menu.closeAll();
         data.wipeAllExceptJudges();
@@ -231,7 +227,6 @@ public class Honor {
         fines.closeAll();
         donations.closeAll();
         donationBox.closeAll();
-        civChest.closeAll();
         Menu.closeAll();
         saveData();
         I = null;
@@ -555,8 +550,6 @@ public class Honor {
     // ------------------------------------------------------------ tick
 
     public void tick() {
-        // an open civ chest is saved at least every 30 s so a crash loses little (the save writes the live screen)
-        if (tickCounter % 600 == 0 && civChest.anyOpen()) dirty = true;
         if (dirty && tickCounter % 20 == 0) saveData();
         // sneak toggles the name tag for dishonored players, so check that every tick
         for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {

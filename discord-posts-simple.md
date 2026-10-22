@@ -57,7 +57,7 @@ Self defense is free: if they hit you first, you lose nothing.
 **Good to know**
 
 **Bounties:** `/bounty set <player>` to put items on an outlaw. Kill them, then `/bounty claim`.
-**Civs (teams):** `/civ create <name>` is free. Use `/cc` for team chat and `/civ chest` for a shared chest. Teammates can't hurt each other.
+**Civs (teams):** `/civ create <name>` is free. Use `/cc` for team chat. Teammates can't hurt each other.
 **Civ upgrades:** `/civ upgrades` buys team boosts with emeralds and diamonds. They cost a weekly tax: `/civ tax pay`. Late tax turns them off until it's paid.
 **Donor ranks:** donate a lot and you get a tag, then Luck, then healing when you respawn. The top donor each week gets Hero of the Village.
 **Sieges:** every few days pillagers attack a team's home. Defend it for +10 honor and a loot chest.
@@ -83,7 +83,6 @@ Self defense is free: if they hit you first, you lose nothing.
 `/civ invite <player>` invite someone
 `/civ join <name>` join a team
 `/cc` team chat on or off
-`/civ chest` shared team chest
 `/civ top` best teams
 `/civ upgrades` team upgrades
 `/civ tax pay` pay the upgrade tax
@@ -97,3 +96,5 @@ how-1 1558868699514146926 / 1562599004360155137
 how-2 1558868699514146926 / 1562599051718033429
 how-3 1558868699514146926 / 1562599068637859983
 commands 1558869966680490085 / 1562598964555939871
+civs 1562629444164653126 / 1562629542105849951
+donations 1562629443636301947 / 1562629542462361733

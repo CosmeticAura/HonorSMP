@@ -674,7 +674,6 @@ public final class Cmds {
                     Civ civ = myCiv(c);
                     String id = p.getUuid().toString();
                     if (civ.leader.equals(id)) throw err("The leader cannot leave. Use /civ disband to dissolve the civilization.");
-                    h.civChest.closeFor(p); // chest contents go back to the civ before access is lost
                     civ.members.remove(id);
                     civ.officers.remove(id);
                     civ.guards.remove(id);
@@ -693,7 +692,6 @@ public final class Cmds {
                     if (!civ.members.contains(r.uuid)) throw err(r.name + " is not in your civilization. See /civ info for your members.");
                     if (civ.leader.equals(r.uuid)) throw err("You cannot kick the leader.");
                     if (civ.officers.contains(r.uuid) && !civ.leader.equals(p.getUuid().toString())) throw err("Only the leader can kick an officer.");
-                    h.civChest.evict(r.uuid, "You were kicked from " + civ.name + ", the civ chest was closed.");
                     civ.members.remove(r.uuid);
                     civ.officers.remove(r.uuid);
                     civ.guards.remove(r.uuid);
@@ -732,25 +730,11 @@ public final class Cmds {
                     broadcastCiv(h, civ, r.name + (added ? " is now a guard." : " is no longer a guard."));
                     return 1;
                 })))
-                .then(lit("chest").executes(c -> {
-                    String e;
-                    try {
-                        e = h().civChest.open(player(c));
-                    } catch (CommandSyntaxException ex) {
-                        throw ex;
-                    } catch (RuntimeException ex) {
-                        Honor.LOG.error("/civ chest failed to open", ex);
-                        throw err("The civ chest could not be opened (see the server log); tell an op.");
-                    }
-                    if (e != null) throw err(e);
-                    return 1;
-                }))
                 .then(lit("disband").executes(c -> {
                     Honor h = h();
                     ServerPlayerEntity p = player(c);
                     Civ civ = myCiv(c);
                     if (!civ.leader.equals(p.getUuid().toString())) throw err("Only the leader can disband. Ask the leader, or use /civ leave.");
-                    h.civChest.disband(civ); // closes a viewer, moves the chest into the leader's /donation box
                     CivUpgradeApi.clear(civ); // upgrades are lost, no refund
                     h.data.civs.remove(civ.id);
                     h.markDirty();

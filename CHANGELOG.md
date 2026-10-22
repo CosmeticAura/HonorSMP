@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.1
+- Civ chests are removed. `/civ chest`, the shared chest screen, its saved data and the "chest contents moved to your donation box" notices are gone.
+- Migration: on the first start of 1.6.1 every item still in any civ's chest (including a chest that was open when the server stopped) is moved into that civ leader's `/donation` claim box. The leader gets "Your civ chest was removed. Its items are in /donation." on login. The old chest data is then dropped from `data.json`. Nothing is lost or copied twice, and a leader who has not logged in since still gets the box.
+- No new config keys.
+
 ## 1.6.0
 - Stronger honorable ranks (Honorable / Noble / Paragon): +2/4/6 max health (new `healthBonusHp`), villager trades 10/20/30% cheaper (was 5/10/15), beneficial potions last +20/35/50% longer (was 15/30/50), hunger drains 15/25/35% slower (was 10/15/20). Noble and up keep XP on death, Paragon also keeps the hotbar (slots 0 to 8) and offhand and has a gold name in chat. Kept items do not also drop. `/honor` shows the new perks. Dishonored perks are unchanged.
 - Civ upgrades: `/civ upgrades` opens a chest menu (leader and officers buy, members can look). Resistance 5/10% less damage, Strength +0.5/+1 attack damage, Speed +5/10%, Haste I/II, Fortitude +2/+4 max health. Level 1 costs 32 emeralds, level 2 costs 64 emeralds and 8 diamonds, taken from the buyer's inventory. They apply to all online members and stack with rank perks. Disbanding the civ loses them with no refund.
