@@ -24,7 +24,7 @@ public final class KeepStash {
         Honor h = Honor.I;
         if (h == null || p.isSpectator() || STASH.containsKey(p.getUuid())) return;
         if (p.getEntityWorld().getGameRules().getValue(GameRules.KEEP_INVENTORY)) return; // vanilla keeps everything
-        Tier t = h.tier(p);
+        Tier t = h.perkTier(p);
         boolean hotbar = RankPerks.keepsHotbar(t, h.config);
         boolean xp = RankPerks.keepsXp(t, h.config);
         if (!hotbar && !xp) return;

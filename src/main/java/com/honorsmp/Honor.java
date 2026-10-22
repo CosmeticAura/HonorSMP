@@ -280,6 +280,11 @@ public class Honor {
         return Tier.of(r.score, config);
     }
 
+    /** Tier that rank perks come from: judges count as Paragon. */
+    public Tier perkTier(ServerPlayerEntity p) {
+        return RankPerks.effectiveTier(isJudge(p), tier(p));
+    }
+
     public boolean isJudge(String uuid) {
         return uuid != null && data.judges.contains(uuid);
     }
@@ -404,7 +409,7 @@ public class Honor {
         if (team == null) team = sb.addTeam(n);
         Formatting c = colorOf(t.side);
         // honorable names are gold only from goldNameMinRank up (Paragon, Judge); the [Tier] prefix keeps the side color
-        team.setColor(t.isHonorable() && !RankPerks.goldName(t, config) ? Formatting.WHITE : c);
+        team.setColor(t.isHonorable() && !RankPerks.goldName(RankPerks.effectiveTier(t == Tier.JUDGE, t), config) ? Formatting.WHITE : c);
         team.setPrefix(t == Tier.NEUTRAL ? Text.literal("[Neutral] ").formatted(c)
                 : Text.literal("[" + t.display + "] ").formatted(c));
         if (donor != null) {
@@ -455,7 +460,7 @@ public class Honor {
     }
 
     private void applyAttributes(ServerPlayerEntity p, Tier t, boolean removeCiv) {
-        applyHealth(p, t);
+        applyHealth(p, RankPerks.effectiveTier(t == Tier.JUDGE, t));
         CivPerks.apply(this, p, removeCiv);
         Donor.apply(this, p, removeCiv);
         EntityAttributeInstance dmg = p.getAttributeInstance(EntityAttributes.ATTACK_DAMAGE);
@@ -489,9 +494,9 @@ public class Honor {
 
     public StatusEffectInstance scaleEffect(ServerPlayerEntity p, StatusEffectInstance e) {
         if (!e.getEffectType().value().isBeneficial() || e.isInfinite()) return e;
-        Tier t = tier(p);
+        Tier t = perkTier(p);
         double f;
-        if (t.isHonorable()) f = 1.0 + config.potionBonusPercent[t.perkIndex()] / 100.0;
+        if (t.isHonorable()) f = 1.0 + RankPerks.potionBonusPercent(t, config) / 100.0;
         else if (t.isDishonored()) f = 1.0 - config.dishonoredPotionPenaltyPercent / 100.0;
         else return e;
         int d = Math.max(1, (int) Math.round(e.getDuration() * f));
@@ -500,17 +505,16 @@ public class Honor {
     }
 
     public float hungerFactor(ServerPlayerEntity p) {
-        Tier t = tier(p);
-        int rank = t.isHonorable() ? config.hungerSlowPercent[t.perkIndex()] : 0;
+        int rank = RankPerks.hungerSlowPercent(perkTier(p), config);
         int pct = Donor.hungerPercent(this, p, rank); // rank + donor, capped
         return pct <= 0 ? 1.0f : 1.0f - pct / 100.0f;
     }
 
     /** Change to a villager trade's special price for this player, in items. Negative is cheaper. */
     public int priceChange(ServerPlayerEntity p, int baseCount) {
-        Tier t = tier(p);
+        Tier t = perkTier(p);
         if (t.isHonorable()) {
-            double v = baseCount * config.tradeDiscountPercent[t.perkIndex()] / 100.0;
+            double v = baseCount * RankPerks.tradeDiscountPercent(t, config) / 100.0;
             int off = (int) Math.round(v);
             if (off == 0 && baseCount >= 2 && v > 0.2) off = 1;
             return -off;

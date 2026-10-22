@@ -64,6 +64,7 @@ Anti-farming: the same killer/victim pair counts once per 30 minutes. Kills betw
 A judge is the highest honorable rank. Judges are picked, not ops: only players added with `/honor judge add` can rule on cases, fine, or open the treasury. Ops can run admin commands but cannot rule unless they are also judges.
 
 - Honor rules do not apply to judges: no automatic honor changes at all, and `/honor` shows `Judge` instead of a score. They cannot appeal.
+- Judges get exactly the Paragon perks (extra health, villager discount, potion and hunger bonuses, keep XP and hotbar on death, gold name, Bounty Compass) using the Paragon config values, and never the dishonored-side effects or any donor perks; `/honor` lists them.
 - Killing a judge counts like an unprovoked kill of a Paragon for honor. A dishonored player who kills a judge also gets the Judge loot pool and a server-wide chat announcement. Anyone else killing a judge is a normal unprovoked kill.
 - Judge loot pool (`judgeLoot` in the config, 5 rolls). Defaults: 8 to 12 diamonds, 2 netherite scrap, 1 totem of undying, 1 enchanted golden apple, 1 max level enchanted book.
 - A judge can rule on any case, including one where they are the killer or victim.

@@ -1,5 +1,6 @@
 package com.honorsmp;
 
+import com.honorsmp.logic.RankPerks;
 import com.honorsmp.logic.Tier;
 import java.util.Optional;
 import net.minecraft.component.DataComponentTypes;
@@ -59,8 +60,8 @@ public final class Compass {
     }
 
     private static void update(Honor h, ServerPlayerEntity p, ItemStack s, boolean held) {
-        Tier t = h.tier(p);
-        if (!t.isNobleOrHigher()) {
+        Tier t = h.perkTier(p);
+        if (!RankPerks.hasCompass(t)) {
             clear(s);
             if (held) actionBar(p, RANK_MSG);
             return;

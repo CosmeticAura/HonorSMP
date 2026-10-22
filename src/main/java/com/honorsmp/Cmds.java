@@ -129,7 +129,7 @@ public final class Cmds {
                 }))
                 .then(lit("tracker").executes(c -> {
                     ServerPlayerEntity p = player(c);
-                    if (!h().tier(p).isNobleOrHigher()) throw err("You need to be Noble or higher to get a Bounty Compass. Check your honor with /honor.");
+                    if (!RankPerks.hasCompass(h().perkTier(p))) throw err("You need to be Noble or higher to get a Bounty Compass. Check your honor with /honor.");
                     p.getInventory().offerOrDrop(Compass.make());
                     say(c, "You received a Bounty Compass. It points to the nearest dishonored player with a bounty (overworld only).");
                     return 1;
@@ -284,6 +284,13 @@ public final class Cmds {
         if (t == Tier.JUDGE) {
             say(c, Text.literal("Honor: Judge  ").formatted(Formatting.GOLD).append(Honor.tierText(t)));
             say(c, "Judges are above the honor system: no automatic honor changes. Use /honor cases to see open cases.");
+            Tier pt = RankPerks.effectiveTier(true, t);
+            int pi = pt.perkIndex();
+            say(c, "Perks (same as Paragon): +" + RankPerks.healthBonus(pt, k) + " max health, potions +" + RankPerks.potionBonusPercent(pt, k)
+                    + "% longer, villager trades " + RankPerks.tradeDiscountPercent(pt, k) + "% cheaper, hunger " + RankPerks.hungerSlowPercent(pt, k)
+                    + "% slower, Bounty Compass (/honor tracker)"
+                    + (RankPerks.keepsHotbar(pt, k) ? ", keep XP and hotbar on death" : RankPerks.keepsXp(pt, k) ? ", keep XP on death" : "")
+                    + (RankPerks.goldName(pt, k) ? ", gold name in chat" : ""));
             return;
         }
         say(c, Text.literal("Honor: " + r.score + "  ").formatted(Formatting.YELLOW).append(Honor.tierText(t))
