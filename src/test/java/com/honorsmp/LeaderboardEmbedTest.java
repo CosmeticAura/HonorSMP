@@ -48,8 +48,50 @@ class LeaderboardEmbedTest {
         List<PlayerRow> ps = List.of(p("a", 50), p("b", 300), p("c", -40));
         JsonObject e = embed(LeaderboardEmbed.build(in(ps, List.of(), null), true));
         assertEquals("1. b · Honorable · 300\n2. a · Honorable · 50\n3. c · Outlaw · -40", field(e, "Top 10 by honor"));
-        // c is already in the top list, so the bottom list has nobody left to show
-        assertEquals("Nobody yet", field(e, "Bottom 5 (most dishonored)"));
+        // fewer than 15 players: c may show in both lists (1.6.4)
+        assertEquals("1. c · Outlaw · -40", field(e, "Bottom 5 (most dishonored)"));
+    }
+
+    @Test
+    void liveCaseTwoOutlawsOnASmallServerShowInBottom() {
+        List<PlayerRow> ps = List.of(p("Im_not_Polish", -225), p("Mac_Walsky", -60), p("a", 400), p("b", 150), p("c", 0));
+        JsonObject e = embed(LeaderboardEmbed.build(in(ps, List.of(), null), true));
+        assertEquals("1. Im\\_not\\_Polish · Outlaw · -225\n2. Mac\\_Walsky · Outlaw · -60", field(e, "Bottom 5 (most dishonored)"));
+    }
+
+    @Test
+    void bottomIsFiveLowestBelowZeroEvenWhenTheyAreInTopOnASmallServer() {
+        List<PlayerRow> ps = new ArrayList<>();
+        for (int i = 0; i < 7; i++) ps.add(p("bad" + i, -10 - i)); // 7 players, all below 0
+        List<PlayerRow> b = LeaderboardEmbed.bottom(ps, LeaderboardEmbed.top(ps));
+        assertEquals(5, b.size());
+        assertEquals("bad6", b.get(0).name());
+        assertEquals("bad2", b.get(4).name());
+    }
+
+    @Test
+    void zeroIsNotBelowZero() {
+        List<PlayerRow> ps = List.of(p("zero", 0), p("pos", 5));
+        assertTrue(LeaderboardEmbed.bottom(ps, LeaderboardEmbed.top(ps)).isEmpty());
+    }
+
+    @Test
+    void from15PlayersOnNobodyIsInBothLists() {
+        List<PlayerRow> fourteen = new ArrayList<>();
+        for (int i = 0; i < 14; i++) fourteen.add(p("x" + i, -1 - i)); // all below 0, top 10 = least negative
+        List<PlayerRow> top14 = LeaderboardEmbed.top(fourteen);
+        List<PlayerRow> b14 = LeaderboardEmbed.bottom(fourteen, top14);
+        assertEquals("x13", b14.get(0).name()); // 14 players: overlap allowed, lowest 5 are x13..x9
+        assertTrue(top14.stream().anyMatch(r -> r.name().equals("x9")));
+        assertEquals("x9", b14.get(4).name());
+
+        List<PlayerRow> fifteen = new ArrayList<>(fourteen);
+        fifteen.add(p("x14", -15));
+        List<PlayerRow> top15 = LeaderboardEmbed.top(fifteen);
+        List<PlayerRow> b15 = LeaderboardEmbed.bottom(fifteen, top15);
+        assertEquals(5, b15.size());
+        for (PlayerRow r : b15) assertFalse(top15.stream().anyMatch(t -> t.uuid().equals(r.uuid())));
+        assertEquals("x14", b15.get(0).name()); // the 5 lowest are x14..x10; none of them is in the top 10
     }
 
     @Test

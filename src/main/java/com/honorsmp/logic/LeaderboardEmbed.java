@@ -42,12 +42,15 @@ public final class LeaderboardEmbed {
         return out.size() > TOP_PLAYERS ? new ArrayList<>(out.subList(0, TOP_PLAYERS)) : out;
     }
 
-    /** Bottom 5: dishonored players only, lowest first, not repeating anyone already shown in the top list. */
+    /**
+     * Bottom 5 (1.6.4): the 5 lowest scores below 0, lowest first. A player may be in both lists only while there are
+     * fewer than 15 players (TOP_PLAYERS + BOTTOM_PLAYERS); from 15 players on, anyone in the top list is skipped.
+     */
     public static List<PlayerRow> bottom(List<PlayerRow> all, List<PlayerRow> shownInTop) {
         Set<String> shown = new HashSet<>();
-        for (PlayerRow r : shownInTop) shown.add(r.uuid());
+        if (all.size() >= TOP_PLAYERS + BOTTOM_PLAYERS) for (PlayerRow r : shownInTop) shown.add(r.uuid());
         List<PlayerRow> out = new ArrayList<>();
-        for (PlayerRow r : all) if (r.dishonored() && !shown.contains(r.uuid())) out.add(r);
+        for (PlayerRow r : all) if (r.score() < 0 && !shown.contains(r.uuid())) out.add(r);
         out.sort(Comparator.comparingInt(PlayerRow::score).thenComparing(PlayerRow::name, String.CASE_INSENSITIVE_ORDER));
         return out.size() > BOTTOM_PLAYERS ? new ArrayList<>(out.subList(0, BOTTOM_PLAYERS)) : out;
     }

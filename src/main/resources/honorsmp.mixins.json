@@ -15,6 +15,7 @@
     "LootTableMixin",
     "ServerPlayerEntityMixin",
     "SmithingScreenHandlerMixin",
+    "TradeOfferMixin",
     "PlayerEntityMixin",
     "RavagerEntityMixin",
     "ServerPlayNetworkHandlerMixin",

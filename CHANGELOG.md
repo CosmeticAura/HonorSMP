@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.4
+- Trade cooldown moved into HonorSMP (the separate NoTradeCooldown mod can be deleted). With `noTradeCooldown` on (default), villager trades never lock: a mixin on `TradeOffer.use()` skips the use count. A trade still locks and restocks like vanilla when what the villager gives is blocked.
+- Blocked sell items: everything in `tradeCooldownItems` (item ids or `#tag` ids), any enchanted tool, weapon or armor piece, and anything `/donate` accepts right now (read from the donation rules, so new donation items are covered with no list change). `tradeCooldownAlwaysFree` wins over all of it.
+- `tradeCooldownItems` default: emerald, diamond, golden apple, enchanted golden apple, golden carrot, totem of undying, ender pearl, name tag, saddle, every ore, raw ore, ingot, block and gem from the 1.6.0 donation list, and every diamond and netherite sword, pickaxe, axe, shovel, hoe, spear, armor piece, horse armor and nautilus armor. All food is covered by the `/donate` rule.
+- `tradeCooldownAlwaysFree` default: enchanted_book, experience_bottle, ender_pearl. These stay unlimited even though pearls are a `/donate` item and books are enchanted.
+- `/honor reload` picks up changes. Missing keys are filled in on load.
+- Leaderboard fix: "Bottom 5 (most dishonored)" showed "Nobody yet" when everyone dishonored was already in the top 10. It now lists the 5 lowest scores below 0, lowest first. A player can be in both lists only while there are fewer than 15 players.
+- New config keys: `noTradeCooldown`, `tradeCooldownItems`, `tradeCooldownAlwaysFree`.
+
 ## 1.6.3
 - Live Discord leaderboard. Set `leaderboardWebhookUrl` in `config/honorsmp.json` (empty = off) and the mod keeps ONE Discord message up to date: title "Honor leaderboard", top 10 by honor (rank, name, tier, score), bottom 5 (most dishonored), top 5 civs (same order as `/civ top`), top donor this week, and a footer with the update interval and the time. Judges are never listed.
 - `leaderboardUpdateMinutes` (default 5) sets how often it updates. It also updates right after a restart, and skips an update when nothing changed since the last one.

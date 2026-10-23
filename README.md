@@ -88,6 +88,10 @@ Set `leaderboardWebhookUrl` in the config (empty = off) and the mod keeps one Di
 - Requests run off the server thread with a timeout. A failure logs one warning line and is retried next interval. Discord rate limits (429) are respected. The webhook URL is never logged.
 - `/honor reload` picks up a changed URL or interval.
 
+## Trade cooldown (1.6.4)
+
+Villager trades never run out (`noTradeCooldown`, default true), except when the item the villager gives is blocked: it then locks and restocks like vanilla. Blocked: everything in `tradeCooldownItems` (item ids or `#tag` ids; default is emeralds, diamonds, the `/donate` ores, ingots, blocks and gems, golden apples, golden carrots, totems, ender pearls, name tags, saddles, diamond and netherite gear), any enchanted tool, weapon or armor piece, and anything `/donate` accepts. `tradeCooldownAlwaysFree` (default enchanted books, experience bottles, ender pearls) is never limited and wins over everything. `/honor reload` applies changes.
+
 ## Chest menus
 
 All menus are server-side chests that work on vanilla clients. Items in them are icons only: every click type, shift click, number key, drag and double click collect is cancelled, so nothing can be taken or duped.
@@ -235,4 +239,5 @@ Admins (ops, no judge powers unless also judges)
 - Admin commands check the op list and judge commands check the judge list in code, so no permission mod is needed.
 - There is no land claiming. Old claim data in `data.json` is dropped on load.
 - Honor tests: `./gradlew test`.
+- Changes in 1.6.4: trade cooldown with a blocklist (`noTradeCooldown`, `tradeCooldownItems`, `tradeCooldownAlwaysFree`); leaderboard Bottom 5 fix. See above.
 - Changes in 1.6.3: live Discord leaderboard (`leaderboardWebhookUrl`, `leaderboardUpdateMinutes`). See above.

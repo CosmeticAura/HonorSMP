@@ -73,6 +73,17 @@ public class HonorConfig {
     public String leaderboardWebhookUrl = "";
     public int leaderboardUpdateMinutes = 5;
 
+    // trade cooldown (1.6.4): trades never lock, except for the items below
+    /** false = vanilla trade locking for everything. */
+    public boolean noTradeCooldown = true;
+    /**
+     * Trades whose sell item (what the villager gives) is listed here lock and restock like vanilla. Item ids, or
+     * "#tag" ids. Enchanted tools/weapons/armor and anything /donate accepts are covered automatically as well.
+     */
+    public java.util.List<String> tradeCooldownItems = TradeCooldownRules.defaultBlocklist();
+    /** Never limited, wins over tradeCooldownItems and the automatic rules. */
+    public java.util.List<String> tradeCooldownAlwaysFree = TradeCooldownRules.defaultAlwaysFree();
+
     // automatic honor events
     public int killDishonored = 25;
     public int killDishonoredGuard = 35;
@@ -207,6 +218,14 @@ public class HonorConfig {
             if (donateCapTypes == null) donateCapTypes = new java.util.LinkedHashMap<>();
             for (var e : defaultMaterialCapTypes().entrySet()) donateCapTypes.putIfAbsent(e.getKey(), e.getValue());
             donateMaterialsVersion = 1;
+            changed = true;
+        }
+        if (tradeCooldownItems == null) {
+            tradeCooldownItems = TradeCooldownRules.defaultBlocklist();
+            changed = true;
+        }
+        if (tradeCooldownAlwaysFree == null) {
+            tradeCooldownAlwaysFree = TradeCooldownRules.defaultAlwaysFree();
             changed = true;
         }
         if (donateItemDailyCaps == null) {
