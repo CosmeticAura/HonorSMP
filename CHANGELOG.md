@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.7
+- `/civ chest` needs a civ with at least 3 members (leader included). A smaller civ gets "Your civ needs 3 members to unlock the civ chest (you have N)."
+- If a civ drops below the minimum (someone leaves or is kicked) the chest locks again but keeps its items. Anyone who has it open at that moment gets it closed safely, nothing lost or duplicated. When the civ is back at 3, the items are still there.
+- `/civ info` shows "Civ chest: locked, needs 3 members" or "Civ chest: unlocked".
+- New config key: `civChestMinMembers` (default 3). The command lists in the README and the Discord posts mention the minimum.
+
 ## 1.6.6
 - `/civ chest` is back. A shared 54 slot chest per civ for the leader, officers, members and guards, one viewer at a time, saved in data.json. It closes with nothing lost or duplicated on death, disconnect, kick, disband and server stop. Every civ starts with an empty chest; the items moved to `/donation` in 1.6.1 stay there.
 - Combat lock: the chest cannot be opened for 5 minutes after another player hurt you, including arrows, tridents, potions, fireworks, TNT or end crystals set off by a player, and pets owned by a player. Mob damage does not count. Trying early says "You were in a fight. The civ chest opens again in M:SS."

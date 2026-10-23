@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.honorsmp.HonorData.Civ;
 import com.honorsmp.logic.CivChestEscrow;
 import com.honorsmp.logic.CivChestLock;
+import com.honorsmp.logic.CivChestMinMembers;
 import com.mojang.serialization.JsonOps;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -113,6 +114,9 @@ public final class CivChest {
         String uuid = p.getUuid().toString();
         Civ civ = h.civOf(uuid);
         if (civ == null) return "You are not in a civilization. Create one with /civ create <name> or ask a leader to /civ invite you.";
+        // 1.6.7: the civ must have enough members
+        int have = memberCount(civ);
+        if (!CivChestMinMembers.unlocked(have, h.config.civChestMinMembers)) return CivChestMinMembers.message(h.config.civChestMinMembers, have);
         Session cur = open.get(civ.id);
         if (cur != null && !cur.closed) {
             boolean stale = cur.player.isRemoved() || cur.player.currentScreenHandler != cur.handler;
@@ -142,6 +146,29 @@ public final class CivChest {
         }
         h.markDirty();
         return null;
+    }
+
+    /** Leader plus distinct members, officers and guards. */
+    public static int memberCount(Civ civ) {
+        return CivChestMinMembers.count(civ.leader, civ.officers, civ.members, civ.guards);
+    }
+
+    /** Whether the civ currently meets {@code civChestMinMembers}. */
+    public boolean unlocked(Civ civ) {
+        return CivChestMinMembers.unlocked(memberCount(civ), h.config.civChestMinMembers);
+    }
+
+    /**
+     * Call after someone left or was kicked. If the civ is now below the minimum and anyone still has the chest
+     * open, their screen is closed and the stacks go back to the escrow exactly once; the items stay stored.
+     */
+    public void recheck(Civ civ) {
+        if (unlocked(civ)) return;
+        Session s = open.get(civ.id);
+        if (s == null || s.closed) return;
+        s.player.closeHandledScreen();
+        close(s);
+        s.player.sendMessage(Text.literal(CivChestMinMembers.closedMessage(h.config.civChestMinMembers)).formatted(Formatting.RED));
     }
 
     // ------------------------------------------------------------ close

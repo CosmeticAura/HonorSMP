@@ -333,6 +333,8 @@ public class HonorConfig {
     public int combatElytraSeconds = 30;
     /** Seconds after being hurt by another player during which /civ chest cannot be opened. 0 turns the lock off. Added in 1.6.6. */
     public int civChestCombatLockSeconds = 300;
+    /** Members (leader included) a civ needs before /civ chest works. Below it the chest locks but keeps its items. Added in 1.6.7. */
+    public int civChestMinMembers = 3;
 
     // sieges (1.5.0). Only civs get sieges. Distances are blocks (horizontal for home/abandon checks).
     public boolean siegesEnabled = true;

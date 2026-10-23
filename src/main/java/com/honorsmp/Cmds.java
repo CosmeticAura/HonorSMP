@@ -679,6 +679,7 @@ public final class Cmds {
                     civ.members.remove(id);
                     civ.officers.remove(id);
                     civ.guards.remove(id);
+                    h.civChest.recheck(civ); // below the minimum: any other viewer is closed, items stay
                     h.markDirty();
                     CivPerks.syncPlayer(h, id);
                     say(c, "You left " + civ.name + ".");
@@ -698,6 +699,7 @@ public final class Cmds {
                     civ.members.remove(r.uuid);
                     civ.officers.remove(r.uuid);
                     civ.guards.remove(r.uuid);
+                    h.civChest.recheck(civ); // below the minimum: any other viewer is closed, items stay
                     h.markDirty();
                     CivPerks.syncPlayer(h, r.uuid);
                     broadcastCiv(h, civ, r.name + " was kicked by " + p.getName().getString() + ".");
@@ -855,6 +857,9 @@ public final class Cmds {
         say(c, "Officers: " + (off.isEmpty() ? "none" : String.join(", ", off)));
         say(c, "Guards: " + (gu.isEmpty() ? "none" : String.join(", ", gu)));
         say(c, "Members (" + mem.size() + "): " + String.join(", ", mem));
+        boolean chestOk = h.civChest.unlocked(civ);
+        say(c, Text.literal(com.honorsmp.logic.CivChestMinMembers.infoLine(CivChest.memberCount(civ), h.config.civChestMinMembers))
+                .formatted(chestOk ? Formatting.GREEN : Formatting.GRAY));
         if (CivUpgradeApi.hasUpgrades(civ)) {
             boolean late = CivUpgradeApi.isLate(civ, System.currentTimeMillis());
             List<String> ups = new ArrayList<>();
