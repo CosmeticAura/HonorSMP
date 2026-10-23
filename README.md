@@ -114,6 +114,10 @@ Judges can fine a player. `/fine <player>` (or the Fine button in a case menu) o
 
 `/civ create` is free.
 
+`/civ chest` (back in 1.6.6) opens a shared 54 slot chest for your civ: leader, officers, members and guards can put items in and take them out. Only one member can have it open at a time; others get "Someone in your civ is using the chest". Contents are saved to data.json (`chest` on each civ), and the screen closes with nothing lost or duplicated on death, disconnect, kick, disband and server stop. New civs, and civs that existed in 1.6.5, start with an empty chest (the old items were moved to the leaders' `/donation` boxes in 1.6.1 and are not moved back).
+
+**Combat lock:** you cannot open the civ chest for `civChestCombatLockSeconds` (default 300 = 5 minutes, 0 turns it off) after another player hurt you: swords, arrows, tridents, potions, fireworks, TNT or end crystals set off by a player, and pets owned by a player. Mob damage and your own damage do not count. Trying early says "You were in a fight. The civ chest opens again in M:SS." If another player hits you while you have the chest open, it closes at once and the items stay exactly as they were. It is also blocked for a civ while its siege wave is running ("Your civ is under siege. The civ chest opens again when the raid is over.").
+
 - **Civ chat:** `/cc` toggles civ chat. While it is on, your chat messages go only to online members of your civ, shown as `[CivName] <player> message`. Type `/cc` again to switch it off. It is not saved across restarts.
 - **No friendly fire:** members of the same civ cannot hurt each other with melee, arrows, tridents, other projectiles or harmful potion effects, and cannot hurt each other's tamed pets. Your own pet and yourself are unchanged.
 - **Civ leaderboard:** `/civ top` lists the top 10 civs by the total honor of their members (judges not counted).
@@ -193,6 +197,7 @@ Weekly top donor (`topDonorEnabled`): every Monday 00:00 server time the player 
 - Enchant caps (`enchantCaps` in the config, a map of enchant id to max level). Defaults: Sharpness 4, Protection 3, Density 4, Breach 3. Items above a cap (books, weapons, armor, tools, from anvils, enchanting tables, loot, villagers, fishing, inventories on login or pickup) are lowered to the cap. Only that enchant changes, every other enchant stays the same.
 - No netherite swords, axes or armor. A smithing table upgrade to one is cancelled: you get the same diamond item back (same enchants, durability and name) plus the netherite upgrade template and the netherite ingot. Netherite pickaxes, shovels and hoes are still allowed.
 - Any netherite sword, axe or armor piece that shows up anyway (bastion loot, old items, pickups, chests you open) turns into the diamond version with the same enchants, durability and name, and you get one netherite ingot.
+- Civ chest combat lock (1.6.6): `civChestCombatLockSeconds` (default 300) after another player hurt you, `/civ chest` will not open; 0 disables it.
 - Elytra combat lock: for `combatElytraSeconds` (default 30) after taking damage from a player an elytra cannot open, and the action bar tells you. 0 disables it.
 
 ## Commands
@@ -201,7 +206,7 @@ Players
 - `/honor` score (or `Judge`), tier, perks, last 10 changes
 - `/honor top` top 10 and bottom 10 (honorable and dishonored only)
 - `/honor tracker` get a Bounty Compass (Noble+)
-- `/civ create <name>` (free), `invite <player>`, `join <name>`, `leave`, `kick <player>`, `promote <player>`, `guard <player>` (toggle), `disband`, `info [name]`, `list`, `top`
+- `/civ create <name>` (free), `invite <player>`, `join <name>`, `leave`, `kick <player>`, `promote <player>`, `guard <player>` (toggle), `chest`, `disband`, `info [name]`, `list`, `top`
 - `/cc` toggle civ chat
 - `/bounty set <player>` (chest UI), `/bounty claim`, `/bounty list` (chest UI)
 - `/appeal <reason>` or `/appeal <id> <reason>`
@@ -226,6 +231,7 @@ Admins (ops, no judge powers unless also judges)
 
 ## Notes
 
+- Changes in 1.6.6: `/civ chest` is back (shared 54 slot civ chest, empty at start, saved in data.json) with a combat lock: `civChestCombatLockSeconds` (default 300, 0 = off) after being hurt by another player, closes at once if you are hit while it is open, and blocked during your civ's siege wave. New config key `civChestCombatLockSeconds`; no data migration.
 - Changes in 1.6.5: no emeralds in the economy. Emeralds and emerald blocks (and emerald ores) are no longer donatable (an existing config loses them once, `donateMaterialsVersion` 2). The weekly civ tax is gone (`/civ tax` is replaced by `/civ upkeep` and `/civ upkeep pay`); upgrades cost their own item daily and are bought with 4 days of it (level 2 plus 8 diamonds). See the civ upgrades section.
 - Changes in 1.6.2: donations never go to the judges' treasury (it holds only paid fines and the civ upgrade upkeep). On first load, donatable stacks still in the treasury (any food, golden apples, totems, ender pearls, ores, ingots and blocks) are shared out into everyone's `/donation` box like a new donation; emeralds and stacks with changed components stay. Runs once (`treasuryDonationsMoved` in data.json). No new config keys.
 - Changes in 1.6.0: stronger honorable perks (+2/4/6 max health, 10/20/30% cheaper trades, +20/35/50% potions, 15/25/35% slower hunger, keep XP from Noble, keep hotbar and offhand and gold name at Paragon), civ upgrades and the weekly upgrade tax (`/civ upgrades`, `/civ tax`, `/civ tax pay`), donor tiers and the weekly top donor, judges get the Paragon perks, and donating ores, ingots and ore blocks (`common_materials` cap 30 a day, `rare_materials` cap 40 a day). New config keys: `healthBonusHp`, `keepXpMinRank`, `keepHotbarMinRank`, `goldNameMinRank`, `perksVersion`, the civ upgrade and tax keys and donor keys listed above, `donateCapTypes`, `donateMaterialsVersion`. New data.json fields: per-civ upgrade levels and tax dates, per-player `donatedHonorTotal`, weekly top donor state.

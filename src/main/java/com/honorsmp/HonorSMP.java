@@ -53,6 +53,7 @@ public class HonorSMP implements ModInitializer {
             h.bounties.onLogin(p);
             h.fines.onLogin(p);
             h.donationBox.onLogin(p);
+            h.civChest.onLogin(p);
             CivPerks.onLogin(h, p);
             if (h.isJudge(p)) Cases.deliverPending(h, p);
         });
@@ -68,6 +69,7 @@ public class HonorSMP implements ModInitializer {
             h.upkeepPay.closeFor(p);
             h.donations.closeFor(p);
             h.donationBox.closeFor(p);
+            h.civChest.closeFor(p);
             Menu.closeFor(p);
             SignPrompt.cancel(p);
             h.clearAttributes(p);
@@ -102,10 +104,26 @@ public class HonorSMP implements ModInitializer {
         AutoHonor.onDamage(entity, source);
         h.sieges.onDamage(entity, source);
         if (!(entity instanceof ServerPlayerEntity victim)) return;
+        h.civChest.onHurt(victim, playerUuid(source.getAttacker()), ownerUuid(source.getAttacker()),
+                playerUuid(source.getSource()), ownerUuid(source.getSource()));
         if (source.getAttacker() instanceof ServerPlayerEntity attacker && attacker != victim) {
             h.combat.record(victim.getUuid().toString(), System.currentTimeMillis());
             h.damage.add(new DamageEvent(System.currentTimeMillis(), attacker.getUuid().toString(), victim.getUuid().toString(), taken));
         }
+    }
+
+    /** The uuid when the entity is a real player, else null. */
+    private static String playerUuid(Entity e) {
+        return e instanceof ServerPlayerEntity sp ? sp.getUuid().toString() : null;
+    }
+
+    /** The owner's uuid when the entity is a pet or something a player owns (arrow, potion, firework, TNT...), else null. */
+    private static String ownerUuid(Entity e) {
+        if (e == null) return null;
+        if (e instanceof net.minecraft.entity.Tameable t && t.getOwner() instanceof ServerPlayerEntity o) return o.getUuid().toString();
+        if (e instanceof net.minecraft.entity.projectile.ProjectileEntity pr && pr.getOwner() instanceof ServerPlayerEntity o) return o.getUuid().toString();
+        if (e instanceof net.minecraft.entity.TntEntity tnt && tnt.getOwner() instanceof ServerPlayerEntity o) return o.getUuid().toString();
+        return null;
     }
 
     private static void onDeath(LivingEntity entity, DamageSource source) {
@@ -113,7 +131,7 @@ public class HonorSMP implements ModInitializer {
         if (h == null) return;
         AutoHonor.onDeath(entity, source);
         Entity attacker = source.getAttacker();
-        if (entity instanceof ServerPlayerEntity dead) { h.treasury.closeIfViewer(dead); h.bounties.closeFor(dead); h.fines.closeFor(dead); h.upkeepPay.closeFor(dead); h.donations.closeFor(dead); h.donationBox.closeFor(dead); Menu.closeFor(dead); SignPrompt.cancel(dead); }
+        if (entity instanceof ServerPlayerEntity dead) { h.treasury.closeIfViewer(dead); h.bounties.closeFor(dead); h.fines.closeFor(dead); h.upkeepPay.closeFor(dead); h.donations.closeFor(dead); h.donationBox.closeFor(dead); h.civChest.closeFor(dead); Menu.closeFor(dead); SignPrompt.cancel(dead); }
         if (!(attacker instanceof ServerPlayerEntity killer) || attacker == entity) {
             if (entity instanceof ServerPlayerEntity v) h.record(v).secondsSinceDeath = 0;
             return;

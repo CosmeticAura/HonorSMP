@@ -88,7 +88,7 @@ The mod decides most kills by itself by checking who hit first, gear and tiers. 
 
 Start one with /civ create. It's free, and there's no land to claim.
 
-Your civ has its own chat (/cc turns it on and off), and a leaderboard (/civ top). Members can't hurt each other, not even with arrows, potions or pets.
+Your civ has its own chat (/cc turns it on and off), a shared 54 slot chest (/civ chest, one person at a time), and a leaderboard (/civ top). You can't open the chest for 5 minutes after another player hurt you, and not while your civ is under siege. Members can't hurt each other, not even with arrows, potions or pets.
 
 **Sieges**
 
@@ -136,6 +136,7 @@ Sharpness is capped at 4, Protection at 3, Density at 4 and Breach at 3. Netheri
 `/civ create <name>` start a civ (free)
 `/civ invite <player>` / `/civ join <name>` / `/civ leave`
 `/cc` turn civ chat on or off
+`/civ chest` open your civ's shared chest (not within 5 minutes of a fight)
 `/civ top` top civs by total honor
 `/civ upgrades` buy civ upgrades (leaders and officers)
 `/civ upkeep` see the daily upgrade upkeep

@@ -331,6 +331,8 @@ public class HonorConfig {
     public java.util.Map<String, Integer> enchantCaps = defaultEnchantCaps();
     /** Seconds after taking player damage during which an elytra cannot open. 0 disables. */
     public int combatElytraSeconds = 30;
+    /** Seconds after being hurt by another player during which /civ chest cannot be opened. 0 turns the lock off. Added in 1.6.6. */
+    public int civChestCombatLockSeconds = 300;
 
     // sieges (1.5.0). Only civs get sieges. Distances are blocks (horizontal for home/abandon checks).
     public boolean siegesEnabled = true;

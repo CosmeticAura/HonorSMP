@@ -40,8 +40,8 @@ public class HonorData {
     public Map<String, Integer> donateRotation = new LinkedHashMap<>();
     /** Player uuid to messages waiting for their next login about donation shares (max 20). Added in 1.5.0. */
     public Map<String, List<String>> donateNotices = new LinkedHashMap<>();
-    /** LEGACY (1.5.0): pending disband notices. Only read by CivChestMigration on load, then null so it is never written again. */
-    public Map<String, Long> civChestNotices = null;
+    /** Leader uuid to how many chest items from a disbanded civ were moved to their donation box while offline. Added in 1.5.0. */
+    public Map<String, Long> civChestNotices = new LinkedHashMap<>();
     /** Member uuid to the last known respawn point (bed/anchor). Cached so offline members still count for the siege home. Added in 1.5.0. */
     public Map<String, RespawnPoint> respawnPoints = new LinkedHashMap<>();
     public List<LogEntry> logs = new ArrayList<>();
@@ -88,6 +88,7 @@ public class HonorData {
         if (donatePots != null) donatePots.clear();
         if (donateRotation != null) donateRotation.clear();
         if (donateNotices != null) donateNotices.clear();
+        if (civChestNotices != null) civChestNotices.clear();
         logs.clear();
         cases.clear();
         treasuryEmeralds = 0;
@@ -187,7 +188,7 @@ public class HonorData {
         public Set<String> members = new LinkedHashSet<>();
         public Set<String> guards = new LinkedHashSet<>();
         public long created;
-        /** LEGACY (1.5.0 and 1.6.0 civ chest contents, ItemStack codec JSON). Only read by CivChestMigration on load, then set to null so it is never written again. */
+        /** Shared /civ chest contents as ItemStack codec JSON. Added in 1.5.0; null or missing = empty. */
         public List<com.google.gson.JsonElement> chest = null;
         /** Siege schedule (1.5.0), epoch ms. 0 = not scheduled yet (rolled from the first time it is seen). */
         public long nextSiegeAt = 0;

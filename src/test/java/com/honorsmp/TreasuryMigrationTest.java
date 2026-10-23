@@ -106,11 +106,11 @@ class TreasuryMigrationTest {
         assertNull(shares.get("u3").get("minecraft:golden_apple"));
     }
 
-    /** No donation path (donate screen, claim boxes, leftover pots, civ chest migration) may mention the treasury. */
+    /** No donation path (donate screen, claim boxes, leftover pots) may mention the treasury. */
     @Test
     void noDonationPathReachesTheTreasury() throws Exception {
         Path root = Path.of("src/main/java/com/honorsmp");
-        for (String f : List.of("DonationBox.java", "CivChestMigration.java", "logic/DonationRotation.java",
+        for (String f : List.of("DonationBox.java", "logic/DonationRotation.java",
                 "logic/DonateMath.java", "logic/BountyEscrow.java")) {
             String src = Files.readString(root.resolve(f));
             assertFalse(src.toLowerCase().replaceAll("(?s)/\\*.*?\\*/|//[^\n]*", "").contains("treasury"), f);
@@ -130,15 +130,5 @@ class TreasuryMigrationTest {
                 }
             }
         }
-    }
-
-    @Test
-    void civChestMigrationLeavesTheTreasuryAlone() {
-        HonorData d = HonorData.parse("{\"treasuryEmeralds\":5,\"civs\":{\"c1\":{\"id\":\"c1\",\"name\":\"A\",\"leader\":\"u1\","
-                + "\"members\":[\"u1\"],\"created\":1,\"chest\":[{\"id\":\"minecraft:bread\",\"count\":3}]}}}");
-        CivChestMigration.run(d);
-        assertEquals(5, d.treasuryEmeralds);
-        assertTrue(d.treasury.isEmpty());
-        assertEquals(1, d.donateBoxes.get("u1").size());
     }
 }

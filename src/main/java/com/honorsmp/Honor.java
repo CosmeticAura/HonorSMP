@@ -65,9 +65,12 @@ public class Honor {
     public final UpkeepPay upkeepPay = new UpkeepPay(this);
     public final Donations donations = new Donations(this);
     public final DonationBox donationBox = new DonationBox(this);
+    public final CivChest civChest = new CivChest(this);
     public final Sieges sieges = new Sieges(this);
     public final LiveLeaderboard leaderboard = new LiveLeaderboard(this);
     public final com.honorsmp.logic.CombatTimer combat = new com.honorsmp.logic.CombatTimer();
+    /** Last hit by another player (any weapon, projectile, pet...) per player; locks /civ chest. Added in 1.6.6. */
+    public final com.honorsmp.logic.CivChestLock chestLock = new com.honorsmp.logic.CivChestLock();
 
     public Honor(MinecraftServer server) {
         this.server = server;
@@ -79,7 +82,6 @@ public class Honor {
         dataPath = server.getSavePath(WorldSavePath.ROOT).resolve("honorsmp").resolve("data.json");
         loadConfig();
         loadData();
-        CivChestMigration.run(data); // 1.6.1: civ chests are gone; their items go to the leaders' /donation boxes
         long upkeepNow = System.currentTimeMillis(); // 1.6.5: civs with upgrades but no upkeep date (weekly tax data) get 24 hours
         for (HonorData.Civ civ : data.civs.values()) if (CivUpgradeApi.migrate(civ, upkeepNow)) LOG.info("Civ {}: first upgrade upkeep due in 24 hours", civ.name);
         antiFarm.raw().putAll(data.antiFarm);
@@ -89,6 +91,7 @@ public class Honor {
         donationBox.load();
         donations.load();
         donations.migrateTreasury(); // 1.6.2: donatable stacks in the treasury go to the /donation boxes, once
+        civChest.load();
         saveData();
         sieges.sweepAll();
         LOG.info("HonorSMP loaded: {} players, {} civs, {} open cases", data.players.size(),
@@ -140,6 +143,7 @@ public class Honor {
         if (data.donatePots == null) data.donatePots = new LinkedHashMap<>();
         if (data.donateRotation == null) data.donateRotation = new LinkedHashMap<>();
         if (data.donateNotices == null) data.donateNotices = new LinkedHashMap<>();
+        if (data.civChestNotices == null) data.civChestNotices = new LinkedHashMap<>();
         if (data.logs == null) data.logs = new ArrayList<>();
         if (data.cases == null) data.cases = new ArrayList<>();
         if (data.judges == null) data.judges = new LinkedHashSet<>();
@@ -184,6 +188,7 @@ public class Honor {
             bounties.sync();
             donationBox.sync();
             donations.sync();
+            civChest.sync();
             Path tmp = dataPath.resolveSibling("data.json.tmp");
             Files.writeString(tmp, GSON.toJson(data), StandardCharsets.UTF_8);
             Files.move(tmp, dataPath, StandardCopyOption.REPLACE_EXISTING);
@@ -211,11 +216,13 @@ public class Honor {
         upkeepPay.wipe();
         donations.wipe();
         donationBox.wipe();
+        civChest.wipe(); // deletes the contents, does not hand them out (reset all wipes everything)
         SignPrompt.clearAll();
         Menu.closeAll();
         data.wipeAllExceptJudges();
         antiFarm.raw().clear();
         combat.clearAll();
+        chestLock.clearAll();
         damage.clear();
         invites.clear();
         seasonConfirm.clear();
@@ -238,6 +245,7 @@ public class Honor {
         upkeepPay.closeAll();
         donations.closeAll();
         donationBox.closeAll();
+        civChest.closeAll();
         Menu.closeAll();
         saveData();
         I = null;
@@ -561,6 +569,10 @@ public class Honor {
     // ------------------------------------------------------------ tick
 
     public void tick() {
+        // an open civ chest is saved at least every 30 s so a crash loses little (the save writes the live screen)
+        if (tickCounter % 600 == 0 && civChest.anyOpen()) dirty = true;
+        // an open civ chest is saved at least every 30 s so a crash loses little (the save writes the live screen)
+        if (tickCounter % 600 == 0 && civChest.anyOpen()) dirty = true;
         if (dirty && tickCounter % 20 == 0) saveData();
         // sneak toggles the name tag for dishonored players, so check that every tick
         for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {

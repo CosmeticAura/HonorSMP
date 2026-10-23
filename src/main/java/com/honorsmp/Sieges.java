@@ -131,6 +131,12 @@ public final class Sieges {
         return active.containsKey(civ.id);
     }
 
+    /** True while the civ's siege is in a wave or between waves (not during the warning countdown). */
+    public boolean inWave(Civ civ) {
+        Siege s = active.get(civ.id);
+        return s != null && s.flow.running();
+    }
+
     private void tellCiv(Civ civ, Text t) {
         for (ServerPlayerEntity p : onlineMembers(civ)) p.sendMessage(t);
     }

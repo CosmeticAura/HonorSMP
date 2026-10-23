@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.6
+- `/civ chest` is back. A shared 54 slot chest per civ for the leader, officers, members and guards, one viewer at a time, saved in data.json. It closes with nothing lost or duplicated on death, disconnect, kick, disband and server stop. Every civ starts with an empty chest; the items moved to `/donation` in 1.6.1 stay there.
+- Combat lock: the chest cannot be opened for 5 minutes after another player hurt you, including arrows, tridents, potions, fireworks, TNT or end crystals set off by a player, and pets owned by a player. Mob damage does not count. Trying early says "You were in a fight. The civ chest opens again in M:SS."
+- If another player hits you while the chest is open, it closes at once and the items stay where they were.
+- The chest is also blocked while your civ's siege wave is running.
+- New config key: `civChestCombatLockSeconds` (default 300, 0 turns the lock off). The command lists in the README and the Discord posts include `/civ chest` again.
+
 ## 1.6.5
 - No emeralds in the economy. Emerald, emerald block, emerald ore and deepslate emerald ore no longer give honor in `/donate`; the chest hands them back like any other item. An existing config loses those entries once (`donateMaterialsVersion` 2), so an admin can add them back later. `/donate` help text updated.
 - The weekly civ tax is gone: `/civ tax`, `/civ tax pay`, `taxPerLevelPerMemberPerWeek`, `taxIntervalDays`, `taxWarningHours`, `upgradeEmeraldCost`, `upgradeDiamondCost` and the `taxDueAt` / `taxWarnedFor` data fields are removed on load.
