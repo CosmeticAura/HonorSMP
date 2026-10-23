@@ -58,7 +58,7 @@ Self defense is free: if they hit you first, you lose nothing.
 
 **Bounties:** `/bounty set <player>` to put items on an outlaw. Kill them, then `/bounty claim`.
 **Civs (teams):** `/civ create <name>` is free. Use `/cc` for team chat and `/civ chest` for a shared chest (needs 3 members in your civ, starts with 1 row, the leader buys more rows in /civ upgrades, locked for 5 minutes after another player hurts you). Teammates can't hurt each other.
-**Civ upgrades:** `/civ upgrades` buys team boosts, paid in iron, gunpowder, redstone, lapis and gold (no emeralds). They need a small daily upkeep: `/civ upkeep pay`. Late upkeep turns them off until it's paid.
+**Civ upgrades:** `/civ upgrades` buys team boosts, paid in iron, gunpowder, redstone, lapis and gold (no emeralds). Each one has its own small daily upkeep: `/civ upkeep pay`. Late upkeep turns only that upgrade off until it's paid, and `/civ upkeep pause <upgrade>` stops one costing.
 **Donor ranks:** donate a lot and you get a tag, then Luck, then healing when you respawn. The top donor each week gets Hero of the Village.
 **Sieges:** every few days pillagers attack a team's home. Defend it for +10 honor and a loot chest.
 **Unfair call?** `/appeal <reason>`
@@ -86,7 +86,8 @@ Self defense is free: if they hit you first, you lose nothing.
 `/civ chest` shared team chest (needs 3 members)
 `/civ top` best teams
 `/civ upgrades` team upgrades
-`/civ upkeep pay` pay the daily upgrade upkeep
+`/civ upkeep pay` pay an upgrade's daily upkeep
+`/civ upkeep pause <upgrade>` stop one upgrade's upkeep
 `/fine pay` pay a fine
 `/appeal <reason>` think a call was unfair?
 

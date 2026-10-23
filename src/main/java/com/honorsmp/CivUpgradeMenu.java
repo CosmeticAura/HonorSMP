@@ -89,18 +89,17 @@ public final class CivUpgradeMenu {
         }
         long now = System.currentTimeMillis();
         boolean manage = CivUpgradeApi.canManage(civ, p.getUuid().toString());
-        boolean late = CivUpgradeApi.isLate(civ, now);
         Menu m = Menu.create(Text.literal("Upgrades: " + civ.name), 3);
 
         List<Text> info = new ArrayList<>();
         Map<String, Integer> owed = CivUpgradeApi.owedPerDay(civ, h.config);
-        if (owed.isEmpty()) {
+        if (!CivUpgradeApi.hasUpgrades(civ)) {
             info.add(gray("No upgrades yet, so no upkeep."));
         } else {
-            info.add(gray("Daily upkeep: " + CivUpkeep.describe(owed)));
-            long due = CivUpgradeApi.upkeepDueAt(civ);
-            info.add(late ? Text.literal("UNPAID since " + date(due) + ": upgrades are off. /civ upkeep pay").formatted(Formatting.RED)
-                    : gray("Paid until: " + date(due) + " (in " + CivEffects.duration(due - now) + ")"));
+            info.add(gray("Daily upkeep (all running upgrades): " + CivUpkeep.describe(owed)));
+            info.add(gray("Each upgrade has its own upkeep date: see the upkeep button."));
+            List<Upgrade> lateOnes = CivUpgradeApi.lateUpgrades(civ, now);
+            if (!lateOnes.isEmpty()) info.add(Text.literal("UNPAID: " + names(lateOnes) + " (off until paid)").formatted(Formatting.RED));
         }
         info.add(gray(manage ? "Click an upgrade to buy its next level." : "Only the leader or officers can buy upgrades."));
         m.icon(CivEffects.INFO_SLOT, Menu.icon(Items.GOLDEN_PICKAXE, Text.literal("Civ upgrades").formatted(Formatting.GREEN), info));
@@ -108,8 +107,11 @@ public final class CivUpgradeMenu {
         for (Upgrade u : Upgrade.values()) {
             int lvl = CivUpgradeApi.ownedLevel(civ, u);
             boolean max = lvl >= CivUpgrades.MAX_LEVEL;
+            boolean late = CivUpgradeApi.isLate(civ, u, now);
+            boolean paused = CivUpgradeApi.isPaused(civ, u);
             List<Text> lore = new ArrayList<>();
-            lore.add(gray("Level: " + lvl + " / " + CivUpgrades.MAX_LEVEL + (lvl > 0 && late ? " (off: upkeep unpaid)" : "")));
+            lore.add(gray("Level: " + lvl + " / " + CivUpgrades.MAX_LEVEL + (lvl > 0 && late ? " (off: upkeep unpaid)" : lvl > 0 && paused ? " (off: paused)" : "")));
+            if (lvl > 0) lore.add(upkeepLine(civ, u, now));
             lore.add(gray("Now: " + CivEffects.describe(h.config, u, lvl)));
             if (max) {
                 lore.add(Text.literal("Max level").formatted(Formatting.GREEN));
@@ -118,14 +120,120 @@ public final class CivUpgradeMenu {
                 lore.add(gray("Next: " + CivEffects.describe(h.config, u, next)));
                 lore.add(Text.literal("Cost: " + CivUpkeep.describe(CivUpgrades.buyCost(h.config, u, next))).formatted(Formatting.YELLOW));
                 lore.add(gray("Upkeep after buying: " + CivUpgrades.upkeepPerDay(h.config, u, next) + " " + CivUpkeep.pretty(CivUpgrades.itemOf(h.config, u)) + " a day"));
-                if (manage) lore.add(Text.literal(late ? "Pay the upkeep first" : "Click to buy").formatted(late ? Formatting.RED : Formatting.GREEN));
+                if (manage) lore.add(Text.literal(late ? "Pay this upgrade's upkeep first" : paused ? "Paused: pay its upkeep to switch it on" : "Click to buy")
+                        .formatted(late || paused ? Formatting.RED : Formatting.GREEN));
             }
-            ItemStack icon = Menu.icon(iconOf(u), Text.literal(u.display).formatted(lvl > 0 && !late ? Formatting.GREEN : Formatting.WHITE), lore);
+            ItemStack icon = Menu.icon(iconOf(u), Text.literal(u.display).formatted(lvl > 0 && !late && !paused ? Formatting.GREEN : Formatting.WHITE), lore);
             m.set(CivEffects.slotOf(u), icon, (who, r, s) -> onUpgradeClick(who, u));
         }
         addRowsIcon(m, civ, manage);
+        if (CivUpgradeApi.hasUpgrades(civ)) {
+            m.set(UPKEEP_SLOT, Menu.icon(Items.CLOCK, Text.literal("Upgrade upkeep").formatted(Formatting.GOLD), List.of(
+                    gray("Pay or pause each upgrade on its own."),
+                    gray(manage ? "Click to open" : "Only the leader or officers can pay."))), (who, r, s) -> openUpkeep(who));
+        }
         m.backOrClose(null);
         m.open(p);
+    }
+
+    private static final int UPKEEP_SLOT = 26;
+
+    private static String names(List<Upgrade> list) {
+        List<String> n = new ArrayList<>();
+        for (Upgrade u : list) n.add(u.display);
+        return String.join(", ", n);
+    }
+
+    /** One line about an owned upgrade's own upkeep: paused, late, or paid until. */
+    public static Text upkeepLine(Civ civ, Upgrade u, long now) {
+        if (CivUpgradeApi.isPaused(civ, u)) return Text.literal("Upkeep: PAUSED (no cost). Paying turns it back on.").formatted(Formatting.YELLOW);
+        long due = CivUpgradeApi.dueAt(civ, u);
+        if (CivUpgradeApi.isLate(civ, u, now)) return Text.literal("UNPAID since " + date(due) + ": off until paid").formatted(Formatting.RED);
+        if (due <= 0) return gray("Upkeep: not started");
+        return gray("Paid until " + date(due) + " (in " + CivEffects.duration(due - now) + ")");
+    }
+
+    // ------------------------------------------------------------ upkeep menu (1.6.9): pay / pause one upgrade at a time
+
+    public static void openUpkeep(ServerPlayerEntity p) {
+        Honor h = Honor.I;
+        if (h == null) return;
+        Civ civ = h.civOf(p.getUuid().toString());
+        if (civ == null) return;
+        long now = System.currentTimeMillis();
+        boolean manage = CivUpgradeApi.canManage(civ, p.getUuid().toString());
+        Menu m = Menu.create(Text.literal("Upkeep: " + civ.name), 4);
+        m.icon(CivEffects.INFO_SLOT, Menu.icon(Items.CLOCK, Text.literal("Upgrade upkeep").formatted(Formatting.GOLD), List.of(
+                gray("Each upgrade is paid on its own."),
+                gray("Click an upgrade to pay it (up to " + h.config.civUpkeepMaxAheadDays + " days ahead)."),
+                gray("Pause an upgrade to stop its cost: it turns off, keeps its level."))));
+        for (Upgrade u : Upgrade.values()) {
+            int lvl = CivUpgradeApi.ownedLevel(civ, u);
+            int slot = CivEffects.slotOf(u);
+            if (lvl <= 0) {
+                m.icon(slot, Menu.icon(Items.GRAY_STAINED_GLASS_PANE, Text.literal(u.display).formatted(Formatting.DARK_GRAY), List.of(gray("Not owned"))));
+                continue;
+            }
+            boolean paused = CivUpgradeApi.isPaused(civ, u);
+            boolean late = CivUpgradeApi.isLate(civ, u, now);
+            List<Text> lore = new ArrayList<>();
+            lore.add(gray("Level " + lvl + ": " + CivUpkeep.describe(CivUpgradeApi.upgradeUpkeepPerDay(civ, u, h.config)) + " a day"));
+            lore.add(upkeepLine(civ, u, now));
+            int room = CivUpgradeApi.payableDays(civ, u, h.config, now);
+            lore.add(gray(room > 0 ? "Can pay up to " + room + (room == 1 ? " day" : " days") + " now" : "Paid the maximum ahead"));
+            if (manage) lore.add(Text.literal(room > 0 ? (paused ? "Click to pay and switch on" : "Click to pay") : "Nothing to pay now").formatted(room > 0 ? Formatting.GREEN : Formatting.GRAY));
+            m.set(slot, Menu.icon(iconOf(u), Text.literal(u.display).formatted(late ? Formatting.RED : paused ? Formatting.YELLOW : Formatting.GREEN), lore),
+                    (who, r, s) -> onPayClick(who, u));
+            if (paused) {
+                m.icon(slot + 9, Menu.icon(Items.YELLOW_CONCRETE, Text.literal("Paused").formatted(Formatting.YELLOW), List.of(
+                        gray("No cost, no effect, no warnings."), gray("Pay it to switch it on again."))));
+            } else {
+                m.set(slot + 9, Menu.icon(Items.ORANGE_CONCRETE, Text.literal("Pause " + u.display).formatted(Formatting.GOLD), List.of(
+                        gray("Stops the upkeep and turns the upgrade off."), gray("The level is kept; paying turns it back on."),
+                        gray(manage ? "Click to pause" : "Only the leader or officers can pause."))), (who, r, s) -> onPauseClick(who, u));
+            }
+        }
+        m.set(27, Menu.icon(Items.ARROW, "Back", Formatting.WHITE), (who, r, s) -> open(who));
+        m.open(p);
+    }
+
+    private static void onPayClick(ServerPlayerEntity who, Upgrade u) {
+        Honor h = Honor.I;
+        if (h == null) return;
+        Civ civ = h.civOf(who.getUuid().toString());
+        if (civ == null) return;
+        who.closeHandledScreen();
+        String e = h.upkeepPay.openFor(who, civ, u);
+        if (e != null) {
+            who.sendMessage(Text.literal(e).formatted(Formatting.RED));
+            openUpkeep(who);
+        }
+    }
+
+    private static void onPauseClick(ServerPlayerEntity who, Upgrade u) {
+        Honor h = Honor.I;
+        if (h == null) return;
+        Civ civ = h.civOf(who.getUuid().toString());
+        if (civ == null) return;
+        String err = pauseUpgrade(h, civ, who, u);
+        if (err != null) who.sendMessage(Text.literal(err).formatted(Formatting.RED), true);
+        openUpkeep(who);
+    }
+
+    /** Pauses one upgrade for a leader or officer; returns an error message or null. Shared by the menu and /civ upkeep pause. */
+    public static String pauseUpgrade(Honor h, Civ civ, ServerPlayerEntity who, Upgrade u) {
+        if (!CivUpgradeApi.canManage(civ, who.getUuid().toString())) return "Only the leader or officers can pause an upgrade";
+        if (CivUpgradeApi.ownedLevel(civ, u) <= 0) return "Your civ does not own " + u.display;
+        if (CivUpgradeApi.isPaused(civ, u)) return u.display + " is already paused";
+        CivUpgradeApi.pause(civ, u, System.currentTimeMillis());
+        h.markDirty();
+        CivPerks.syncCiv(h, civ);
+        for (String id : civ.members) {
+            ServerPlayerEntity mm = h.online(id);
+            if (mm != null) mm.sendMessage(Text.literal("[" + civ.name + "] " + who.getName().getString() + " paused " + u.display
+                    + ". It is off and costs nothing until you pay its upkeep again.").formatted(Formatting.GOLD));
+        }
+        return null;
     }
 
     // ------------------------------------------------------------ chest rows (1.6.8)
@@ -225,8 +333,12 @@ public final class CivUpgradeMenu {
             who.sendMessage(Text.literal(u.display + " is already at max level").formatted(Formatting.RED), true);
             return;
         }
-        if (CivUpgradeApi.isLate(civ, System.currentTimeMillis())) {
-            who.sendMessage(Text.literal("Pay the upkeep first: /civ upkeep pay").formatted(Formatting.RED), true);
+        if (CivUpgradeApi.isPaused(civ, u)) {
+            who.sendMessage(Text.literal(u.display + " is paused: pay its upkeep first (/civ upkeep pay " + u.id + ")").formatted(Formatting.RED), true);
+            return;
+        }
+        if (CivUpgradeApi.isLate(civ, u, System.currentTimeMillis())) {
+            who.sendMessage(Text.literal("Pay " + u.display + "'s upkeep first: /civ upkeep pay " + u.id).formatted(Formatting.RED), true);
             return;
         }
         confirm(who, civ, u, lvl + 1);
@@ -265,7 +377,8 @@ public final class CivUpgradeMenu {
         } else {
             String msg = switch (res.check()) {
                 case NOT_ENOUGH_ITEMS -> "Not enough " + CivUpkeep.pretty(res.missing());
-                case UPKEEP_UNPAID -> "Pay the upkeep first: /civ upkeep pay";
+                case UPKEEP_UNPAID -> "Pay " + u.display + "'s upkeep first: /civ upkeep pay " + u.id;
+                case PAUSED -> u.display + " is paused: pay its upkeep first: /civ upkeep pay " + u.id;
                 case MAX_LEVEL -> u.display + " is already at max level";
                 case DISABLED -> "Civ upgrades are disabled";
                 default -> "Cannot buy that";

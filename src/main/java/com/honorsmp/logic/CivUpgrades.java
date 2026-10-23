@@ -33,7 +33,7 @@ public final class CivUpgrades {
     }
 
     /** Why a purchase is refused; OK = allowed. */
-    public enum BuyCheck { OK, DISABLED, MAX_LEVEL, UPKEEP_UNPAID, NOT_ENOUGH_ITEMS }
+    public enum BuyCheck { OK, DISABLED, MAX_LEVEL, UPKEEP_UNPAID, PAUSED, NOT_ENOUGH_ITEMS }
 
     private static int at(int[] a, int level, int fallback) {
         if (level < 1) return 0;
@@ -102,8 +102,14 @@ public final class CivUpgrades {
      * @param have item id to amount the buyer carries (plain items only)
      */
     public static BuyCheck canBuy(HonorConfig c, Upgrade u, int current, boolean late, Map<String, Integer> have) {
+        return canBuy(c, u, current, late, false, have);
+    }
+
+    /** 1.6.9: {@code late} and {@code paused} are about THIS upgrade only; either one blocks buying its next level. */
+    public static BuyCheck canBuy(HonorConfig c, Upgrade u, int current, boolean late, boolean paused, Map<String, Integer> have) {
         if (!c.civUpgradesEnabled) return BuyCheck.DISABLED;
         if (current >= MAX_LEVEL) return BuyCheck.MAX_LEVEL;
+        if (paused) return BuyCheck.PAUSED;
         if (late) return BuyCheck.UPKEEP_UNPAID;
         return missing(buyCost(c, u, current + 1), have) == null ? BuyCheck.OK : BuyCheck.NOT_ENOUGH_ITEMS;
     }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.9
+- Upgrade upkeep is now per upgrade. Each upgrade you own (Resistance, Strength, Speed, Haste, Fortitude) has its own due date and its own days paid. Only an upgrade whose own upkeep is late switches off; the others keep working. Buying more of a late upgrade is blocked until it is paid, other upgrades can still be bought.
+- `/civ upkeep` lists every owned upgrade with its daily cost and paid-until date (or LATE or PAUSED). `/civ upkeep pay` opens a new upkeep menu with one icon per upgrade and a Pause button under it; click an upgrade to open the pay chest for it. `/civ upkeep pay <upgrade>` goes straight to that upgrade's chest. Each upgrade can be paid up to 3 days ahead (`civUpkeepMaxAheadDays`) on its own. The upgrades menu has an upkeep button (clock) too.
+- Pause: `/civ upkeep pause <upgrade>` (leader or officer) or the Pause button in the upkeep menu. A paused upgrade is off and costs nothing, keeps its level, never turns late and sends no warnings. Paying its upkeep switches it back on and keeps the paid time it had left when it was paused.
+- Warnings and the siege-free upkeep messages name the upgrade ("Your civ's Speed upkeep is due in 1h 20m", "Your civ's Haste upkeep is late"). Login warnings are one line per upgrade.
+- `[Unpaid]` in `/civ list` shows only when a non-paused upgrade is late; `/civ info` lists which upgrades are unpaid and which are paused.
+- Existing civs: on first load each owned upgrade gets the civ's old shared due date, so nobody loses paid days (a civ with no date gets 24 hours). The old `upkeepDueAt` and `upkeepWarnedFor` fields stay in data.json untouched and are no longer used. New data.json fields on each civ: `upgradeDue`, `upgradeWarned`, `upgradePaused`. No new config keys.
+
 ## 1.6.8
 - The civ chest has 6 rows. Row 1 is open as soon as the chest is unlocked (3 members). Rows 2 to 6 are bought once each, in order, in `/civ upgrades` ("Chest rows", chest icon, shows the next row's price). The leader or an officer buys, members can look. No daily upkeep for chest rows.
 - Default prices (config `civChestRowCosts`, one list of item:count entries per row 2 to 6): row 2 32 iron ingots, row 3 32 gold ingots, row 4 64 redstone and 32 lapis lazuli, row 5 16 diamonds, row 6 2 netherite ingots. Never emeralds (an emerald entry in the config falls back to that row's default). Paid like the other upgrades: taken from the buyer's inventory, all or nothing, with a clear "Not enough X" message, and the items go to the judges' treasury.

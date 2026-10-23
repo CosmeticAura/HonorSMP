@@ -205,6 +205,15 @@ public class HonorData {
         public long upkeepDueAt = 0;
         /** The upkeepDueAt value the "due soon" warning was already sent for (so it is sent once). 0 = none. */
         public long upkeepWarnedFor = 0;
+        /**
+         * 1.6.9: each owned upgrade has its own upkeep clock. Upgrade id to epoch ms its upkeep is next due. Null or a
+         * missing id = no clock yet (migrated from the old shared upkeepDueAt, which is left untouched and no longer used).
+         */
+        public java.util.Map<String, Long> upgradeDue = null;
+        /** 1.6.9: upgrade id to the due time the "due soon" warning was already sent for. */
+        public java.util.Map<String, Long> upgradeWarned = null;
+        /** 1.6.9: paused upgrades: upgrade id to the paid time (ms) it still had left when it was paused. Level is kept. */
+        public java.util.Map<String, Long> upgradePaused = null;
         /** Civ chest rows bought (1.6.8), 0..5: the chest has 1 + this many open rows. Missing in older data = 0. */
         public int chestRows = 0;
     }

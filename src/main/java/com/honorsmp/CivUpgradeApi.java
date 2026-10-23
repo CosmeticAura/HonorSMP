@@ -7,7 +7,9 @@ import com.honorsmp.logic.CivUpgrades.Upgrade;
 import com.honorsmp.logic.CivUpkeep;
 import com.honorsmp.logic.HonorConfig;
 import com.honorsmp.logic.Wallet;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,8 +27,8 @@ public final class CivUpgradeApi {
 
     public enum PayStatus { PAID, NOTHING_OWED, PAID_AHEAD_MAX, NOT_ENOUGH }
 
-    /** Result of {@link #pay}: the days paid and the items that must be taken from what was offered. */
-    public record PayResult(PayStatus status, int days, Map<String, Integer> taken) {
+    /** Result of {@link #pay}: the days paid and the items that must be taken from what was offered. {@code resumed}: a paused upgrade was switched back on. */
+    public record PayResult(PayStatus status, int days, Map<String, Integer> taken, boolean resumed) {
         public boolean paid() { return status == PayStatus.PAID; }
     }
 
@@ -48,9 +50,9 @@ public final class CivUpgradeApi {
         return u == null ? 0 : ownedLevel(civ, u);
     }
 
-    /** Level that should currently take effect: owned level, or 0 when switched off (upkeep late / feature disabled). */
+    /** Level that should currently take effect: owned level, or 0 when this upgrade is off (its upkeep late, paused, or the feature disabled). */
     public static int activeLevel(Civ civ, Upgrade u, HonorConfig c, long now) {
-        return upgradesActive(civ, c, now) ? ownedLevel(civ, u) : 0;
+        return upgradeActive(civ, u, c, now) ? ownedLevel(civ, u) : 0;
     }
 
     public static int totalLevels(Civ civ) {
@@ -61,36 +63,119 @@ public final class CivUpgradeApi {
 
     public static boolean hasUpgrades(Civ civ) { return totalLevels(civ) > 0; }
 
-    public static boolean upgradesActive(Civ civ, HonorConfig c, long now) {
-        return civ != null && CivUpkeep.upgradesActive(c, totalLevels(civ), civ.upkeepDueAt, now);
+    /** 1.6.9: this one upgrade works: owned, not paused, its own upkeep not late. */
+    public static boolean upgradeActive(Civ civ, Upgrade u, HonorConfig c, long now) {
+        int lvl = ownedLevel(civ, u);
+        return civ != null && !isPaused(civ, u) && CivUpkeep.upgradesActive(c, lvl, dueAt(civ, u), now);
     }
 
-    /** Removes every upgrade and the upkeep clock (disband, reset). No refund. */
+    /** True when at least one upgrade works. */
+    public static boolean upgradesActive(Civ civ, HonorConfig c, long now) {
+        for (Upgrade u : Upgrade.values()) if (upgradeActive(civ, u, c, now)) return true;
+        return false;
+    }
+
+    /** Removes every upgrade and every upkeep clock (disband, reset). No refund. */
     public static void clear(Civ civ) {
         if (civ == null) return;
         civ.upgrades = null;
         civ.upkeepDueAt = 0;
         civ.upkeepWarnedFor = 0;
+        civ.upgradeDue = null;
+        civ.upgradeWarned = null;
+        civ.upgradePaused = null;
         civ.chestRows = 0; // 1.6.8: bought chest rows go with the upgrades
     }
 
     /**
-     * 1.6.5, on load: a civ that owns upgrades but has no upkeep date (it came from the weekly-tax versions, whose
-     * taxDueAt field is dropped) gets its first upkeep due 24 hours from now. Returns true when it changed.
+     * On load. 1.6.9: every owned, unpaused upgrade without its own clock starts with the civ's old shared upkeep date,
+     * so nobody loses paid days. A civ that owns upgrades but has no date at all (weekly-tax versions, 1.6.5 rule) gets
+     * 24 hours from now. The old shared fields are left as they are. Returns true when anything changed.
      */
     public static boolean migrate(Civ civ, long now) {
         if (civ == null) return false;
-        long due = CivUpkeep.migrateDue(totalLevels(civ), civ.upkeepDueAt, now);
-        if (due == civ.upkeepDueAt) return false;
-        civ.upkeepDueAt = due;
-        civ.upkeepWarnedFor = 0;
+        boolean changed = false;
+        for (Upgrade u : Upgrade.values()) {
+            int lvl = ownedLevel(civ, u);
+            if (lvl <= 0 || isPaused(civ, u)) continue;
+            if (civ.upgradeDue != null && civ.upgradeDue.containsKey(u.id)) continue;
+            if (civ.upgradeDue == null) civ.upgradeDue = new LinkedHashMap<>();
+            civ.upgradeDue.put(u.id, CivUpkeep.migrateDue(lvl, civ.upkeepDueAt, now));
+            changed = true;
+        }
+        return changed;
+    }
+
+    // ---------------------------------------------------------------- per-upgrade clocks (1.6.9)
+
+    /** Epoch ms this upgrade's upkeep is due; 0 when it is not owned, paused, or has no clock yet. */
+    public static long dueAt(Civ civ, Upgrade u) {
+        if (civ == null || civ.upgradeDue == null || ownedLevel(civ, u) <= 0 || isPaused(civ, u)) return 0;
+        Long d = civ.upgradeDue.get(u.id);
+        return d == null ? 0 : d;
+    }
+
+    public static long upkeepDueAt(Civ civ, Upgrade u) { return dueAt(civ, u); }
+
+    public static boolean isPaused(Civ civ, Upgrade u) {
+        return civ != null && civ.upgradePaused != null && civ.upgradePaused.containsKey(u.id) && ownedLevel(civ, u) > 0;
+    }
+
+    /** Paid time (ms) a paused upgrade still has when resumed by paying; 0 when it is not paused. */
+    public static long pausedLeft(Civ civ, Upgrade u) {
+        if (!isPaused(civ, u)) return 0;
+        Long l = civ.upgradePaused.get(u.id);
+        return l == null ? 0 : Math.max(0, l);
+    }
+
+    /** Due time as if the upgrade were running now: a paused upgrade resumes with the time it had left. */
+    private static long effectiveDue(Civ civ, Upgrade u, long now) {
+        return isPaused(civ, u) ? now + pausedLeft(civ, u) : dueAt(civ, u);
+    }
+
+    /** True when this upgrade is owned, not paused, and its own due date has passed. */
+    public static boolean isLate(Civ civ, Upgrade u, long now) {
+        return civ != null && !isPaused(civ, u) && CivUpkeep.isLate(ownedLevel(civ, u), dueAt(civ, u), now);
+    }
+
+    /** True when at least one non-paused upgrade is late (show [Unpaid]). */
+    public static boolean isLate(Civ civ, long now) {
+        for (Upgrade u : Upgrade.values()) if (isLate(civ, u, now)) return true;
+        return false;
+    }
+
+    /** The non-paused upgrades that are late, in menu order. */
+    public static List<Upgrade> lateUpgrades(Civ civ, long now) {
+        List<Upgrade> out = new ArrayList<>();
+        for (Upgrade u : Upgrade.values()) if (isLate(civ, u, now)) out.add(u);
+        return out;
+    }
+
+    /** The paused upgrades, in menu order. */
+    public static List<Upgrade> pausedUpgrades(Civ civ) {
+        List<Upgrade> out = new ArrayList<>();
+        for (Upgrade u : Upgrade.values()) if (isPaused(civ, u)) out.add(u);
+        return out;
+    }
+
+    /**
+     * Pauses an owned, running upgrade: it turns off, stops costing anything and stops warning; the level is kept and
+     * the paid time it had left is remembered. Returns false when it is not owned or already paused.
+     */
+    public static boolean pause(Civ civ, Upgrade u, long now) {
+        if (civ == null || ownedLevel(civ, u) <= 0 || isPaused(civ, u)) return false;
+        long left = Math.max(0, dueAt(civ, u) - now);
+        if (civ.upgradePaused == null) civ.upgradePaused = new LinkedHashMap<>();
+        civ.upgradePaused.put(u.id, left);
+        if (civ.upgradeDue != null) civ.upgradeDue.remove(u.id);
+        if (civ.upgradeWarned != null) civ.upgradeWarned.remove(u.id);
         return true;
     }
 
     // ---------------------------------------------------------------- buying
 
     public static BuyCheck checkBuy(Civ civ, Upgrade u, HonorConfig c, long now, Wallet w) {
-        return CivUpgrades.canBuy(c, u, ownedLevel(civ, u), isLate(civ, now), have(CivUpgrades.buyCost(c, u, ownedLevel(civ, u) + 1), w));
+        return CivUpgrades.canBuy(c, u, ownedLevel(civ, u), isLate(civ, u, now), isPaused(civ, u), have(CivUpgrades.buyCost(c, u, ownedLevel(civ, u) + 1), w));
     }
 
     private static Map<String, Integer> have(Map<String, Integer> need, Wallet w) {
@@ -100,25 +185,26 @@ public final class CivUpgradeApi {
     }
 
     /**
-     * Buys the next level: checks, takes the items from the wallet, sets the level, and starts the upkeep clock if this
-     * is the civ's first upgrade level. Nothing changes unless the result is OK. Not allowed while the upkeep is late.
+     * Buys the next level: checks, takes the items from the wallet, sets the level, and starts that upgrade's upkeep
+     * clock if it had none (first level: due in 24 hours; a later level keeps the due date). Nothing changes unless the
+     * result is OK. Not allowed while THIS upgrade's upkeep is late or it is paused; other upgrades do not matter.
      */
     public static BuyResult buy(Civ civ, Upgrade u, HonorConfig c, long now, Wallet w) {
         int cur = ownedLevel(civ, u);
         int next = cur + 1;
         Map<String, Integer> cost = CivUpgrades.buyCost(c, u, next);
-        BuyCheck chk = CivUpgrades.canBuy(c, u, cur, isLate(civ, now), have(cost, w));
+        BuyCheck chk = CivUpgrades.canBuy(c, u, cur, isLate(civ, u, now), isPaused(civ, u), have(cost, w));
         if (chk != BuyCheck.OK) {
             String miss = chk == BuyCheck.NOT_ENOUGH_ITEMS ? CivUpgrades.missing(cost, have(cost, w)) : null;
             return new BuyResult(chk, cur, Map.of(), miss);
         }
-        boolean first = totalLevels(civ) == 0;
         for (var e : cost.entrySet()) w.take(e.getKey(), e.getValue());
         if (civ.upgrades == null) civ.upgrades = new LinkedHashMap<>();
         civ.upgrades.put(u.id, next);
-        if (first || civ.upkeepDueAt <= 0) {
-            civ.upkeepDueAt = CivUpkeep.firstDue(now);
-            civ.upkeepWarnedFor = 0;
+        if (cur == 0 || dueAt(civ, u) <= 0) {
+            if (civ.upgradeDue == null) civ.upgradeDue = new LinkedHashMap<>();
+            civ.upgradeDue.put(u.id, CivUpkeep.firstDue(now));
+            if (civ.upgradeWarned != null) civ.upgradeWarned.remove(u.id);
         }
         return new BuyResult(BuyCheck.OK, next, cost, null);
     }
@@ -143,62 +229,80 @@ public final class CivUpgradeApi {
 
     // ---------------------------------------------------------------- upkeep
 
-    /** Item id to amount the civ owes per day, summed over its owned upgrade levels. Empty when it owns none. */
+    /** Item id to amount the civ owes per day, summed over its owned, non-paused upgrades. Empty when none. */
     public static Map<String, Integer> owedPerDay(Civ civ, HonorConfig c) {
         Map<String, Integer> m = new LinkedHashMap<>();
         for (Upgrade u : Upgrade.values()) {
-            int n = CivUpgrades.upkeepPerDay(c, u, ownedLevel(civ, u));
-            if (n > 0) m.merge(CivUpgrades.itemOf(c, u), n, Integer::sum);
+            for (var e : owedPerDay(civ, u, c).entrySet()) m.merge(e.getKey(), e.getValue(), Integer::sum);
         }
         return m;
     }
 
-    /** What one upgrade owned at its level costs per day, as {item, amount}; null when not owned. */
+    /** What one upgrade owes per day: its item and amount; empty when it is not owned or paused (paused costs nothing). */
+    public static Map<String, Integer> owedPerDay(Civ civ, Upgrade u, HonorConfig c) {
+        Map<String, Integer> m = new LinkedHashMap<>();
+        if (isPaused(civ, u)) return m;
+        int n = CivUpgrades.upkeepPerDay(c, u, ownedLevel(civ, u));
+        if (n > 0) m.put(CivUpgrades.itemOf(c, u), n);
+        return m;
+    }
+
+    /** What one upgrade costs per day at its owned level, even when paused (this is what paying resumes it for). */
+    public static Map<String, Integer> upgradeUpkeepPerDay(Civ civ, Upgrade u, HonorConfig c) {
+        Map<String, Integer> m = new LinkedHashMap<>();
+        int n = CivUpgrades.upkeepPerDay(c, u, ownedLevel(civ, u));
+        if (ownedLevel(civ, u) > 0 && n > 0) m.put(CivUpgrades.itemOf(c, u), n);
+        return m;
+    }
+
+    /** What one upgrade owned at its level costs per day, as {item, amount}; null when not owned (a paused one still shows its price). */
     public static Map.Entry<String, Integer> upgradeUpkeep(Civ civ, Upgrade u, HonorConfig c) {
         int lvl = ownedLevel(civ, u);
         if (lvl <= 0) return null;
         return Map.entry(CivUpgrades.itemOf(c, u), CivUpgrades.upkeepPerDay(c, u, lvl));
     }
 
-    /** Epoch ms the upkeep is due, 0 when nothing is owed. */
-    public static long upkeepDueAt(Civ civ) { return hasUpgrades(civ) ? civ.upkeepDueAt : 0; }
-
-    /** True when the civ has upgrades and the due date has passed (show [Unpaid]). */
-    public static boolean isLate(Civ civ, long now) {
-        return civ != null && CivUpkeep.isLate(totalLevels(civ), civ.upkeepDueAt, now);
+    /** True when a "due soon" warning should be shown for this upgrade (not paused, not late, due within the warning window). */
+    public static boolean warningDue(Civ civ, Upgrade u, HonorConfig c, long now) {
+        return civ != null && !isPaused(civ, u) && CivUpkeep.warningDue(c, ownedLevel(civ, u), dueAt(civ, u), now);
     }
 
-    /** True when a "due soon" warning should be shown (not late, due within the warning window). */
-    public static boolean warningDue(Civ civ, HonorConfig c, long now) {
-        return civ != null && CivUpkeep.warningDue(c, totalLevels(civ), civ.upkeepDueAt, now);
-    }
-
-    /** For the periodic check: true once per due date when the warning window is entered (and remembers it). */
-    public static boolean takeWarningOnce(Civ civ, HonorConfig c, long now) {
-        if (!warningDue(civ, c, now) || civ.upkeepWarnedFor == civ.upkeepDueAt) return false;
-        civ.upkeepWarnedFor = civ.upkeepDueAt;
+    /** For the periodic check: true once per due date when the warning window is entered for this upgrade (and remembers it). */
+    public static boolean takeWarningOnce(Civ civ, Upgrade u, HonorConfig c, long now) {
+        if (!warningDue(civ, u, c, now)) return false;
+        long due = dueAt(civ, u);
+        if (civ.upgradeWarned != null && Long.valueOf(due).equals(civ.upgradeWarned.get(u.id))) return false;
+        if (civ.upgradeWarned == null) civ.upgradeWarned = new LinkedHashMap<>();
+        civ.upgradeWarned.put(u.id, due);
         return true;
     }
 
-    /** Whole days that can still be paid now (0 = already paid the maximum ahead, or no upgrades). */
-    public static int payableDays(Civ civ, HonorConfig c, long now) {
-        return civ == null ? 0 : CivUpkeep.payableDays(c, totalLevels(civ), civ.upkeepDueAt, now);
+    /** Whole days that can still be paid now for this upgrade (0 = already paid the maximum ahead, or not owned). */
+    public static int payableDays(Civ civ, Upgrade u, HonorConfig c, long now) {
+        if (civ == null) return 0;
+        long due = effectiveDue(civ, u, now);
+        return CivUpkeep.payableDays(c, ownedLevel(civ, u), due, now);
     }
 
     /**
-     * Pays from {@code offered} (item id to amount, plain items): as many whole days as the items cover, at most the
-     * pay-ahead cap. On PAID the due date moves on and {@code taken} lists exactly what to remove from the offered
-     * items (the rest goes back); it is empty for every other status, and then nothing changes.
+     * Pays one upgrade from {@code offered} (item id to amount, plain items): as many whole days of THAT upgrade as the
+     * items cover, at most the pay-ahead cap for it. On PAID that upgrade's due date moves on (a paused upgrade is
+     * switched back on first) and {@code taken} lists exactly what to remove from the offered items (the rest goes
+     * back); it is empty for every other status, and then nothing changes.
      */
-    public static PayResult pay(Civ civ, HonorConfig c, long now, Map<String, Integer> offered) {
-        Map<String, Integer> perDay = owedPerDay(civ, c);
-        if (perDay.isEmpty() || !hasUpgrades(civ)) return new PayResult(PayStatus.NOTHING_OWED, 0, Map.of());
-        int room = payableDays(civ, c, now);
-        if (room <= 0) return new PayResult(PayStatus.PAID_AHEAD_MAX, 0, Map.of());
+    public static PayResult pay(Civ civ, Upgrade u, HonorConfig c, long now, Map<String, Integer> offered) {
+        if (civ == null || ownedLevel(civ, u) <= 0) return new PayResult(PayStatus.NOTHING_OWED, 0, Map.of(), false);
+        boolean paused = isPaused(civ, u);
+        Map<String, Integer> perDay = upgradeUpkeepPerDay(civ, u, c);
+        long due = effectiveDue(civ, u, now);
+        int room = CivUpkeep.payableDays(c, ownedLevel(civ, u), due, now);
+        if (room <= 0) return new PayResult(PayStatus.PAID_AHEAD_MAX, 0, Map.of(), false);
         int days = CivUpkeep.coveredDays(perDay, offered, room);
-        if (days <= 0) return new PayResult(PayStatus.NOT_ENOUGH, 0, Map.of());
-        civ.upkeepDueAt = CivUpkeep.dueAfterPay(civ.upkeepDueAt, now, days);
-        civ.upkeepWarnedFor = 0;
-        return new PayResult(PayStatus.PAID, days, CivUpkeep.cost(perDay, days));
+        if (days <= 0) return new PayResult(PayStatus.NOT_ENOUGH, 0, Map.of(), false);
+        if (civ.upgradeDue == null) civ.upgradeDue = new LinkedHashMap<>();
+        civ.upgradeDue.put(u.id, CivUpkeep.dueAfterPay(due, now, days));
+        if (civ.upgradeWarned != null) civ.upgradeWarned.remove(u.id);
+        if (paused) civ.upgradePaused.remove(u.id);
+        return new PayResult(PayStatus.PAID, days, CivUpkeep.cost(perDay, days), paused);
     }
 }

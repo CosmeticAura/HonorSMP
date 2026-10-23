@@ -36,12 +36,12 @@ class PlayerCommandsTest {
             "bounty set Steve", "bounty claim", "bounty list", "bounty list text",
             "civ create My Civ", "civ invite Steve", "civ join My Civ", "civ leave", "civ kick Steve",
             "civ promote Steve", "civ guard Steve", "civ disband",
-            "civ info", "civ info My Civ", "civ list", "civ top", "civ upgrades", "civ upkeep", "civ upkeep pay",
+            "civ info", "civ info My Civ", "civ list", "civ top", "civ upgrades", "civ upkeep", "civ upkeep pay", "civ upkeep pay haste", "civ upkeep pause speed",
             "cc", "cc hello civ");
 
     /** Commands typed without their argument: allowed, and answer with a Usage line. */
     static final List<String> BARE = List.of("appeal", "bounty set", "civ create", "civ invite", "civ join",
-            "civ kick", "civ promote", "civ guard");
+            "civ kick", "civ promote", "civ guard", "civ upkeep pause");
 
     CommandDispatcher<ServerCommandSource> d;
     ServerCommandSource src;

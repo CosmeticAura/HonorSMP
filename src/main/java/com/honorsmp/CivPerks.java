@@ -28,16 +28,23 @@ public final class CivPerks {
     private static final Identifier HP_ID = Identifier.of("honorsmp", "civ_fortitude");
     private static final int HASTE_TICKS = 200; // refreshed every 5 s by refreshPlayer, so it never lapses
 
-    private static final Map<String, Boolean> LAST_ACTIVE = new HashMap<>();
+    /** civ id to a bit mask of the upgrades that were working last second (to notice one switching off or on). */
+    private static final Map<String, Integer> LAST_ACTIVE = new HashMap<>();
+
+    private static int activeMask(Civ civ, Honor h, long now) {
+        int mask = 0;
+        for (Upgrade u : Upgrade.values()) if (CivUpgradeApi.upgradeActive(civ, u, h.config, now)) mask |= 1 << u.ordinal();
+        return mask;
+    }
 
     public static Values valuesFor(Honor h, ServerPlayerEntity p) {
         Civ civ = h.civOf(p.getUuid().toString());
         if (civ == null) return Values.NONE;
         long now = System.currentTimeMillis();
-        boolean active = CivUpgradeApi.upgradesActive(civ, h.config, now);
-        return CivEffects.values(h.config, active, CivUpgradeApi.ownedLevel(civ, Upgrade.RESISTANCE),
-                CivUpgradeApi.ownedLevel(civ, Upgrade.STRENGTH), CivUpgradeApi.ownedLevel(civ, Upgrade.SPEED),
-                CivUpgradeApi.ownedLevel(civ, Upgrade.HASTE), CivUpgradeApi.ownedLevel(civ, Upgrade.FORTITUDE));
+        // 1.6.9: each upgrade is switched on or off on its own (late or paused upgrades give nothing, the others keep working)
+        return CivEffects.values(h.config, true, CivUpgradeApi.activeLevel(civ, Upgrade.RESISTANCE, h.config, now),
+                CivUpgradeApi.activeLevel(civ, Upgrade.STRENGTH, h.config, now), CivUpgradeApi.activeLevel(civ, Upgrade.SPEED, h.config, now),
+                CivUpgradeApi.activeLevel(civ, Upgrade.HASTE, h.config, now), CivUpgradeApi.activeLevel(civ, Upgrade.FORTITUDE, h.config, now));
     }
 
     /** Damage multiplier for incoming damage on this player (1 = unchanged). Read live, so it is off the moment upkeep is late. */
@@ -110,18 +117,25 @@ public final class CivPerks {
         long now = System.currentTimeMillis();
         LAST_ACTIVE.keySet().removeIf(id -> !h.data.civs.containsKey(id));
         for (Civ civ : h.data.civs.values()) {
-            boolean active = CivUpgradeApi.upgradesActive(civ, h.config, now);
-            Boolean last = LAST_ACTIVE.put(civ.id, active);
-            if (last != null && last != active) {
+            int mask = activeMask(civ, h, now);
+            Integer last = LAST_ACTIVE.put(civ.id, mask);
+            if (last != null && last != mask) {
                 syncCiv(h, civ);
-                if (!active && CivUpgradeApi.isLate(civ, now)) {
-                    notifyManagers(h, civ, "Your civ's upgrade upkeep is late. Upgrades are off until you pay: /civ upkeep pay", true);
+                // name every upgrade that just turned late (a paused one never counts)
+                for (Upgrade u : Upgrade.values()) {
+                    int bit = 1 << u.ordinal();
+                    if ((last & bit) != 0 && (mask & bit) == 0 && CivUpgradeApi.isLate(civ, u, now)) {
+                        notifyManagers(h, civ, "Your civ's " + u.display + " upkeep is late. " + u.display + " is off until you pay: /civ upkeep pay "
+                                + u.id, true);
+                    }
                 }
             }
-            if (CivUpgradeApi.takeWarningOnce(civ, h.config, now)) {
-                notifyManagers(h, civ, "Your civ's upgrade upkeep is due in " + CivEffects.duration(civ.upkeepDueAt - now)
-                        + " (" + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, h.config)) + "). Pay with /civ upkeep pay", false);
-                h.markDirty();
+            for (Upgrade u : Upgrade.values()) {
+                if (CivUpgradeApi.takeWarningOnce(civ, u, h.config, now)) {
+                    notifyManagers(h, civ, "Your civ's " + u.display + " upkeep is due in " + CivEffects.duration(CivUpgradeApi.dueAt(civ, u) - now)
+                            + " (" + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, u, h.config)) + "). Pay with /civ upkeep pay " + u.id, false);
+                    h.markDirty();
+                }
             }
         }
     }
@@ -139,12 +153,14 @@ public final class CivPerks {
         Civ civ = h.civOf(p.getUuid().toString());
         if (civ == null || !CivUpgradeApi.canManage(civ, p.getUuid().toString())) return;
         long now = System.currentTimeMillis();
-        if (CivUpgradeApi.isLate(civ, now)) {
-            p.sendMessage(Text.literal("Your civ's upgrades are off until you pay the upkeep: /civ upkeep pay ("
-                    + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, h.config)) + ")").formatted(Formatting.RED));
-        } else if (CivUpgradeApi.warningDue(civ, h.config, now)) {
-            p.sendMessage(Text.literal("Your civ's upgrade upkeep is due in " + CivEffects.duration(civ.upkeepDueAt - now) + ": /civ upkeep pay ("
-                    + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, h.config)) + ")").formatted(Formatting.GOLD));
+        for (Upgrade u : Upgrade.values()) {
+            if (CivUpgradeApi.isLate(civ, u, now)) {
+                p.sendMessage(Text.literal("Your civ's " + u.display + " is off until you pay its upkeep: /civ upkeep pay " + u.id + " ("
+                        + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, u, h.config)) + ")").formatted(Formatting.RED));
+            } else if (CivUpgradeApi.warningDue(civ, u, h.config, now)) {
+                p.sendMessage(Text.literal("Your civ's " + u.display + " upkeep is due in " + CivEffects.duration(CivUpgradeApi.dueAt(civ, u) - now)
+                        + ": /civ upkeep pay " + u.id + " (" + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, u, h.config)) + ")").formatted(Formatting.GOLD));
+            }
         }
     }
 }

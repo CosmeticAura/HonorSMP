@@ -96,7 +96,7 @@ If at least 2 members of your civ have their bed (respawn point) within 100 bloc
 
 **Civ upgrades**
 
-`/civ upgrades` opens a menu where your leader or an officer can buy five upgrades for the whole civ: Resistance (5% then 10% less damage), Strength (+0.5 then +1 attack damage), Speed (+5% then +10%), Haste (I then II) and Fortitude (+2 then +4 max health). Each upgrade runs on its own item: Resistance on iron ingots, Strength on gunpowder, Speed on redstone, Haste on lapis lazuli and Fortitude on gold ingots. Buying level 1 costs 4 days of that upgrade's upkeep, level 2 costs 4 days of its bigger upkeep plus 8 diamonds. Upkeep is paid every day (for example 16 iron ingots a day for Resistance 1, 32 for Resistance 2) by the leader or an officer with /civ upkeep pay, and goes to the judges' treasury. You can pay up to 3 days ahead. A civ with no upgrades pays nothing. If the upkeep is late, all upgrades switch off and your civ shows [Unpaid] until it's paid. Nobody loses honor. No emeralds anywhere.
+`/civ upgrades` opens a menu where your leader or an officer can buy five upgrades for the whole civ: Resistance (5% then 10% less damage), Strength (+0.5 then +1 attack damage), Speed (+5% then +10%), Haste (I then II) and Fortitude (+2 then +4 max health). Each upgrade runs on its own item: Resistance on iron ingots, Strength on gunpowder, Speed on redstone, Haste on lapis lazuli and Fortitude on gold ingots. Buying level 1 costs 4 days of that upgrade's upkeep, level 2 costs 4 days of its bigger upkeep plus 8 diamonds. Each upgrade has its own upkeep, paid every day (for example 16 iron ingots a day for Resistance 1, 32 for Resistance 2) by the leader or an officer with /civ upkeep pay, and it goes to the judges' treasury. You can pay each upgrade up to 3 days ahead. A civ with no upgrades pays nothing. If one upgrade's upkeep is late, only that upgrade switches off and your civ shows [Unpaid] until it's paid. Don't want an upgrade for a while? /civ upkeep pause <upgrade> turns it off and stops the cost, and paying it turns it back on. Nobody loses honor. No emeralds anywhere.
 
 **Donor perks**
 
@@ -139,8 +139,9 @@ Sharpness is capped at 4, Protection at 3, Density at 4 and Breach at 3. Netheri
 `/civ chest` open your civ's shared chest (civ needs 3 members, not within 5 minutes of a fight; more rows are bought in /civ upgrades)
 `/civ top` top civs by total honor
 `/civ upgrades` buy civ upgrades (leaders and officers)
-`/civ upkeep` see the daily upgrade upkeep
-`/civ upkeep pay` pay it (leaders and officers)
+`/civ upkeep` see each upgrade's daily upkeep
+`/civ upkeep pay` pay it, one upgrade at a time (leaders and officers)
+`/civ upkeep pause <upgrade>` stop one upgrade's upkeep (leaders and officers)
 `/civ guard <player>` make a member a guard (leaders and officers)
 `/civ promote <player>` make a member an officer (leader)
 `/civ kick <player>` / `/civ disband`

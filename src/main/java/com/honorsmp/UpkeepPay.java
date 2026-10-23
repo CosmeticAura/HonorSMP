@@ -1,6 +1,7 @@
 package com.honorsmp;
 
 import com.honorsmp.HonorData.Civ;
+import com.honorsmp.logic.CivUpgrades.Upgrade;
 import com.honorsmp.logic.CivUpkeep;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,7 +18,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.ItemScatterer;
 
 /**
- * /civ upkeep pay (1.6.5): a put-in chest like the fine payment. Matching plain items are taken for as many whole days
+ * /civ upkeep pay (1.6.5; 1.6.9: one upgrade at a time): a put-in chest like the fine payment. Matching plain items are taken for as many whole days
  * as they cover (up to the pay-ahead cap) and go to the judges' treasury; everything else comes back. While the chest
  * is open its inventory owns the items; they leave it exactly once, on close (normal close, disconnect, death or
  * server stop), guarded by {@link Session#closed}.
@@ -28,13 +29,15 @@ public final class UpkeepPay {
     private static final class Session {
         final ServerPlayerEntity player;
         final String civId;
+        final Upgrade upgrade;
         final SimpleInventory inv;
         ScreenHandler handler;
         boolean closed;
 
-        Session(ServerPlayerEntity player, String civId, SimpleInventory inv) {
+        Session(ServerPlayerEntity player, String civId, Upgrade upgrade, SimpleInventory inv) {
             this.player = player;
             this.civId = civId;
+            this.upgrade = upgrade;
             this.inv = inv;
         }
     }
@@ -56,24 +59,24 @@ public final class UpkeepPay {
     }
 
     /** Returns an error message, or null when the chest opened. */
-    public String openFor(ServerPlayerEntity p, Civ civ) {
+    public String openFor(ServerPlayerEntity p, Civ civ, Upgrade u) {
         if (open.containsKey(p.getUuid())) return "You already have an upkeep screen open. Press Esc to close it, then run the command again.";
         if (!CivUpgradeApi.canManage(civ, p.getUuid().toString())) return "Only the leader or officers can pay the upkeep. Ask one of them.";
         long now = System.currentTimeMillis();
-        Map<String, Integer> perDay = CivUpgradeApi.owedPerDay(civ, h.config);
-        if (perDay.isEmpty()) return "Your civ owns no upgrades, so it owes no upkeep. See /civ upgrades.";
-        int room = CivUpgradeApi.payableDays(civ, h.config, now);
-        if (room <= 0) return "Your civ has already paid the upkeep " + h.config.civUpkeepMaxAheadDays + " days ahead (until "
-                + CivUpgradeMenu.date(civ.upkeepDueAt) + "). Pay again later.";
+        if (CivUpgradeApi.ownedLevel(civ, u) <= 0) return "Your civ does not own " + u.display + ", so it owes no upkeep for it. See /civ upgrades.";
+        Map<String, Integer> perDay = CivUpgradeApi.upgradeUpkeepPerDay(civ, u, h.config);
+        int room = CivUpgradeApi.payableDays(civ, u, h.config, now);
+        if (room <= 0) return "Your civ has already paid " + u.display + " " + h.config.civUpkeepMaxAheadDays + " days ahead (until "
+                + CivUpgradeMenu.date(CivUpgradeApi.dueAt(civ, u)) + "). Pay again later.";
         SimpleInventory inv = new SimpleInventory(ROWS * 9);
-        Session s = new Session(p, civ.id, inv);
+        Session s = new Session(p, civ.id, u, inv);
         open.put(p.getUuid(), s);
-        s.handler = ChestUi.open(p, Text.literal("Upkeep: " + CivUpkeep.describe(perDay) + " a day (close to pay)"), ROWS, inv, who -> close(s));
+        s.handler = ChestUi.open(p, Text.literal(u.display + " upkeep: " + CivUpkeep.describe(perDay) + " a day (close to pay)"), ROWS, inv, who -> close(s));
         if (s.handler == null) {
             open.remove(p.getUuid());
             return "Could not open the upkeep screen. Press Esc to close any other screen and run /civ upkeep pay again.";
         }
-        tell(p, "Put the upkeep items in the chest and close it. Each day needs " + CivUpkeep.describe(perDay) + "; you can pay up to "
+        tell(p, "Put the " + u.display + " upkeep items in the chest and close it. Each day needs " + CivUpkeep.describe(perDay) + "; you can pay up to "
                 + room + (room == 1 ? " day" : " days") + " now. Extra items are returned.", Formatting.YELLOW);
         return null;
     }
@@ -101,23 +104,24 @@ public final class UpkeepPay {
             Map<String, Integer> offered = new LinkedHashMap<>();
             for (ItemStack st : items) if (st.getComponentChanges().isEmpty()) offered.merge(CivUpgradeMenu.idOf(st), st.getCount(), Integer::sum);
             long now = System.currentTimeMillis();
-            var res = CivUpgradeApi.pay(civ, h.config, now, offered);
+            var res = CivUpgradeApi.pay(civ, s.upgrade, h.config, now, offered);
             switch (res.status()) {
                 case PAID -> {
                     taken = res.taken();
                     h.markDirty();
                     CivPerks.syncCiv(h, civ); // upgrades back on straight away
                     String who = s.player.getName().getString();
-                    String msg = who + " paid " + res.days() + (res.days() == 1 ? " day" : " days") + " of upgrade upkeep ("
-                            + CivUpkeep.describe(taken) + "). Paid until " + CivUpgradeMenu.date(civ.upkeepDueAt) + ".";
+                    String msg = who + " paid " + res.days() + (res.days() == 1 ? " day" : " days") + " of " + s.upgrade.display + " upkeep ("
+                            + CivUpkeep.describe(taken) + "). Paid until " + CivUpgradeMenu.date(CivUpgradeApi.dueAt(civ, s.upgrade)) + "."
+                            + (res.resumed() ? " " + s.upgrade.display + " is switched back on." : "");
                     for (String id : civ.members) {
                         ServerPlayerEntity m = h.online(id);
                         if (m != null) m.sendMessage(Text.literal("[" + civ.name + "] " + msg).formatted(Formatting.GOLD));
                     }
                 }
-                case NOTHING_OWED -> err = "Your civ owes no upkeep. Your items were returned.";
-                case PAID_AHEAD_MAX -> err = "Your civ has already paid " + h.config.civUpkeepMaxAheadDays + " days ahead. Your items were returned.";
-                case NOT_ENOUGH -> err = "Not enough for one day (" + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, h.config))
+                case NOTHING_OWED -> err = "Your civ owes no upkeep for " + s.upgrade.display + ". Your items were returned.";
+                case PAID_AHEAD_MAX -> err = "Your civ has already paid " + s.upgrade.display + " " + h.config.civUpkeepMaxAheadDays + " days ahead. Your items were returned.";
+                case NOT_ENOUGH -> err = "Not enough for one day (" + CivUpkeep.describe(CivUpgradeApi.upgradeUpkeepPerDay(civ, s.upgrade, h.config))
                         + "; only plain, unnamed, unenchanted items count). Your items were returned.";
             }
         }

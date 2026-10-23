@@ -771,10 +771,20 @@ public final class Cmds {
                             civUpkeep(c);
                             return 1;
                         })
-                        .then(lit("pay").executes(c -> {
-                            civUpkeepPay(c);
-                            return 1;
-                        })))
+                        .then(lit("pay")
+                                .executes(c -> {
+                                    civUpkeepPay(c, null);
+                                    return 1;
+                                })
+                                .then(arg("upgrade", StringArgumentType.word()).suggests(upgradeIds()).executes(c -> {
+                                    civUpkeepPay(c, upgradeArg(c));
+                                    return 1;
+                                })))
+                        .then(lit("pause").executes(usage("/civ upkeep pause <upgrade>"))
+                                .then(arg("upgrade", StringArgumentType.word()).suggests(upgradeIds()).executes(c -> {
+                                    civUpkeepPause(c, upgradeArg(c));
+                                    return 1;
+                                }))))
                 .then(lit("info")
                         .executes(c -> {
                             info(c, myCiv(c));
@@ -862,15 +872,32 @@ public final class Cmds {
                 .formatted(chestOk ? Formatting.GREEN : Formatting.GRAY));
         say(c, Text.literal(com.honorsmp.logic.CivChestRows.infoLine(CivUpgradeApi.chestRows(civ))).formatted(Formatting.GRAY));
         if (CivUpgradeApi.hasUpgrades(civ)) {
-            boolean late = CivUpgradeApi.isLate(civ, System.currentTimeMillis());
+            long nowInfo = System.currentTimeMillis();
+            List<CivUpgrades.Upgrade> lateOnes = CivUpgradeApi.lateUpgrades(civ, nowInfo);
             List<String> ups = new ArrayList<>();
             for (CivUpgrades.Upgrade u : CivUpgrades.Upgrade.values()) {
                 int l = CivUpgradeApi.ownedLevel(civ, u);
-                if (l > 0) ups.add(u.display + " " + l);
+                if (l > 0) ups.add(u.display + " " + l + (CivUpgradeApi.isPaused(civ, u) ? " (paused)" : CivUpgradeApi.isLate(civ, u, nowInfo) ? " [Unpaid]" : ""));
             }
-            say(c, Text.literal("Upgrades: " + String.join(", ", ups) + (late ? " [Unpaid] (off until the upkeep is paid)" : ""))
-                    .formatted(late ? Formatting.RED : Formatting.GREEN));
+            List<String> lateNames = new ArrayList<>();
+            for (CivUpgrades.Upgrade u : lateOnes) lateNames.add(u.display);
+            say(c, Text.literal("Upgrades: " + String.join(", ", ups) + (lateOnes.isEmpty() ? "" : " [Unpaid: " + String.join(", ", lateNames) + " off until paid]"))
+                    .formatted(lateOnes.isEmpty() ? Formatting.GREEN : Formatting.RED));
         }
+    }
+
+    private static com.mojang.brigadier.suggestion.SuggestionProvider<ServerCommandSource> upgradeIds() {
+        return (ctx, b) -> {
+            for (CivUpgrades.Upgrade u : CivUpgrades.Upgrade.values()) b.suggest(u.id);
+            return b.buildFuture();
+        };
+    }
+
+    private static CivUpgrades.Upgrade upgradeArg(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
+        String id = StringArgumentType.getString(c, "upgrade").trim().toLowerCase(java.util.Locale.ROOT);
+        CivUpgrades.Upgrade u = CivUpgrades.Upgrade.byId(id);
+        if (u == null) throw err("Unknown upgrade. Use resistance, strength, speed, haste or fortitude.");
+        return u;
     }
 
     private static void civUpkeep(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
@@ -881,30 +908,45 @@ public final class Cmds {
             say(c, "Your civ owns no upgrades, so it owes no upkeep. See /civ upgrades.");
             return;
         }
-        say(c, Text.literal("Daily upgrade upkeep:").formatted(Formatting.GOLD));
+        say(c, Text.literal("Upgrade upkeep (each upgrade has its own date):").formatted(Formatting.GOLD));
         for (CivUpgrades.Upgrade u : CivUpgrades.Upgrade.values()) {
             var e = CivUpgradeApi.upgradeUpkeep(civ, u, h.config);
             if (e == null) continue;
-            say(c, "  " + u.display + " " + CivUpgradeApi.ownedLevel(civ, u) + ": " + e.getValue() + " " + CivUpkeep.pretty(e.getKey()) + " a day");
+            String head = "  " + u.display + " " + CivUpgradeApi.ownedLevel(civ, u) + ": " + e.getValue() + " " + CivUpkeep.pretty(e.getKey()) + " a day, ";
+            long due = CivUpgradeApi.dueAt(civ, u);
+            if (CivUpgradeApi.isPaused(civ, u)) {
+                say(c, Text.literal(head + "PAUSED (off, no cost). /civ upkeep pay " + u.id + " turns it on again").formatted(Formatting.YELLOW));
+            } else if (CivUpgradeApi.isLate(civ, u, now)) {
+                say(c, Text.literal(head + "LATE since " + CivUpgradeMenu.date(due) + " (" + CivEffects.duration(now - due) + " ago), off until paid: /civ upkeep pay " + u.id)
+                        .formatted(Formatting.RED));
+            } else {
+                int room = CivUpgradeApi.payableDays(civ, u, h.config, now);
+                say(c, head + "paid until " + CivUpgradeMenu.date(due) + " (in " + CivEffects.duration(due - now) + "), "
+                        + (room > 0 ? "can pay " + room + (room == 1 ? " day" : " days") + " more" : "paid the maximum ahead"));
+            }
         }
-        long due = CivUpgradeApi.upkeepDueAt(civ);
-        if (CivUpgradeApi.isLate(civ, now)) {
-            say(c, Text.literal("LATE since " + CivUpgradeMenu.date(due) + " (" + CivEffects.duration(now - due) + " ago). Upgrades are off until you pay: /civ upkeep pay")
-                    .formatted(Formatting.RED));
-        } else {
-            say(c, "Paid until " + CivUpgradeMenu.date(due) + " (in " + CivEffects.duration(due - now) + "). Not late.");
-        }
-        int room = CivUpgradeApi.payableDays(civ, h.config, now);
-        say(c, room > 0 ? "You can pay up to " + room + (room == 1 ? " day" : " days") + " now with /civ upkeep pay (leader or officer)."
-                : "Paid the maximum " + h.config.civUpkeepMaxAheadDays + " days ahead.");
+        say(c, "Pay with /civ upkeep pay or /civ upkeep pay <upgrade>; stop one costing with /civ upkeep pause <upgrade> (leader or officer).");
     }
 
-    private static void civUpkeepPay(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
+    private static void civUpkeepPay(CommandContext<ServerCommandSource> c, CivUpgrades.Upgrade u) throws CommandSyntaxException {
         Honor h = h();
         ServerPlayerEntity p = player(c);
         Civ civ = myCiv(c);
         if (!canManage(civ, p.getUuid().toString())) throw err("Only the leader or officers can pay the upkeep. Ask one of them.");
-        String e = h.upkeepPay.openFor(p, civ);
+        if (!CivUpgradeApi.hasUpgrades(civ)) throw err("Your civ owns no upgrades, so it owes no upkeep. See /civ upgrades.");
+        if (u == null) {
+            CivUpgradeMenu.openUpkeep(p);
+            return;
+        }
+        String e = h.upkeepPay.openFor(p, civ, u);
+        if (e != null) throw err(e);
+    }
+
+    private static void civUpkeepPause(CommandContext<ServerCommandSource> c, CivUpgrades.Upgrade u) throws CommandSyntaxException {
+        Honor h = h();
+        ServerPlayerEntity p = player(c);
+        Civ civ = myCiv(c);
+        String e = CivUpgradeMenu.pauseUpgrade(h, civ, p, u);
         if (e != null) throw err(e);
     }
 

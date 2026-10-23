@@ -93,11 +93,11 @@ class CivUpgradeTest {
         assertEquals(BuyCheck.NOT_ENOUGH_ITEMS, r.check());
         assertEquals(LAPIS, r.missing());
         assertEquals(63, w.count(LAPIS)); // nothing taken
-        assertEquals(0, v.upkeepDueAt);
+        assertEquals(0, CivUpgradeApi.dueAt(v, Upgrade.HASTE));
         w.have.put(LAPIS, 100);
         assertTrue(CivUpgradeApi.buy(v, Upgrade.HASTE, c, T0, w).ok());
         assertEquals(36, w.count(LAPIS));
-        assertEquals(T0 + D, v.upkeepDueAt); // first upkeep one day after the first purchase
+        assertEquals(T0 + D, CivUpgradeApi.dueAt(v, Upgrade.HASTE)); // first upkeep one day after the first purchase
         // level 2: 4 days of level 2 upkeep (4 x 32 lapis) plus 8 diamonds
         assertEquals(BuyCheck.NOT_ENOUGH_ITEMS, CivUpgradeApi.buy(v, Upgrade.HASTE, c, T0 + H, new W(LAPIS, 500, DIA, 7)).check());
         W w2 = new W(LAPIS, 128, DIA, 8);
@@ -105,7 +105,7 @@ class CivUpgradeTest {
         assertEquals(0, w2.count(LAPIS));
         assertEquals(0, w2.count(DIA));
         assertEquals(2, CivUpgradeApi.ownedLevel(v, "haste"));
-        assertEquals(T0 + D, v.upkeepDueAt); // a later purchase keeps the due date
+        assertEquals(T0 + D, CivUpgradeApi.dueAt(v, Upgrade.HASTE)); // a later purchase keeps the due date
         assertEquals(BuyCheck.MAX_LEVEL, CivUpgradeApi.buy(v, Upgrade.HASTE, c, T0, new W(LAPIS, 999, DIA, 99)).check());
     }
 
@@ -145,66 +145,67 @@ class CivUpgradeTest {
     @Test
     void dueAndWarningWindow() {
         Civ v = civ(2);
-        assertFalse(CivUpgradeApi.warningDue(v, c, T0));
-        CivUpgradeApi.buy(v, Upgrade.STRENGTH, c, T0, new W(GUN, 64));
+        Upgrade S = Upgrade.STRENGTH;
+        assertFalse(CivUpgradeApi.warningDue(v, S, c, T0));
+        CivUpgradeApi.buy(v, S, c, T0, new W(GUN, 64));
         long due = T0 + D;
-        assertFalse(CivUpgradeApi.warningDue(v, c, due - 2 * H - 1));
-        assertTrue(CivUpgradeApi.warningDue(v, c, due - 2 * H));
-        assertTrue(CivUpgradeApi.takeWarningOnce(v, c, due - H));
-        assertFalse(CivUpgradeApi.takeWarningOnce(v, c, due - 30 * 60_000L)); // once only
-        assertTrue(CivUpgradeApi.warningDue(v, c, due - 1)); // login warning still true
-        assertFalse(CivUpgradeApi.isLate(v, due - 1));
+        assertFalse(CivUpgradeApi.warningDue(v, S, c, due - 2 * H - 1));
+        assertTrue(CivUpgradeApi.warningDue(v, S, c, due - 2 * H));
+        assertTrue(CivUpgradeApi.takeWarningOnce(v, S, c, due - H));
+        assertFalse(CivUpgradeApi.takeWarningOnce(v, S, c, due - 30 * 60_000L)); // once only
+        assertTrue(CivUpgradeApi.warningDue(v, S, c, due - 1)); // login warning still true
+        assertFalse(CivUpgradeApi.isLate(v, S, due - 1));
+        assertTrue(CivUpgradeApi.isLate(v, S, due));
         assertTrue(CivUpgradeApi.isLate(v, due));
-        assertFalse(CivUpgradeApi.warningDue(v, c, due)); // late, not "warning"
+        assertFalse(CivUpgradeApi.warningDue(v, S, c, due)); // late, not "warning"
     }
 
     @Test
     void lateSwitchesOffAndPayingRestores() {
         Civ v = civ(2);
-        CivUpgradeApi.buy(v, Upgrade.RESISTANCE, c, T0, new W(IRON, 64));
+        Upgrade R = Upgrade.RESISTANCE;
+        CivUpgradeApi.buy(v, R, c, T0, new W(IRON, 64));
         long due = T0 + D;
         assertTrue(CivUpgradeApi.upgradesActive(v, c, due - 1));
-        assertEquals(1, CivUpgradeApi.activeLevel(v, Upgrade.RESISTANCE, c, due - 1));
+        assertEquals(1, CivUpgradeApi.activeLevel(v, R, c, due - 1));
         long late = due + 20 * D; // many days missed
         assertFalse(CivUpgradeApi.upgradesActive(v, c, late));
-        assertEquals(0, CivUpgradeApi.activeLevel(v, Upgrade.RESISTANCE, c, late));
-        assertEquals(1, CivUpgradeApi.ownedLevel(v, Upgrade.RESISTANCE)); // not lost
-        assertEquals(BuyCheck.UPKEEP_UNPAID, CivUpgradeApi.buy(v, Upgrade.SPEED, c, late, new W(RED, 999)).check());
+        assertEquals(0, CivUpgradeApi.activeLevel(v, R, c, late));
+        assertEquals(1, CivUpgradeApi.ownedLevel(v, R)); // not lost
+        assertEquals(BuyCheck.UPKEEP_UNPAID, CivUpgradeApi.buy(v, R, c, late, new W(IRON, 999, DIA, 99)).check());
         assertEquals(m(IRON, 16), CivUpgradeApi.owedPerDay(v, c)); // one day only, debts do not stack
-        // short by one: nothing changes
-        var no = CivUpgradeApi.pay(v, c, late, m(IRON, 15));
+        var no = CivUpgradeApi.pay(v, R, c, late, m(IRON, 15));
         assertEquals(CivUpgradeApi.PayStatus.NOT_ENOUGH, no.status());
         assertTrue(no.taken().isEmpty());
         assertFalse(CivUpgradeApi.upgradesActive(v, c, late));
-        assertEquals(due, v.upkeepDueAt);
-        var ok = CivUpgradeApi.pay(v, c, late, m(IRON, 16));
+        assertEquals(due, CivUpgradeApi.dueAt(v, R));
+        var ok = CivUpgradeApi.pay(v, R, c, late, m(IRON, 16));
         assertTrue(ok.paid());
         assertEquals(1, ok.days());
         assertEquals(m(IRON, 16), ok.taken());
         assertTrue(CivUpgradeApi.upgradesActive(v, c, late));
-        assertEquals(late + D, v.upkeepDueAt); // missed days forgiven
+        assertEquals(late + D, CivUpgradeApi.dueAt(v, R)); // missed days forgiven
         assertFalse(CivUpgradeApi.isLate(v, late + D - 1));
     }
 
     @Test
     void payAheadIsCappedAtThreeDays() {
         Civ v = civ(1);
-        CivUpgradeApi.buy(v, Upgrade.FORTITUDE, c, T0, new W(GOLD, 32)); // 8 gold a day, due T0 + 1d
+        Upgrade F = Upgrade.FORTITUDE;
+        CivUpgradeApi.buy(v, F, c, T0, new W(GOLD, 32)); // 8 gold a day, due T0 + 1d
         long now = T0 + 2 * H;
-        long due = v.upkeepDueAt;
-        assertEquals(2, CivUpgradeApi.payableDays(v, c, now)); // due is 22h ahead: room for 2 whole days up to now+3d
-        // offering ten days of gold pays only two, takes only two days' worth
-        var r = CivUpgradeApi.pay(v, c, now, m(GOLD, 80));
+        long due = CivUpgradeApi.dueAt(v, F);
+        assertEquals(2, CivUpgradeApi.payableDays(v, F, c, now));
+        var r = CivUpgradeApi.pay(v, F, c, now, m(GOLD, 80));
         assertEquals(2, r.days());
         assertEquals(m(GOLD, 16), r.taken());
-        assertEquals(due + 2 * D, v.upkeepDueAt);
-        assertTrue(v.upkeepDueAt <= now + 3 * D);
-        assertEquals(0, CivUpgradeApi.payableDays(v, c, now));
-        var again = CivUpgradeApi.pay(v, c, now, m(GOLD, 80));
+        assertEquals(due + 2 * D, CivUpgradeApi.dueAt(v, F));
+        assertTrue(CivUpgradeApi.dueAt(v, F) <= now + 3 * D);
+        assertEquals(0, CivUpgradeApi.payableDays(v, F, c, now));
+        var again = CivUpgradeApi.pay(v, F, c, now, m(GOLD, 80));
         assertEquals(CivUpgradeApi.PayStatus.PAID_AHEAD_MAX, again.status());
-        assertEquals(due + 2 * D, v.upkeepDueAt); // unchanged
-        // a day later one more day fits
-        assertEquals(1, CivUpgradeApi.payableDays(v, c, now + D));
+        assertEquals(due + 2 * D, CivUpgradeApi.dueAt(v, F)); // unchanged
+        assertEquals(1, CivUpgradeApi.payableDays(v, F, c, now + D));
     }
 
     @Test
@@ -212,35 +213,118 @@ class CivUpgradeTest {
         Civ v = civ(1);
         CivUpgradeApi.buy(v, Upgrade.HASTE, c, T0, new W(LAPIS, 64));
         long late = T0 + 9 * D;
-        assertEquals(3, CivUpgradeApi.payableDays(v, c, late));
-        var r = CivUpgradeApi.pay(v, c, late, m(LAPIS, 1000));
+        assertEquals(3, CivUpgradeApi.payableDays(v, Upgrade.HASTE, c, late));
+        var r = CivUpgradeApi.pay(v, Upgrade.HASTE, c, late, m(LAPIS, 1000));
         assertEquals(3, r.days());
         assertEquals(m(LAPIS, 48), r.taken());
-        assertEquals(late + 3 * D, v.upkeepDueAt);
+        assertEquals(late + 3 * D, CivUpgradeApi.dueAt(v, Upgrade.HASTE));
+    }
+
+    // ---------------------------------------------------------------- 1.6.9: one clock per upgrade
+
+    Civ two() {
+        Civ v = civ(2);
+        CivUpgradeApi.buy(v, Upgrade.RESISTANCE, c, T0, new W(IRON, 64));
+        CivUpgradeApi.buy(v, Upgrade.SPEED, c, T0 + 12 * H, new W(RED, 128));
+        return v;
     }
 
     @Test
-    void severalUpgradesNeedEveryItemForADay() {
-        Civ v = civ(1);
-        v.upgrades = new LinkedHashMap<>();
-        v.upgrades.put("resistance", 1);
-        v.upgrades.put("speed", 1);
-        v.upkeepDueAt = T0 + D;
-        // plenty of iron but no redstone: not even one day
-        assertEquals(CivUpgradeApi.PayStatus.NOT_ENOUGH, CivUpgradeApi.pay(v, c, T0, m(IRON, 500)).status());
-        // 2 days of iron, 1 day of redstone: one day
-        var r = CivUpgradeApi.pay(v, c, T0, m(IRON, 32, RED, 32));
-        assertEquals(1, r.days());
-        assertEquals(m(IRON, 16, RED, 32), r.taken());
+    void eachUpgradeHasItsOwnClock() {
+        Civ v = two();
+        assertEquals(T0 + D, CivUpgradeApi.dueAt(v, Upgrade.RESISTANCE));
+        assertEquals(T0 + 12 * H + D, CivUpgradeApi.dueAt(v, Upgrade.SPEED));
+        assertEquals(0, CivUpgradeApi.dueAt(v, Upgrade.HASTE));
+    }
+
+    @Test
+    void onlyTheLateUpgradeSwitchesOff() {
+        Civ v = two();
+        long now = T0 + D + H; // resistance late, speed still paid
+        assertTrue(CivUpgradeApi.isLate(v, Upgrade.RESISTANCE, now));
+        assertFalse(CivUpgradeApi.isLate(v, Upgrade.SPEED, now));
+        assertEquals(0, CivUpgradeApi.activeLevel(v, Upgrade.RESISTANCE, c, now));
+        assertEquals(1, CivUpgradeApi.activeLevel(v, Upgrade.SPEED, c, now));
+        assertTrue(CivUpgradeApi.isLate(v, now));
+        assertEquals(java.util.List.of(Upgrade.RESISTANCE), CivUpgradeApi.lateUpgrades(v, now));
+        // buying another level of the paid one still works; the late one is blocked
+        assertEquals(BuyCheck.UPKEEP_UNPAID, CivUpgradeApi.checkBuy(v, Upgrade.RESISTANCE, c, now, new W(IRON, 999, DIA, 99)));
+        assertEquals(BuyCheck.OK, CivUpgradeApi.checkBuy(v, Upgrade.SPEED, c, now, new W(RED, 999, DIA, 99)));
+        // paying speed does not touch resistance
+        long resDue = CivUpgradeApi.dueAt(v, Upgrade.RESISTANCE);
+        assertTrue(CivUpgradeApi.pay(v, Upgrade.SPEED, c, now, m(RED, 32)).paid());
+        assertEquals(resDue, CivUpgradeApi.dueAt(v, Upgrade.RESISTANCE));
+        assertTrue(CivUpgradeApi.isLate(v, Upgrade.RESISTANCE, now));
+    }
+
+    @Test
+    void payAheadCapIsPerUpgrade() {
+        Civ v = two();
+        long now = T0 + 13 * H;
+        var a = CivUpgradeApi.pay(v, Upgrade.RESISTANCE, c, now, m(IRON, 999));
+        assertTrue(a.paid());
+        assertEquals(0, CivUpgradeApi.payableDays(v, Upgrade.RESISTANCE, c, now));
+        assertTrue(CivUpgradeApi.dueAt(v, Upgrade.RESISTANCE) <= now + 3 * D);
+        // speed still has its own room
+        assertTrue(CivUpgradeApi.payableDays(v, Upgrade.SPEED, c, now) > 0);
+        assertEquals(CivUpgradeApi.PayStatus.PAID_AHEAD_MAX, CivUpgradeApi.pay(v, Upgrade.RESISTANCE, c, now, m(IRON, 999)).status());
+        assertTrue(CivUpgradeApi.pay(v, Upgrade.SPEED, c, now, m(RED, 999)).paid());
+        // paying one upgrade takes only that upgrade's item
+        assertTrue(CivUpgradeApi.pay(v, Upgrade.HASTE, c, now, m(LAPIS, 999)).status() == CivUpgradeApi.PayStatus.NOTHING_OWED);
+    }
+
+    @Test
+    void pausedUpgradeCostsNothingAndNeverWarnsOrGoesLate() {
+        Civ v = two();
+        long now = T0 + 2 * H;
+        assertTrue(CivUpgradeApi.pause(v, Upgrade.RESISTANCE, now));
+        assertFalse(CivUpgradeApi.pause(v, Upgrade.RESISTANCE, now)); // already paused
+        assertFalse(CivUpgradeApi.pause(v, Upgrade.HASTE, now)); // not owned
+        assertTrue(CivUpgradeApi.isPaused(v, Upgrade.RESISTANCE));
+        assertEquals(1, CivUpgradeApi.ownedLevel(v, Upgrade.RESISTANCE)); // level kept
+        assertEquals(0, CivUpgradeApi.activeLevel(v, Upgrade.RESISTANCE, c, now)); // off
+        assertEquals(m(RED, 32), CivUpgradeApi.owedPerDay(v, c)); // no iron owed
+        assertTrue(CivUpgradeApi.owedPerDay(v, Upgrade.RESISTANCE, c).isEmpty());
+        long way = T0 + 40 * D; // far past any due date
+        assertFalse(CivUpgradeApi.isLate(v, Upgrade.RESISTANCE, way));
+        assertFalse(CivUpgradeApi.warningDue(v, Upgrade.RESISTANCE, c, T0 + D - H));
+        assertFalse(CivUpgradeApi.takeWarningOnce(v, Upgrade.RESISTANCE, c, T0 + D - H));
+        assertFalse(CivUpgradeApi.lateUpgrades(v, T0 + D + H).contains(Upgrade.RESISTANCE)); // no [Unpaid] for a paused one
+        assertFalse(CivUpgradeApi.isLate(v, T0 + D + H)); // speed is still paid, resistance paused
+        assertEquals(BuyCheck.PAUSED, CivUpgradeApi.checkBuy(v, Upgrade.RESISTANCE, c, now, new W(IRON, 999, DIA, 99)));
+        // survives a save and load
+        Civ back = HonorData.parse(Honor.GSON.toJson(snapshot(v))).civs.get("c1");
+        assertTrue(CivUpgradeApi.isPaused(back, Upgrade.RESISTANCE));
+    }
+
+    @Test
+    void payingAPausedUpgradeResumesWithItsRemainingTime() {
+        Civ v = two();
+        long pauseAt = T0 + 2 * H; // 22 hours of paid time left
+        CivUpgradeApi.pause(v, Upgrade.RESISTANCE, pauseAt);
+        long later = T0 + 30 * D;
+        var r = CivUpgradeApi.pay(v, Upgrade.RESISTANCE, c, later, m(IRON, 16));
+        assertTrue(r.paid());
+        assertTrue(r.resumed());
+        assertFalse(CivUpgradeApi.isPaused(v, Upgrade.RESISTANCE));
+        assertEquals(later + 22 * H + D, CivUpgradeApi.dueAt(v, Upgrade.RESISTANCE));
+        assertEquals(1, CivUpgradeApi.activeLevel(v, Upgrade.RESISTANCE, c, later));
+        assertFalse(CivUpgradeApi.isLate(v, Upgrade.RESISTANCE, later + 5 * H));
+    }
+
+    static HonorData snapshot(Civ v) {
+        HonorData d = new HonorData();
+        d.civs.put(v.id, v);
+        return d;
     }
 
     @Test
     void nothingOwedWithoutUpgrades() {
         Civ v = civ(4);
-        assertEquals(CivUpgradeApi.PayStatus.NOTHING_OWED, CivUpgradeApi.pay(v, c, T0 + 100 * D, m(IRON, 99)).status());
+        assertEquals(CivUpgradeApi.PayStatus.NOTHING_OWED, CivUpgradeApi.pay(v, Upgrade.SPEED, c, T0 + 100 * D, m(IRON, 99)).status());
         assertFalse(CivUpgradeApi.isLate(v, T0 + 100 * D));
         assertFalse(CivUpgradeApi.upgradesActive(v, c, T0));
-        assertEquals(0, CivUpgradeApi.upkeepDueAt(v));
+        assertEquals(0, CivUpgradeApi.dueAt(v, Upgrade.SPEED));
     }
 
     @Test
@@ -249,11 +333,12 @@ class CivUpgradeTest {
         CivUpgradeApi.buy(v, Upgrade.HASTE, c, T0, new W(LAPIS, 64));
         CivUpgradeApi.clear(v);
         assertEquals(0, CivUpgradeApi.totalLevels(v));
-        assertEquals(0, v.upkeepDueAt);
+        assertEquals(0, CivUpgradeApi.dueAt(v, Upgrade.HASTE));
+        assertNull(v.upgradeDue);
         assertTrue(CivUpgradeApi.owedPerDay(v, c).isEmpty());
         // rebuying starts a fresh clock
         CivUpgradeApi.buy(v, Upgrade.HASTE, c, T0 + 50 * D, new W(LAPIS, 64));
-        assertEquals(T0 + 51 * D, v.upkeepDueAt);
+        assertEquals(T0 + 51 * D, CivUpgradeApi.dueAt(v, Upgrade.HASTE));
     }
 
     @Test
@@ -281,18 +366,39 @@ class CivUpgradeTest {
         assertEquals(0, rome.upkeepDueAt);
         assertEquals(2, CivUpgradeApi.ownedLevel(rome, "haste")); // keeps what it owns
         assertTrue(CivUpgradeApi.migrate(rome, T0));
-        assertEquals(T0 + D, rome.upkeepDueAt); // first upkeep 24 hours after load
+        assertEquals(T0 + D, CivUpgradeApi.dueAt(rome, Upgrade.HASTE)); // first upkeep 24 hours after load, per upgrade
+        assertEquals(T0 + D, CivUpgradeApi.dueAt(rome, Upgrade.SPEED));
         assertTrue(CivUpgradeApi.upgradesActive(rome, c, T0 + D - 1));
         assertFalse(CivUpgradeApi.upgradesActive(rome, c, T0 + D));
-        assertFalse(CivUpgradeApi.migrate(rome, T0 + 5 * D)); // runs once: the date stays
-        assertEquals(T0 + D, rome.upkeepDueAt);
+        assertFalse(CivUpgradeApi.migrate(rome, T0 + 5 * D)); // runs once: the dates stay
+        assertEquals(T0 + D, CivUpgradeApi.dueAt(rome, Upgrade.HASTE));
         assertFalse(CivUpgradeApi.migrate(gaul, T0)); // no upgrades, no clock
-        assertEquals(0, gaul.upkeepDueAt);
+        assertNull(gaul.upgradeDue);
         String out = Honor.GSON.toJson(d);
         assertFalse(out.contains("taxDueAt"), out);
         assertFalse(out.contains("taxWarnedFor"), out);
-        assertTrue(out.contains("upkeepDueAt"));
-        assertEquals(T0 + D, HonorData.parse(out).civs.get("c1").upkeepDueAt);
+        assertTrue(out.contains("upgradeDue"));
+        assertEquals(T0 + D, CivUpgradeApi.dueAt(HonorData.parse(out).civs.get("c1"), Upgrade.HASTE));
+    }
+
+    @Test
+    void migrationGivesEveryOwnedUpgradeTheSharedPaidTime() {
+        // 1.6.8 file: one shared date; both upgrades must keep exactly that much paid time
+        long shared = T0 + 2 * D + 5 * H;
+        String json = "{\"version\":3,\"civs\":{\"c1\":{\"id\":\"c1\",\"name\":\"Rome\",\"leader\":\"u1\",\"members\":[\"u1\"],"
+                + "\"upgrades\":{\"resistance\":1,\"fortitude\":2},\"upkeepDueAt\":" + shared + ",\"upkeepWarnedFor\":" + shared + "}}}";
+        Civ rome = HonorData.parse(json).civs.get("c1");
+        assertTrue(CivUpgradeApi.migrate(rome, T0));
+        assertEquals(shared, CivUpgradeApi.dueAt(rome, Upgrade.RESISTANCE));
+        assertEquals(shared, CivUpgradeApi.dueAt(rome, Upgrade.FORTITUDE));
+        assertEquals(0, CivUpgradeApi.dueAt(rome, Upgrade.SPEED));
+        assertFalse(CivUpgradeApi.isLate(rome, shared - 1));
+        assertTrue(CivUpgradeApi.isLate(rome, shared));
+        // an already-late 1.6.8 civ stays late for both
+        Civ late = HonorData.parse(json.replace(String.valueOf(shared), String.valueOf(T0 - D))).civs.get("c1");
+        CivUpgradeApi.migrate(late, T0);
+        assertEquals(2, CivUpgradeApi.lateUpgrades(late, T0).size());
+        assertFalse(CivUpgradeApi.migrate(rome, T0)); // idempotent
     }
 
     @Test

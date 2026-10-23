@@ -82,8 +82,8 @@ public class Honor {
         dataPath = server.getSavePath(WorldSavePath.ROOT).resolve("honorsmp").resolve("data.json");
         loadConfig();
         loadData();
-        long upkeepNow = System.currentTimeMillis(); // 1.6.5: civs with upgrades but no upkeep date (weekly tax data) get 24 hours
-        for (HonorData.Civ civ : data.civs.values()) if (CivUpgradeApi.migrate(civ, upkeepNow)) LOG.info("Civ {}: first upgrade upkeep due in 24 hours", civ.name);
+        long upkeepNow = System.currentTimeMillis(); // 1.6.5/1.6.9: each owned upgrade gets its own upkeep clock (the civ's old shared date, or 24 hours)
+        for (HonorData.Civ civ : data.civs.values()) if (CivUpgradeApi.migrate(civ, upkeepNow)) LOG.info("Civ {}: upgrade upkeep moved to one clock per upgrade", civ.name);
         antiFarm.raw().putAll(data.antiFarm);
         data.antiFarm = antiFarm.raw();
         treasury.load();
