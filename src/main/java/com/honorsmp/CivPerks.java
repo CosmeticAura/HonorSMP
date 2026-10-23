@@ -2,6 +2,7 @@ package com.honorsmp;
 
 import com.honorsmp.HonorData.Civ;
 import com.honorsmp.logic.CivEffects;
+import com.honorsmp.logic.CivUpkeep;
 import com.honorsmp.logic.CivEffects.Values;
 import com.honorsmp.logic.CivUpgrades.Upgrade;
 import com.honorsmp.logic.RankPerks;
@@ -18,7 +19,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
-/** Applies civ upgrade effects to online members and handles the tax warnings. Effects only run while upgrades are active. */
+/** Applies civ upgrade effects to online members and handles the upkeep warnings. Effects only run while upgrades are active. */
 public final class CivPerks {
     private CivPerks() {}
 
@@ -39,7 +40,7 @@ public final class CivPerks {
                 CivUpgradeApi.ownedLevel(civ, Upgrade.HASTE), CivUpgradeApi.ownedLevel(civ, Upgrade.FORTITUDE));
     }
 
-    /** Damage multiplier for incoming damage on this player (1 = unchanged). Read live, so it is off the moment tax is late. */
+    /** Damage multiplier for incoming damage on this player (1 = unchanged). Read live, so it is off the moment upkeep is late. */
     public static float damageMultiplier(ServerPlayerEntity p) {
         Honor h = Honor.I;
         if (h == null) return 1f;
@@ -102,9 +103,9 @@ public final class CivPerks {
         if (m != null) h.refreshPlayer(m);
     }
 
-    // ------------------------------------------------------------ tax: periodic and login
+    // ------------------------------------------------------------ upkeep: periodic and login
 
-    /** Once a second: notices a tax turning late (switch off now), sends the one-time 24h warning. */
+    /** Once a second: notices the upkeep turning late (switch off now), sends the one-time warning before it is due. */
     public static void second(Honor h) {
         long now = System.currentTimeMillis();
         LAST_ACTIVE.keySet().removeIf(id -> !h.data.civs.containsKey(id));
@@ -114,12 +115,12 @@ public final class CivPerks {
             if (last != null && last != active) {
                 syncCiv(h, civ);
                 if (!active && CivUpgradeApi.isLate(civ, now)) {
-                    notifyManagers(h, civ, "Your civ's upgrade tax is late. Upgrades are off until you pay: /civ tax pay", true);
+                    notifyManagers(h, civ, "Your civ's upgrade upkeep is late. Upgrades are off until you pay: /civ upkeep pay", true);
                 }
             }
             if (CivUpgradeApi.takeWarningOnce(civ, h.config, now)) {
-                notifyManagers(h, civ, "Your civ's upgrade tax is due in " + CivEffects.duration(civ.taxDueAt - now)
-                        + " (" + CivUpgradeApi.taxOwed(civ, h.config) + " emeralds). Pay with /civ tax pay", false);
+                notifyManagers(h, civ, "Your civ's upgrade upkeep is due in " + CivEffects.duration(civ.upkeepDueAt - now)
+                        + " (" + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, h.config)) + "). Pay with /civ upkeep pay", false);
                 h.markDirty();
             }
         }
@@ -133,17 +134,17 @@ public final class CivPerks {
         }
     }
 
-    /** Login: leader and officers hear if the tax is late or due soon. */
+    /** Login: leader and officers hear if the upkeep is late or due soon. */
     public static void onLogin(Honor h, ServerPlayerEntity p) {
         Civ civ = h.civOf(p.getUuid().toString());
         if (civ == null || !CivUpgradeApi.canManage(civ, p.getUuid().toString())) return;
         long now = System.currentTimeMillis();
         if (CivUpgradeApi.isLate(civ, now)) {
-            p.sendMessage(Text.literal("Your civ's upgrades are off until you pay: /civ tax pay ("
-                    + CivUpgradeApi.taxOwed(civ, h.config) + " emeralds)").formatted(Formatting.RED));
+            p.sendMessage(Text.literal("Your civ's upgrades are off until you pay the upkeep: /civ upkeep pay ("
+                    + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, h.config)) + ")").formatted(Formatting.RED));
         } else if (CivUpgradeApi.warningDue(civ, h.config, now)) {
-            p.sendMessage(Text.literal("Your civ's upgrade tax is due in " + CivEffects.duration(civ.taxDueAt - now) + ": /civ tax pay ("
-                    + CivUpgradeApi.taxOwed(civ, h.config) + " emeralds)").formatted(Formatting.GOLD));
+            p.sendMessage(Text.literal("Your civ's upgrade upkeep is due in " + CivEffects.duration(civ.upkeepDueAt - now) + ": /civ upkeep pay ("
+                    + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, h.config)) + ")").formatted(Formatting.GOLD));
         }
     }
 }

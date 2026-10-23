@@ -33,7 +33,7 @@ class TreasuryMigrationTest {
         assertTrue(moves("totem_of_undying", -1));
         assertTrue(moves("ender_pearl", -1));
         for (String id : List.of("iron_ingot", "iron_block", "raw_gold", "coal_ore", "diamond", "diamond_block",
-                "netherite_ingot", "lapis_lazuli", "emerald_ore", "deepslate_emerald_ore", "ancient_debris", "amethyst_shard")) {
+                "netherite_ingot", "lapis_lazuli", "ancient_debris", "amethyst_shard")) {
             assertTrue(moves(id, -1), id);
         }
         assertFalse(moves("emerald", -1));
@@ -120,13 +120,13 @@ class TreasuryMigrationTest {
         int count = don.split("h\\.treasury", -1).length - 1;
         assertEquals(1, count);
         assertTrue(don.contains("h.treasury.closedItems()"));
-        // the only code that adds to the treasury is fines and the civ upgrade tax
+        // the only code that adds to the treasury is fines and the civ upgrade upkeep
         try (var files = Files.walk(root)) {
             for (Path p : (Iterable<Path>) files.filter(x -> x.toString().endsWith(".java"))::iterator) {
                 String name = p.getFileName().toString();
                 String src = Files.readString(p).replaceAll("(?s)/\\*.*?\\*/|//[^\n]*", "");
                 if (src.contains("treasury.addItem") || src.contains("treasury.addEmeralds") || src.contains("h.treasury::addEmeralds")) {
-                    assertTrue(name.equals("Fines.java") || name.equals("Cmds.java"), name);
+                    assertTrue(name.equals("Fines.java") || name.equals("UpkeepPay.java") || name.equals("Cmds.java"), name);
                 }
             }
         }

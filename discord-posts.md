@@ -72,7 +72,7 @@ The mod handles the obvious stuff:
 > Killing a dishonored player: +25 (+35 if you're a guard)
 > Killing in self defense: no change
 > Killing someone unarmed with no armor: -60
-> Donating with /donate: 1 honor per 10 points (a stack of bread is 32), up to 100 a day. Food, golden apples, totems, ender pearls, common ores and rare gems also have their own daily limits. Ores, ingots and silk-touched ore blocks count too (a diamond is 5 honor).
+> Donating with /donate: 1 honor per 10 points (a stack of bread is 32), up to 100 a day. Food, golden apples, totems, ender pearls, common ores and rare gems also have their own daily limits. Emeralds don't count. Ores, ingots and silk-touched ore blocks count too (a diamond is 5 honor).
 > Curing a zombie villager: +10 (30 a day max)
 > Harvesting 64 grown crops by hand: +1 (10 a day max)
 > Breeding 5 animals: +1 (5 a day max). Trading 10 times with villagers: +1 (5 a day max)
@@ -96,7 +96,7 @@ If at least 2 members of your civ have their bed (respawn point) within 100 bloc
 
 **Civ upgrades**
 
-`/civ upgrades` opens a menu where your leader or an officer can buy five upgrades for the whole civ: Resistance (5% then 10% less damage), Strength (+0.5 then +1 attack damage), Speed (+5% then +10%), Haste (I then II) and Fortitude (+2 then +4 max health). Level 1 costs 32 emeralds, level 2 costs 64 emeralds and 8 diamonds. Upgrades stack with your rank perks. Every upgrade level adds a tax of 4 emeralds per member per week, paid by the leader or an officer with /civ tax pay into the judges' treasury. A civ with no upgrades pays nothing. If the tax is late, all upgrades switch off and your civ shows [Unpaid] until it's paid. Nobody loses honor.
+`/civ upgrades` opens a menu where your leader or an officer can buy five upgrades for the whole civ: Resistance (5% then 10% less damage), Strength (+0.5 then +1 attack damage), Speed (+5% then +10%), Haste (I then II) and Fortitude (+2 then +4 max health). Each upgrade runs on its own item: Resistance on iron ingots, Strength on gunpowder, Speed on redstone, Haste on lapis lazuli and Fortitude on gold ingots. Buying level 1 costs 4 days of that upgrade's upkeep, level 2 costs 4 days of its bigger upkeep plus 8 diamonds. Upkeep is paid every day (for example 16 iron ingots a day for Resistance 1, 32 for Resistance 2) by the leader or an officer with /civ upkeep pay, and goes to the judges' treasury. You can pay up to 3 days ahead. A civ with no upgrades pays nothing. If the upkeep is late, all upgrades switch off and your civ shows [Unpaid] until it's paid. Nobody loses honor. No emeralds anywhere.
 
 **Donor perks**
 
@@ -138,8 +138,8 @@ Sharpness is capped at 4, Protection at 3, Density at 4 and Breach at 3. Netheri
 `/cc` turn civ chat on or off
 `/civ top` top civs by total honor
 `/civ upgrades` buy civ upgrades (leaders and officers)
-`/civ tax` see the upgrade tax
-`/civ tax pay` pay it (leaders and officers)
+`/civ upkeep` see the daily upgrade upkeep
+`/civ upkeep pay` pay it (leaders and officers)
 `/civ guard <player>` make a member a guard (leaders and officers)
 `/civ promote <player>` make a member an officer (leader)
 `/civ kick <player>` / `/civ disband`

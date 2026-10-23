@@ -62,6 +62,7 @@ public class Honor {
     public final Treasury treasury = new Treasury(this);
     public final Bounties bounties = new Bounties(this);
     public final Fines fines = new Fines(this);
+    public final UpkeepPay upkeepPay = new UpkeepPay(this);
     public final Donations donations = new Donations(this);
     public final DonationBox donationBox = new DonationBox(this);
     public final Sieges sieges = new Sieges(this);
@@ -79,6 +80,8 @@ public class Honor {
         loadConfig();
         loadData();
         CivChestMigration.run(data); // 1.6.1: civ chests are gone; their items go to the leaders' /donation boxes
+        long upkeepNow = System.currentTimeMillis(); // 1.6.5: civs with upgrades but no upkeep date (weekly tax data) get 24 hours
+        for (HonorData.Civ civ : data.civs.values()) if (CivUpgradeApi.migrate(civ, upkeepNow)) LOG.info("Civ {}: first upgrade upkeep due in 24 hours", civ.name);
         antiFarm.raw().putAll(data.antiFarm);
         data.antiFarm = antiFarm.raw();
         treasury.load();
@@ -205,6 +208,7 @@ public class Honor {
         treasury.wipe();
         bounties.wipe();
         fines.wipe();
+        upkeepPay.wipe();
         donations.wipe();
         donationBox.wipe();
         SignPrompt.clearAll();
@@ -231,6 +235,7 @@ public class Honor {
         treasury.closeAll();
         bounties.closeAll();
         fines.closeAll();
+        upkeepPay.closeAll();
         donations.closeAll();
         donationBox.closeAll();
         Menu.closeAll();

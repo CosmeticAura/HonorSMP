@@ -5,6 +5,9 @@ import com.honorsmp.logic.CivEffects;
 import com.honorsmp.logic.CivUpgrades;
 import com.honorsmp.logic.CivUpgrades.BuyCheck;
 import com.honorsmp.logic.CivUpgrades.Upgrade;
+import com.honorsmp.logic.CivUpkeep;
+import java.util.Map;
+import net.minecraft.registry.Registries;
 import com.honorsmp.logic.Wallet;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -29,34 +32,31 @@ public final class CivUpgradeMenu {
 
     // ------------------------------------------------------------ wallet over the player inventory
 
-    /** Plain items only: no custom name, enchants or other component changes. */
-    static boolean plain(ItemStack s, Item item) {
-        return s.isOf(item) && s.getComponentChanges().isEmpty();
+    public static String idOf(ItemStack s) { return Registries.ITEM.getId(s.getItem()).toString(); }
+
+    /** Plain items of this id in the main inventory (36 slots). */
+    public static int count(ServerPlayerEntity p, String itemId) {
+        PlayerInventory inv = p.getInventory();
+        int n = 0;
+        for (int i = 0; i < 36; i++) {
+            ItemStack s = inv.getStack(i);
+            if (!s.isEmpty() && s.getComponentChanges().isEmpty() && idOf(s).equals(itemId)) n += s.getCount();
+        }
+        return n;
     }
 
     public static Wallet wallet(ServerPlayerEntity p) {
         return new Wallet() {
-            @Override public int emeralds() { return count(p, Items.EMERALD); }
-            @Override public int diamonds() { return count(p, Items.DIAMOND); }
-            @Override public void take(int e, int d) {
-                remove(p, Items.EMERALD, e);
-                remove(p, Items.DIAMOND, d);
-            }
+            @Override public int count(String itemId) { return CivUpgradeMenu.count(p, itemId); }
+            @Override public void take(String itemId, int amount) { remove(p, itemId, amount); }
         };
     }
 
-    private static int count(ServerPlayerEntity p, Item item) {
-        PlayerInventory inv = p.getInventory();
-        int n = 0;
-        for (int i = 0; i < 36; i++) if (plain(inv.getStack(i), item)) n += inv.getStack(i).getCount();
-        return n;
-    }
-
-    private static void remove(ServerPlayerEntity p, Item item, int amount) {
+    private static void remove(ServerPlayerEntity p, String itemId, int amount) {
         PlayerInventory inv = p.getInventory();
         for (int i = 0; i < 36 && amount > 0; i++) {
             ItemStack s = inv.getStack(i);
-            if (!plain(s, item)) continue;
+            if (s.isEmpty() || !s.getComponentChanges().isEmpty() || !idOf(s).equals(itemId)) continue;
             int t = Math.min(amount, s.getCount());
             s.decrement(t);
             amount -= t;
@@ -92,32 +92,32 @@ public final class CivUpgradeMenu {
         Menu m = Menu.create(Text.literal("Upgrades: " + civ.name), 3);
 
         List<Text> info = new ArrayList<>();
-        long owed = CivUpgradeApi.taxOwed(civ, h.config);
-        if (owed <= 0) {
-            info.add(gray("No upgrades yet, so no tax."));
+        Map<String, Integer> owed = CivUpgradeApi.owedPerDay(civ, h.config);
+        if (owed.isEmpty()) {
+            info.add(gray("No upgrades yet, so no upkeep."));
         } else {
-            info.add(gray("Weekly tax: " + owed + " emeralds"));
-            long due = CivUpgradeApi.taxDueAt(civ);
-            info.add(late ? Text.literal("UNPAID since " + date(due) + ": upgrades are off. /civ tax pay").formatted(Formatting.RED)
-                    : gray("Due: " + date(due) + " (in " + CivEffects.duration(due - now) + ")"));
+            info.add(gray("Daily upkeep: " + CivUpkeep.describe(owed)));
+            long due = CivUpgradeApi.upkeepDueAt(civ);
+            info.add(late ? Text.literal("UNPAID since " + date(due) + ": upgrades are off. /civ upkeep pay").formatted(Formatting.RED)
+                    : gray("Paid until: " + date(due) + " (in " + CivEffects.duration(due - now) + ")"));
         }
         info.add(gray(manage ? "Click an upgrade to buy its next level." : "Only the leader or officers can buy upgrades."));
-        m.icon(CivEffects.INFO_SLOT, Menu.icon(Items.EMERALD, Text.literal("Civ upgrades").formatted(Formatting.GREEN), info));
+        m.icon(CivEffects.INFO_SLOT, Menu.icon(Items.GOLDEN_PICKAXE, Text.literal("Civ upgrades").formatted(Formatting.GREEN), info));
 
         for (Upgrade u : Upgrade.values()) {
             int lvl = CivUpgradeApi.ownedLevel(civ, u);
             boolean max = lvl >= CivUpgrades.MAX_LEVEL;
             List<Text> lore = new ArrayList<>();
-            lore.add(gray("Level: " + lvl + " / " + CivUpgrades.MAX_LEVEL + (lvl > 0 && late ? " (off: tax unpaid)" : "")));
+            lore.add(gray("Level: " + lvl + " / " + CivUpgrades.MAX_LEVEL + (lvl > 0 && late ? " (off: upkeep unpaid)" : "")));
             lore.add(gray("Now: " + CivEffects.describe(h.config, u, lvl)));
             if (max) {
                 lore.add(Text.literal("Max level").formatted(Formatting.GREEN));
             } else {
                 int next = lvl + 1;
                 lore.add(gray("Next: " + CivEffects.describe(h.config, u, next)));
-                int em = CivUpgrades.emeraldCost(h.config, next), di = CivUpgrades.diamondCost(h.config, next);
-                lore.add(Text.literal("Cost: " + em + " emeralds" + (di > 0 ? ", " + di + " diamonds" : "")).formatted(Formatting.YELLOW));
-                if (manage) lore.add(Text.literal(late ? "Pay the tax first" : "Click to buy").formatted(late ? Formatting.RED : Formatting.GREEN));
+                lore.add(Text.literal("Cost: " + CivUpkeep.describe(CivUpgrades.buyCost(h.config, u, next))).formatted(Formatting.YELLOW));
+                lore.add(gray("Upkeep after buying: " + CivUpgrades.upkeepPerDay(h.config, u, next) + " " + CivUpkeep.pretty(CivUpgrades.itemOf(h.config, u)) + " a day"));
+                if (manage) lore.add(Text.literal(late ? "Pay the upkeep first" : "Click to buy").formatted(late ? Formatting.RED : Formatting.GREEN));
             }
             ItemStack icon = Menu.icon(iconOf(u), Text.literal(u.display).formatted(lvl > 0 && !late ? Formatting.GREEN : Formatting.WHITE), lore);
             m.set(CivEffects.slotOf(u), icon, (who, r, s) -> onUpgradeClick(who, u));
@@ -141,7 +141,7 @@ public final class CivUpgradeMenu {
             return;
         }
         if (CivUpgradeApi.isLate(civ, System.currentTimeMillis())) {
-            who.sendMessage(Text.literal("Pay the tax first: /civ tax pay").formatted(Formatting.RED), true);
+            who.sendMessage(Text.literal("Pay the upkeep first: /civ upkeep pay").formatted(Formatting.RED), true);
             return;
         }
         confirm(who, civ, u, lvl + 1);
@@ -149,12 +149,11 @@ public final class CivUpgradeMenu {
 
     private static void confirm(ServerPlayerEntity p, Civ civ, Upgrade u, int next) {
         Honor h = Honor.I;
-        int em = CivUpgrades.emeraldCost(h.config, next), di = CivUpgrades.diamondCost(h.config, next);
         Menu m = Menu.create(Text.literal("Buy " + u.display + " " + next + "?"), 3);
         m.icon(4, Menu.icon(iconOf(u), Text.literal(u.display + " level " + next).formatted(Formatting.GREEN), List.of(
                 gray(CivEffects.describe(h.config, u, next)),
-                Text.literal("Cost: " + em + " emeralds" + (di > 0 ? ", " + di + " diamonds" : "")).formatted(Formatting.YELLOW),
-                gray("Adds " + h.config.taxPerLevelPerMemberPerWeek + " emeralds per member to the weekly tax."))));
+                Text.literal("Cost: " + CivUpkeep.describe(CivUpgrades.buyCost(h.config, u, next))).formatted(Formatting.YELLOW),
+                gray("Daily upkeep for it: " + CivUpgrades.upkeepPerDay(h.config, u, next) + " " + CivUpkeep.pretty(CivUpgrades.itemOf(h.config, u)) + "."))));
         m.set(11, Menu.icon(Items.LIME_CONCRETE, "Confirm", Formatting.GREEN, "Take the cost from your inventory"),
                 (who, r, s) -> buy(who, u));
         m.set(15, Menu.icon(Items.RED_CONCRETE, "Cancel", Formatting.RED), (who, r, s) -> open(who));
@@ -180,9 +179,8 @@ public final class CivUpgradeMenu {
             }
         } else {
             String msg = switch (res.check()) {
-                case NOT_ENOUGH_EMERALDS -> "Not enough emeralds";
-                case NOT_ENOUGH_DIAMONDS -> "Not enough diamonds";
-                case TAX_UNPAID -> "Pay the tax first: /civ tax pay";
+                case NOT_ENOUGH_ITEMS -> "Not enough " + CivUpkeep.pretty(res.missing());
+                case UPKEEP_UNPAID -> "Pay the upkeep first: /civ upkeep pay";
                 case MAX_LEVEL -> u.display + " is already at max level";
                 case DISABLED -> "Civ upgrades are disabled";
                 default -> "Cannot buy that";

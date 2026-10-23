@@ -1,11 +1,10 @@
 package com.honorsmp.logic;
 
-/** What a buyer/payer has, so buying and paying stay testable without Minecraft. The UI wraps a player inventory. */
+/** What a buyer has, so buying stays testable without Minecraft. The UI wraps a player inventory (plain items only). */
 public interface Wallet {
-    int emeralds();
-
-    int diamonds();
+    /** How many of this item id (like "minecraft:redstone") the buyer has. */
+    int count(String itemId);
 
     /** Removes the items. Only called after the counts were checked. */
-    void take(int emeralds, int diamonds);
+    void take(String itemId, int amount);
 }

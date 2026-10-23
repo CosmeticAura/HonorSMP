@@ -197,10 +197,10 @@ public class HonorData {
          * missing (data written by 1.5.0) = no upgrades. Read it through CivUpgradeApi, which handles null.
          */
         public java.util.Map<String, Integer> upgrades = null;
-        /** Epoch ms the weekly upgrade tax is next due. 0 = no upgrades, nothing due. Set when the first upgrade is bought. */
-        public long taxDueAt = 0;
-        /** The taxDueAt value the "due in 24 hours" warning was already sent for (so it is sent once). 0 = none. */
-        public long taxWarnedFor = 0;
+        /** Epoch ms the daily upgrade upkeep is next due (1.6.5; the old taxDueAt is dropped on load). 0 = no upgrades, nothing due. */
+        public long upkeepDueAt = 0;
+        /** The upkeepDueAt value the "due soon" warning was already sent for (so it is sent once). 0 = none. */
+        public long upkeepWarnedFor = 0;
     }
 
     public static class LogEntry {

@@ -26,7 +26,6 @@ class DonateMaterialsTest {
             {"redstone", 1, C}, {"redstone_block", 9, C},
             {"lapis_lazuli", 2, C}, {"lapis_block", 18, C},
             {"quartz", 1, C}, {"quartz_block", 4, C}, {"amethyst_shard", 1, C},
-            {"emerald", 20, R}, {"emerald_block", 180, R},
             {"diamond", 50, R}, {"diamond_block", 450, R},
             {"netherite_scrap", 150, R}, {"netherite_ingot", 600, R}, {"netherite_block", 5400, R},
         };
@@ -41,7 +40,6 @@ class DonateMaterialsTest {
             {"redstone_ore", "redstone"}, {"deepslate_redstone_ore", "redstone"},
             {"lapis_ore", "lapis_lazuli"}, {"deepslate_lapis_ore", "lapis_lazuli"},
             {"diamond_ore", "diamond"}, {"deepslate_diamond_ore", "diamond"},
-            {"emerald_ore", "emerald"}, {"deepslate_emerald_ore", "emerald"},
             {"nether_quartz_ore", "quartz"}, {"ancient_debris", "netherite_scrap"},
         };
     }
@@ -77,7 +75,7 @@ class DonateMaterialsTest {
             assertEquals(pts(cfg, drop, true), pts(cfg, ore, true), ore);
             assertEquals(DonationRules.category("minecraft:" + drop, -1, cfg), DonationRules.category("minecraft:" + ore, -1, cfg), ore);
         }
-        assertEquals(19, ores().length);
+        assertEquals(17, ores().length);
     }
 
     @Test void plainItemsOnly() {
@@ -148,12 +146,12 @@ class DonateMaterialsTest {
         assertEquals(150, pts(c, "ancient_debris", true));
         assertEquals(30, c.donateItemDailyCaps.get(C));
         assertEquals(40, c.donateItemDailyCaps.get(R));
-        assertEquals(1, c.donateMaterialsVersion);
+        assertEquals(2, c.donateMaterialsVersion);
         for (Object[] row : table()) if (!row[0].equals("diamond")) assertEquals((int) (Integer) row[1], pts(c, (String) row[0], true), (String) row[0]);
         // idempotent, and an admin removal or edit sticks on the next load
         assertFalse(c.migrate());
         c.donateExtraItems.remove("minecraft:coal");
-        c.donateExtraItems.put("minecraft:emerald", 25);
+        c.donateExtraItems.put("minecraft:emerald", 25); // an admin may add it back on purpose; the one-time migration does not run again
         HonorConfig again = Honor.GSON.fromJson(Honor.GSON.toJson(c), HonorConfig.class);
         assertFalse(again.migrate());
         assertEquals(-1, pts(again, "coal", true));
@@ -165,5 +163,29 @@ class DonateMaterialsTest {
         c.migrate();
         for (Object[] row : table()) assertEquals((int) (Integer) row[1], pts(c, (String) row[0], true), (String) row[0]);
         assertEquals(30, c.donateItemDailyCaps.get(C));
+    }
+
+    @Test void emeraldsAreNotDonatable() {
+        for (String id : new String[] {"emerald", "emerald_block", "emerald_ore", "deepslate_emerald_ore"}) {
+            assertEquals(-1, pts(cfg, id, true), id);
+            assertFalse(DonationRules.donatable("minecraft:" + id, -1, true, cfg), id);
+            assertFalse(cfg.donateExtraItems.containsKey("minecraft:" + id), id);
+            assertFalse(HonorConfig.defaultMaterialPoints().containsKey("minecraft:" + id), id);
+        }
+        // the chest gives them back like any other non-donatable item
+        assertEquals(0, DonationRules.points("minecraft:emerald", -1, true, 64, cfg));
+    }
+
+    @Test void existingConfigWithEmeraldsLosesThemOnce() {
+        HonorConfig c = Honor.GSON.fromJson("{\"donateExtraItems\":{\"minecraft:golden_apple\":40,\"minecraft:emerald\":20,\"minecraft:emerald_block\":180,"
+                + "\"minecraft:emerald_ore\":20,\"minecraft:deepslate_emerald_ore\":20,\"minecraft:diamond\":50},"
+                + "\"donateCapTypes\":{\"minecraft:emerald\":\"rare_materials\",\"minecraft:diamond\":\"rare_materials\"},"
+                + "\"donateMaterialsVersion\":1,\"donateRewardsVersion\":1,\"perksVersion\":1}", HonorConfig.class);
+        assertTrue(c.migrate());
+        for (String id : new String[] {"emerald", "emerald_block", "emerald_ore", "deepslate_emerald_ore"}) assertEquals(-1, pts(c, id, true), id);
+        assertFalse(c.donateCapTypes.containsKey("minecraft:emerald"));
+        assertEquals(50, pts(c, "diamond", true));
+        assertEquals(2, c.donateMaterialsVersion);
+        assertFalse(c.migrate());
     }
 }

@@ -65,6 +65,7 @@ public class HonorSMP implements ModInitializer {
             h.treasury.closeIfViewer(p);
             h.bounties.closeFor(p);
             h.fines.closeFor(p);
+            h.upkeepPay.closeFor(p);
             h.donations.closeFor(p);
             h.donationBox.closeFor(p);
             Menu.closeFor(p);
@@ -112,7 +113,7 @@ public class HonorSMP implements ModInitializer {
         if (h == null) return;
         AutoHonor.onDeath(entity, source);
         Entity attacker = source.getAttacker();
-        if (entity instanceof ServerPlayerEntity dead) { h.treasury.closeIfViewer(dead); h.bounties.closeFor(dead); h.fines.closeFor(dead); h.donations.closeFor(dead); h.donationBox.closeFor(dead); Menu.closeFor(dead); SignPrompt.cancel(dead); }
+        if (entity instanceof ServerPlayerEntity dead) { h.treasury.closeIfViewer(dead); h.bounties.closeFor(dead); h.fines.closeFor(dead); h.upkeepPay.closeFor(dead); h.donations.closeFor(dead); h.donationBox.closeFor(dead); Menu.closeFor(dead); SignPrompt.cancel(dead); }
         if (!(attacker instanceof ServerPlayerEntity killer) || attacker == entity) {
             if (entity instanceof ServerPlayerEntity v) h.record(v).secondsSinceDeath = 0;
             return;

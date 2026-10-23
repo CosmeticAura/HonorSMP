@@ -1,5 +1,8 @@
 package com.honorsmp.logic;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /** Pure rules for civ upgrades: ids, levels, costs and effect values. Level 0 = not owned. */
 public final class CivUpgrades {
     private CivUpgrades() {}
@@ -30,7 +33,7 @@ public final class CivUpgrades {
     }
 
     /** Why a purchase is refused; OK = allowed. */
-    public enum BuyCheck { OK, DISABLED, MAX_LEVEL, TAX_UNPAID, NOT_ENOUGH_EMERALDS, NOT_ENOUGH_DIAMONDS }
+    public enum BuyCheck { OK, DISABLED, MAX_LEVEL, UPKEEP_UNPAID, NOT_ENOUGH_ITEMS }
 
     private static int at(int[] a, int level, int fallback) {
         if (level < 1) return 0;
@@ -44,11 +47,38 @@ public final class CivUpgrades {
         return a[Math.min(level, a.length) - 1];
     }
 
-    /** Emeralds to buy {@code level} (1 or 2). */
-    public static int emeraldCost(HonorConfig c, int level) { return Math.max(0, at(c.upgradeEmeraldCost, level, level == 1 ? 32 : 64)); }
+    public static final String DIAMOND = "minecraft:diamond";
 
-    /** Diamonds to buy {@code level} (1 or 2). */
-    public static int diamondCost(HonorConfig c, int level) { return Math.max(0, at(c.upgradeDiamondCost, level, level == 1 ? 0 : 8)); }
+    /** Item an upgrade is paid in (daily upkeep and purchase). */
+    public static String itemOf(HonorConfig c, Upgrade u) {
+        String id = c.civUpgradeItems == null ? null : c.civUpgradeItems.get(u.id);
+        if (id == null || id.isBlank()) id = HonorConfig.defaultUpgradeItems().get(u.id);
+        return id.contains(":") ? id.trim().toLowerCase(java.util.Locale.ROOT) : "minecraft:" + id.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** Items per day for owning {@code level} (1 or 2) of the upgrade; 0 for level 0. */
+    public static int upkeepPerDay(HonorConfig c, Upgrade u, int level) {
+        if (level < 1) return 0;
+        int[] a = c.civUpkeepPerDay == null ? null : c.civUpkeepPerDay.get(u.id);
+        if (a == null || a.length == 0) a = HonorConfig.defaultUpkeepPerDay().get(u.id);
+        return Math.max(0, a[Math.min(level, a.length) - 1]);
+    }
+
+    /** Upgrade item needed to buy {@code level}: civBuyDays days of that level's upkeep. */
+    public static int buyItemCost(HonorConfig c, Upgrade u, int level) { return Math.max(0, c.civBuyDays) * upkeepPerDay(c, u, level); }
+
+    /** Diamonds to buy {@code level}: only level 2 asks for them. */
+    public static int diamondCost(HonorConfig c, int level) { return level >= 2 ? Math.max(0, c.civLevel2Diamonds) : 0; }
+
+    /** Everything buying {@code level} takes, item id to amount (the upgrade item and diamonds, merged if the same). */
+    public static Map<String, Integer> buyCost(HonorConfig c, Upgrade u, int level) {
+        Map<String, Integer> m = new LinkedHashMap<>();
+        int n = buyItemCost(c, u, level);
+        if (n > 0) m.merge(itemOf(c, u), n, Integer::sum);
+        int d = diamondCost(c, level);
+        if (d > 0) m.merge(DIAMOND, d, Integer::sum);
+        return m;
+    }
 
     /** Damage reduction in percent at that level (0 for level 0). */
     public static int resistancePercent(HonorConfig c, int level) { return at(c.upgradeResistancePercent, level, level == 1 ? 5 : 10); }
@@ -68,15 +98,19 @@ public final class CivUpgrades {
     /**
      * Checks buying the next level of an upgrade.
      * @param current level now owned (0..MAX_LEVEL)
-     * @param taxLate true when the civ's tax is late; buying is blocked until it is paid
+     * @param late true when the civ's upkeep is late; buying is blocked until it is paid
+     * @param have item id to amount the buyer carries (plain items only)
      */
-    public static BuyCheck canBuy(HonorConfig c, int current, boolean taxLate, int emeralds, int diamonds) {
+    public static BuyCheck canBuy(HonorConfig c, Upgrade u, int current, boolean late, Map<String, Integer> have) {
         if (!c.civUpgradesEnabled) return BuyCheck.DISABLED;
         if (current >= MAX_LEVEL) return BuyCheck.MAX_LEVEL;
-        if (taxLate) return BuyCheck.TAX_UNPAID;
-        int next = current + 1;
-        if (emeralds < emeraldCost(c, next)) return BuyCheck.NOT_ENOUGH_EMERALDS;
-        if (diamonds < diamondCost(c, next)) return BuyCheck.NOT_ENOUGH_DIAMONDS;
-        return BuyCheck.OK;
+        if (late) return BuyCheck.UPKEEP_UNPAID;
+        return missing(buyCost(c, u, current + 1), have) == null ? BuyCheck.OK : BuyCheck.NOT_ENOUGH_ITEMS;
+    }
+
+    /** First item id of {@code need} that {@code have} does not cover, or null when everything is there. */
+    public static String missing(Map<String, Integer> need, Map<String, Integer> have) {
+        for (var e : need.entrySet()) if (have.getOrDefault(e.getKey(), 0) < e.getValue()) return e.getKey();
+        return null;
     }
 }

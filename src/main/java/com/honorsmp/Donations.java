@@ -256,7 +256,7 @@ public final class Donations {
                 lore.add(line(text, canEarn <= 0 ? Formatting.RED : (now > 0 ? Formatting.YELLOW : Formatting.GRAY)));
             }
             lore.add(line("Also: coal, copper, iron, gold, redstone, lapis, quartz, amethyst (common)", Formatting.GRAY));
-            lore.add(line("and emerald, diamond, netherite (rare): ingots, raw, blocks, silk-touched ores", Formatting.GRAY));
+            lore.add(line("and diamond, netherite (rare): ingots, raw, blocks, silk-touched ores", Formatting.GRAY));
             lore.add(line(h.config.honorPerHungerPoints + " points = 1 honor. Points in chest: " + points, Formatting.DARK_GRAY));
         }
         if (!judge) for (String l : Donor.summary(h, r)) lore.add(line(l, Formatting.LIGHT_PURPLE));

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.6.5
+- No emeralds in the economy. Emerald, emerald block, emerald ore and deepslate emerald ore no longer give honor in `/donate`; the chest hands them back like any other item. An existing config loses those entries once (`donateMaterialsVersion` 2), so an admin can add them back later. `/donate` help text updated.
+- The weekly civ tax is gone: `/civ tax`, `/civ tax pay`, `taxPerLevelPerMemberPerWeek`, `taxIntervalDays`, `taxWarningHours`, `upgradeEmeraldCost`, `upgradeDiamondCost` and the `taxDueAt` / `taxWarnedFor` data fields are removed on load.
+- Daily upgrade upkeep, paid in each upgrade's own item. Per day, level 1 / level 2: Resistance iron ingots 16 / 32, Strength gunpowder 16 / 32, Speed redstone 32 / 64, Haste lapis lazuli 16 / 32, Fortitude gold ingots 8 / 16. The same for any civ size.
+- Buying uses those items too: level 1 costs 4 days of level 1 upkeep, level 2 costs 4 days of level 2 upkeep plus 8 diamonds. No emeralds.
+- Due every 24 hours from when the first upgrade was bought. `/civ upkeep` lists what is owed per upgrade and until when. `/civ upkeep pay` (leader or officer) opens a pay chest like fines: matching items are taken for as many whole days as they cover, extras are returned, paid items go to the judges' treasury. Up to 3 days ahead.
+- Late upkeep switches all the civ's upgrades off (and blocks buying) and shows `[Unpaid]` in `/civ info` and `/civ list` until paid. Only one day is ever owed; nobody loses honor. The leader and officers get a login warning and a warning 2 hours before it is due.
+- Existing civs keep their upgrades; their first upkeep is due 24 hours after 1.6.5 first loads.
+- New config keys: `civUpgradeItems`, `civUpkeepPerDay`, `civBuyDays`, `civLevel2Diamonds`, `civUpkeepWarningHours`, `civUpkeepMaxAheadDays`.
+
 ## 1.6.4
 - Trade cooldown moved into HonorSMP (the separate NoTradeCooldown mod can be deleted). With `noTradeCooldown` on (default), villager trades never lock: a mixin on `TradeOffer.use()` skips the use count. A trade still locks and restocks like vanilla when what the villager gives is blocked.
 - Blocked sell items: everything in `tradeCooldownItems` (item ids or `#tag` ids), any enchanted tool, weapon or armor piece, and anything `/donate` accepts right now (read from the donation rules, so new donation items are covered with no list change). `tradeCooldownAlwaysFree` wins over all of it.

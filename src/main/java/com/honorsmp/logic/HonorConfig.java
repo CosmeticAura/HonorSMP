@@ -33,10 +33,20 @@ public class HonorConfig {
     public int civNameMaxLength = 24;
     public int inviteExpirySeconds = 120;
 
-    // civ upgrades and weekly upgrade tax (1.6.0). Arrays are indexed by level - 1 (level 1, level 2).
+    // civ upgrades (1.6.0) and their daily upkeep (1.6.5). Arrays are indexed by level - 1 (level 1, level 2).
     public boolean civUpgradesEnabled = true;
-    public int[] upgradeEmeraldCost = {32, 64};
-    public int[] upgradeDiamondCost = {0, 8};
+    /** Upgrade id (resistance, strength, speed, haste, fortitude) to the item its upkeep and purchase are paid in. Never emeralds. */
+    public java.util.Map<String, String> civUpgradeItems = defaultUpgradeItems();
+    /** Upgrade id to items per day for [level 1, level 2]. */
+    public java.util.Map<String, int[]> civUpkeepPerDay = defaultUpkeepPerDay();
+    /** Buying a level costs this many days of that level's upkeep (in the upgrade's item). */
+    public int civBuyDays = 4;
+    /** Extra diamonds for level 2. */
+    public int civLevel2Diamonds = 8;
+    /** The leader and officers are warned this many hours before the upkeep is due. */
+    public int civUpkeepWarningHours = 2;
+    /** Upkeep can be paid at most this many days ahead. */
+    public int civUpkeepMaxAheadDays = 3;
     /** Damage members take less, in percent. */
     public int[] upgradeResistancePercent = {5, 10};
     /** Extra attack damage. */
@@ -47,10 +57,26 @@ public class HonorConfig {
     public int[] upgradeHasteLevel = {1, 2};
     /** Extra max health in HP (2 = one heart). Adds to the rank health perk. */
     public int[] upgradeFortitudeHp = {2, 4};
-    /** Emeralds per owned upgrade level, per civ member, per tax period. */
-    public int taxPerLevelPerMemberPerWeek = 4;
-    public int taxIntervalDays = 7;
-    public int taxWarningHours = 24;
+
+    public static java.util.Map<String, String> defaultUpgradeItems() {
+        java.util.Map<String, String> m = new java.util.LinkedHashMap<>();
+        m.put("resistance", "minecraft:iron_ingot");
+        m.put("strength", "minecraft:gunpowder");
+        m.put("speed", "minecraft:redstone");
+        m.put("haste", "minecraft:lapis_lazuli");
+        m.put("fortitude", "minecraft:gold_ingot");
+        return m;
+    }
+
+    public static java.util.Map<String, int[]> defaultUpkeepPerDay() {
+        java.util.Map<String, int[]> m = new java.util.LinkedHashMap<>();
+        m.put("resistance", new int[] {16, 32});
+        m.put("strength", new int[] {16, 32});
+        m.put("speed", new int[] {32, 64});
+        m.put("haste", new int[] {16, 32});
+        m.put("fortitude", new int[] {8, 16});
+        return m;
+    }
 
     // donor perks (1.6.0): tiers by lifetime honor earned from donating. Judges get none.
     public int donorSupporterMin = 200;
@@ -168,8 +194,6 @@ public class HonorConfig {
         mat(pts, types, c, 1, "quartz", "nether_quartz_ore");
         mat(pts, types, c, 4, "quartz_block");
         mat(pts, types, c, 1, "amethyst_shard");
-        mat(pts, types, r, 20, "emerald", "emerald_ore", "deepslate_emerald_ore");
-        mat(pts, types, r, 180, "emerald_block");
         mat(pts, types, r, 50, "diamond", "diamond_ore", "deepslate_diamond_ore");
         mat(pts, types, r, 450, "diamond_block");
         mat(pts, types, r, 150, "netherite_scrap", "ancient_debris");
@@ -195,6 +219,8 @@ public class HonorConfig {
      * becomes the defaults and default types missing from a user map are added (user values win).
      * Returns true when anything changed (the caller re-saves the file). Running it again changes nothing.
      */
+    private static final String[] EMERALD_ITEMS = {"minecraft:emerald", "minecraft:emerald_block", "minecraft:emerald_ore", "minecraft:deepslate_emerald_ore"};
+
     public boolean migrate() {
         boolean changed = false;
         if (donateRewardsVersion < 1) {
@@ -218,6 +244,25 @@ public class HonorConfig {
             if (donateCapTypes == null) donateCapTypes = new java.util.LinkedHashMap<>();
             for (var e : defaultMaterialCapTypes().entrySet()) donateCapTypes.putIfAbsent(e.getKey(), e.getValue());
             donateMaterialsVersion = 1;
+            changed = true;
+        }
+        if (donateMaterialsVersion < 2) {
+            // 1.6.5: emeralds are out of the economy. Take them out of an existing config once; an admin can add them back later.
+            if (donateExtraItems != null) {
+                for (String id : EMERALD_ITEMS) if (donateExtraItems.remove(id) != null) changed = true;
+            }
+            if (donateCapTypes != null) {
+                for (String id : EMERALD_ITEMS) if (donateCapTypes.remove(id) != null) changed = true;
+            }
+            donateMaterialsVersion = 2;
+            changed = true;
+        }
+        if (civUpgradeItems == null) {
+            civUpgradeItems = defaultUpgradeItems();
+            changed = true;
+        }
+        if (civUpkeepPerDay == null) {
+            civUpkeepPerDay = defaultUpkeepPerDay();
             changed = true;
         }
         if (tradeCooldownItems == null) {
