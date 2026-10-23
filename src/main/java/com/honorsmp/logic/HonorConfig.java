@@ -68,6 +68,11 @@ public class HonorConfig {
     public boolean topDonorEnabled = true;
     public int topDonorHeroDays = 7;
 
+    // live Discord leaderboard (1.6.3)
+    /** Discord webhook for the live leaderboard message. Empty = off. Never logged. */
+    public String leaderboardWebhookUrl = "";
+    public int leaderboardUpdateMinutes = 5;
+
     // automatic honor events
     public int killDishonored = 25;
     public int killDishonoredGuard = 35;

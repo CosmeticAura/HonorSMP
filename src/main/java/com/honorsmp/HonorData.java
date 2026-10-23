@@ -63,6 +63,8 @@ public class HonorData {
     public boolean treasuryDonationsMoved = false;
     /** True once the 1.6.0 donor backfill (donatedHonorTotal from the honor log) has run. Missing in 1.5.0 data = false. */
     public boolean donorBackfilled = false;
+    /** Id of the Discord message the live leaderboard keeps editing (1.6.3). Empty = none posted yet. */
+    public String leaderboardMessageId = "";
     /** Monday 00:00 (epoch ms, server time) of the last weekly top donor run. 0 = never. */
     public long lastWeeklyDonorRun = 0;
     /** Current weekly top donor (uuid empty = none), their name, the amount they earned and when their Hero effect ends (epoch ms). */

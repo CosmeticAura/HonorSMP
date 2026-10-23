@@ -3,6 +3,7 @@ package com.honorsmp;
 import com.honorsmp.HonorData.DonationAward;
 import com.honorsmp.HonorData.PlayerRecord;
 import com.honorsmp.logic.DonorPerks;
+import com.honorsmp.logic.LeaderboardEmbed;
 import com.honorsmp.logic.DonorPerks.DonorTier;
 import com.honorsmp.logic.WeeklyDonor;
 import java.time.ZoneId;
@@ -158,6 +159,20 @@ public final class Donor {
         long now = System.currentTimeMillis();
         if (!d.topDonorUuid.isEmpty() && now >= d.topDonorExpiresAt) endWinner(h);
         if (h.config.topDonorEnabled && WeeklyDonor.due(d.lastWeeklyDonorRun, now, zone())) runWeekly(h, now);
+    }
+
+    /** Who is ahead in donation honor so far this week (since Monday 00:00), for the Discord leaderboard. Null = nobody. Judges never count. */
+    public static LeaderboardEmbed.DonorRow topThisWeek(Honor h, long now) {
+        long monday = WeeklyDonor.mondayStart(now, zone());
+        List<WeeklyDonor.Award> awards = new ArrayList<>();
+        for (PlayerRecord r : h.data.players.values()) {
+            if (r.donationAwards == null) continue;
+            for (DonationAward a : r.donationAwards) awards.add(new WeeklyDonor.Award(r.uuid, a.time, a.amount));
+        }
+        WeeklyDonor.Winner w = WeeklyDonor.select(awards, h::isJudge, monday, WeeklyDonor.nextWeek(monday, zone()));
+        if (w == null) return null;
+        PlayerRecord r = h.data.players.get(w.player());
+        return new LeaderboardEmbed.DonorRow(r == null || r.name == null ? w.player() : r.name, w.total());
     }
 
     private static void endWinner(Honor h) {

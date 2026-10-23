@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.3
+- Live Discord leaderboard. Set `leaderboardWebhookUrl` in `config/honorsmp.json` (empty = off) and the mod keeps ONE Discord message up to date: title "Honor leaderboard", top 10 by honor (rank, name, tier, score), bottom 5 (most dishonored), top 5 civs (same order as `/civ top`), top donor this week, and a footer with the update interval and the time. Judges are never listed.
+- `leaderboardUpdateMinutes` (default 5) sets how often it updates. It also updates right after a restart, and skips an update when nothing changed since the last one.
+- First post uses the webhook with `?wait=true`; the returned message id is saved in `data.json` (`leaderboardMessageId`) and later updates edit that message. If the message was deleted (404) a new one is posted and its id saved.
+- All HTTP is async with a timeout. A failed request logs one warning line and tries again next interval; Discord 429 `retry_after` is respected. The webhook URL is never logged or shown in chat. Names are escaped and the message cannot ping anyone.
+- `/honor reload` picks up a changed URL or interval. A new URL posts a fresh message.
+- New config keys: `leaderboardWebhookUrl`, `leaderboardUpdateMinutes`.
+
 ## 1.6.2
 - Donations never go to the judges' treasury. The treasury holds only paid fines and the civ upgrade tax.
 - Migration: on the first start of 1.6.2 every donatable stack still in the treasury (any food, golden apples, enchanted golden apples, totems of undying, ender pearls, and the ores, ingots and blocks from 1.6.0, including food donated before 1.4.0) is shared out like a new donation: equal split between everyone who has joined, leftover rotation, login notice in `/donation`. Emeralds, emerald blocks and stacks with a changed name or enchantments stay in the treasury. A treasury that was open at shutdown is included. It runs once (`treasuryDonationsMoved` in data.json); if nobody has joined yet it waits for the next start.

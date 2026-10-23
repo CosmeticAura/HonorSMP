@@ -79,6 +79,15 @@ Case books: when a case is created every judge gets a written book called `Case 
 
 Set `discordWebhookUrl` in the config to post every new case and decision to Discord.
 
+## Live Discord leaderboard
+
+Set `leaderboardWebhookUrl` in the config (empty = off) and the mod keeps one Discord message up to date: the top 10 by honor, the bottom 5 (most dishonored), the top 5 civs, this week's top donor so far, and a footer with the update interval and the time. Judges are not listed.
+
+- `leaderboardUpdateMinutes` (default 5) is how often it updates. It also updates right after a restart and skips an update when nothing changed.
+- The first post creates the message and its id is saved in `data.json`; later updates edit that same message. If someone deletes it, the next update posts a new one.
+- Requests run off the server thread with a timeout. A failure logs one warning line and is retried next interval. Discord rate limits (429) are respected. The webhook URL is never logged.
+- `/honor reload` picks up a changed URL or interval.
+
 ## Chest menus
 
 All menus are server-side chests that work on vanilla clients. Items in them are icons only: every click type, shift click, number key, drag and double click collect is cancelled, so nothing can be taken or duped.
@@ -226,3 +235,4 @@ Admins (ops, no judge powers unless also judges)
 - Admin commands check the op list and judge commands check the judge list in code, so no permission mod is needed.
 - There is no land claiming. Old claim data in `data.json` is dropped on load.
 - Honor tests: `./gradlew test`.
+- Changes in 1.6.3: live Discord leaderboard (`leaderboardWebhookUrl`, `leaderboardUpdateMinutes`). See above.

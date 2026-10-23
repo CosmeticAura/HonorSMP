@@ -65,6 +65,7 @@ public class Honor {
     public final Donations donations = new Donations(this);
     public final DonationBox donationBox = new DonationBox(this);
     public final Sieges sieges = new Sieges(this);
+    public final LiveLeaderboard leaderboard = new LiveLeaderboard(this);
     public final com.honorsmp.logic.CombatTimer combat = new com.honorsmp.logic.CombatTimer();
 
     public Honor(MinecraftServer server) {
@@ -99,9 +100,12 @@ public class Honor {
                 config = c;
             }
             config.migrate(); // old donation defaults and the per-type caps map; saved just below
+            if (config.leaderboardWebhookUrl == null) config.leaderboardWebhookUrl = "";
+            if (config.leaderboardUpdateMinutes < 1) config.leaderboardUpdateMinutes = 5;
             // rewrite so new options show up in the file
             Files.createDirectories(configPath.getParent());
             Files.writeString(configPath, GSON.toJson(config), StandardCharsets.UTF_8);
+            leaderboard.reconfigure(); // a changed URL or interval applies at once
             return null;
         } catch (Exception e) {
             LOG.error("Could not read config/honorsmp.json, keeping the previous values", e);
@@ -158,6 +162,7 @@ public class Honor {
         }
         data.version = 2;
         if (data.antiFarm == null) data.antiFarm = new LinkedHashMap<>();
+        if (data.leaderboardMessageId == null) data.leaderboardMessageId = "";
         if (data.topDonorUuid == null) data.topDonorUuid = "";
         if (data.topDonorName == null) data.topDonorName = "";
         if (data.topDonorClear == null) data.topDonorClear = new LinkedHashSet<>();
@@ -581,6 +586,11 @@ public class Honor {
             CivPerks.second(this);
         } catch (Exception e) {
             LOG.error("Civ upgrade check failed", e);
+        }
+        try {
+            leaderboard.second();
+        } catch (Exception e) {
+            LOG.warn("Leaderboard update failed: {}", e.getClass().getSimpleName());
         }
     }
 
