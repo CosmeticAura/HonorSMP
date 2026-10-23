@@ -5,6 +5,7 @@ import com.honorsmp.HonorData.Civ;
 import com.honorsmp.logic.CivChestEscrow;
 import com.honorsmp.logic.CivChestLock;
 import com.honorsmp.logic.CivChestMinMembers;
+import com.honorsmp.logic.CivChestRows;
 import com.mojang.serialization.JsonOps;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.registry.RegistryOps;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -43,13 +45,22 @@ public final class CivChest {
     private static final class Session {
         final ServerPlayerEntity player;
         final String civId;
-        final SimpleInventory inv = new SimpleInventory(SLOTS);
+        /** Open slots (9..54); the rest of the inventory holds gray panes that are never stored. */
+        final int unlocked;
+        final SimpleInventory inv;
         ScreenHandler handler;
         boolean closed;
 
-        Session(ServerPlayerEntity player, String civId) {
+        Session(ServerPlayerEntity player, String civId, int unlocked) {
             this.player = player;
             this.civId = civId;
+            this.unlocked = unlocked;
+            this.inv = new SimpleInventory(SLOTS) {
+                @Override
+                public boolean isValid(int slot, ItemStack stack) {
+                    return slot < Session.this.unlocked;
+                }
+            };
         }
     }
 
@@ -88,7 +99,7 @@ public final class CivChest {
             List<ItemStack> all = new ArrayList<>();
             Session s = open.get(civ.id);
             if (s != null && !s.closed) {
-                for (int i = 0; i < SLOTS; i++) if (!s.inv.getStack(i).isEmpty()) all.add(s.inv.getStack(i));
+                for (int i = 0; i < s.unlocked; i++) if (!s.inv.getStack(i).isEmpty()) all.add(s.inv.getStack(i));
             }
             all.addAll(escrow.stored(civ.id));
             List<JsonElement> out = new ArrayList<>();
@@ -128,7 +139,9 @@ public final class CivChest {
         if (lockLeft > 0) return CivChestLock.message(lockLeft);
         if (h.sieges.inWave(civ)) return CivChestLock.SIEGE_MESSAGE;
         boolean may = CivChestEscrow.mayUse(uuid, civ.leader, civ.officers, civ.members, civ.guards);
-        var res = escrow.open(civ.id, uuid, may);
+        int unlocked = CivChestRows.unlockedSlots(civ.chestRows);
+        if (may && !escrow.isOpen(civ.id)) moveOverflow(civ); // stacks that no longer fit the open rows
+        var res = escrow.open(civ.id, uuid, may, unlocked);
         switch (res.status()) {
             case NOT_MEMBER:
                 return "You are not in this civilization.";
@@ -136,16 +149,63 @@ public final class CivChest {
                 return CivChestEscrow.BUSY_MESSAGE;
             default:
         }
-        Session s = new Session(p, civ.id);
-        for (int i = 0; i < SLOTS; i++) s.inv.setStack(i, i < res.items().size() ? res.items().get(i) : ItemStack.EMPTY);
+        Session s = new Session(p, civ.id, unlocked);
+        for (int i = 0; i < SLOTS; i++) {
+            if (i >= unlocked) s.inv.setStack(i, lockedPane());
+            else s.inv.setStack(i, i < res.items().size() ? res.items().get(i) : ItemStack.EMPTY);
+        }
         open.put(civ.id, s);
-        s.handler = ChestUi.open(p, Text.literal(civ.name + " chest"), 6, s.inv, who -> close(s));
+        s.handler = ChestUi.openRows(p, Text.literal(civ.name + " chest"), s.inv, unlocked, who -> close(s));
         if (s.handler == null) {
             close(s);
             return "Could not open the civ chest. Press Esc to close any other screen and type /civ chest again.";
         }
         h.markDirty();
         return null;
+    }
+
+    private static ItemStack lockedPane() {
+        return Menu.icon(Items.GRAY_STAINED_GLASS_PANE, Text.literal(CivChestRows.LOCKED_NAME).formatted(Formatting.GRAY), List.of());
+    }
+
+    // ------------------------------------------------------------ rows (1.6.8)
+
+    /**
+     * Stacks the open rows cannot hold go to the leader's /donation box and the leader is told (now, or on login).
+     * Only touches a closed chest. Returns the number of items moved.
+     */
+    private long moveOverflow(Civ civ) {
+        List<ItemStack> over = escrow.trim(civ.id, CivChestRows.unlockedSlots(civ.chestRows));
+        if (over.isEmpty()) return 0;
+        long n = 0;
+        for (ItemStack st : over) {
+            n += st.getCount();
+            h.donationBox.addToBox(civ.leader, st);
+        }
+        Honor.LOG.info("Civ {}: {} items from locked chest rows moved to the leader's donation box", civ.name, n);
+        ServerPlayerEntity leader = null;
+        try {
+            leader = h.server == null ? null : h.server.getPlayerManager().getPlayer(UUID.fromString(civ.leader));
+        } catch (IllegalArgumentException ignored) {
+        }
+        if (leader != null) leader.sendMessage(Text.literal(CivChestRows.overflowNotice(n)).formatted(Formatting.GREEN));
+        else h.data.civChestOverflowNotices.merge(civ.leader, n, Long::sum);
+        h.markDirty();
+        return n;
+    }
+
+    /** On start: every civ's stored stacks are fitted to its open rows (the rest goes to the leader's donation box). */
+    public void enforceRows() {
+        for (Civ civ : h.data.civs.values()) moveOverflow(civ);
+    }
+
+    /** A row was bought: a viewer's screen is closed (items go back to the escrow) so the next opening shows the new row. */
+    public void rowsChanged(Civ civ) {
+        Session s = open.get(civ.id);
+        if (s == null || s.closed) return;
+        s.player.closeHandledScreen();
+        close(s);
+        s.player.sendMessage(Text.literal("A chest row was bought, so the civ chest was closed. Type /civ chest to open it again.").formatted(Formatting.GREEN));
     }
 
     /** Leader plus distinct members, officers and guards. */
@@ -181,7 +241,7 @@ public final class CivChest {
         List<ItemStack> left = new ArrayList<>();
         for (int i = 0; i < SLOTS; i++) {
             ItemStack st = s.inv.getStack(i);
-            if (!st.isEmpty()) left.add(st);
+            if (i < s.unlocked && !st.isEmpty()) left.add(st); // locked slots only ever hold panes
             s.inv.setStack(i, ItemStack.EMPTY);
         }
         if (!escrow.close(s.civId, s.player.getUuid().toString(), left)) {
@@ -278,6 +338,11 @@ public final class CivChest {
 
     /** On login: tells a leader whose civ was disbanded while they were offline. */
     public void onLogin(ServerPlayerEntity p) {
+        Long ov = h.data.civChestOverflowNotices.remove(p.getUuid().toString());
+        if (ov != null && ov > 0) {
+            p.sendMessage(Text.literal(CivChestRows.overflowNotice(ov)).formatted(Formatting.GREEN));
+            h.markDirty();
+        }
         Long n = h.data.civChestNotices.remove(p.getUuid().toString());
         if (n == null || n <= 0) return;
         p.sendMessage(Text.literal("The " + n + " items from your disbanded civilization's chest were moved to your donation box. Use /donation to claim them.")
@@ -298,6 +363,7 @@ public final class CivChest {
         open.clear();
         escrow.clear();
         h.data.civChestNotices = new LinkedHashMap<>();
+        h.data.civChestOverflowNotices = new LinkedHashMap<>();
         for (ServerPlayerEntity p : viewers) p.closeHandledScreen();
     }
 

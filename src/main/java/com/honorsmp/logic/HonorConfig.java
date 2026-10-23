@@ -261,6 +261,10 @@ public class HonorConfig {
             civUpgradeItems = defaultUpgradeItems();
             changed = true;
         }
+        if (civChestRowCosts == null) {
+            civChestRowCosts = CivChestRows.defaultCosts();
+            changed = true;
+        }
         if (civUpkeepPerDay == null) {
             civUpkeepPerDay = defaultUpkeepPerDay();
             changed = true;
@@ -335,6 +339,11 @@ public class HonorConfig {
     public int civChestCombatLockSeconds = 300;
     /** Members (leader included) a civ needs before /civ chest works. Below it the chest locks but keeps its items. Added in 1.6.7. */
     public int civChestMinMembers = 3;
+    /**
+     * Price of civ chest rows 2 to 6 (1.6.8), one list of "item:count" entries per row, row 2 first. A missing list,
+     * a missing row or an unreadable or emerald entry uses that row's default. Paid once, no upkeep. Never emeralds.
+     */
+    public java.util.List<java.util.List<String>> civChestRowCosts = CivChestRows.defaultCosts();
 
     // sieges (1.5.0). Only civs get sieges. Distances are blocks (horizontal for home/abandon checks).
     public boolean siegesEnabled = true;

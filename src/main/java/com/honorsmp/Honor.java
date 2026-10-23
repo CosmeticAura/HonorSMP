@@ -92,6 +92,7 @@ public class Honor {
         donations.load();
         donations.migrateTreasury(); // 1.6.2: donatable stacks in the treasury go to the /donation boxes, once
         civChest.load();
+        civChest.enforceRows(); // 1.6.8: stacks in locked rows go to the leader's donation box, once
         saveData();
         sieges.sweepAll();
         LOG.info("HonorSMP loaded: {} players, {} civs, {} open cases", data.players.size(),
@@ -144,6 +145,7 @@ public class Honor {
         if (data.donateRotation == null) data.donateRotation = new LinkedHashMap<>();
         if (data.donateNotices == null) data.donateNotices = new LinkedHashMap<>();
         if (data.civChestNotices == null) data.civChestNotices = new LinkedHashMap<>();
+        if (data.civChestOverflowNotices == null) data.civChestOverflowNotices = new LinkedHashMap<>();
         if (data.logs == null) data.logs = new ArrayList<>();
         if (data.cases == null) data.cases = new ArrayList<>();
         if (data.judges == null) data.judges = new LinkedHashSet<>();

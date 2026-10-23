@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.6.8
+- The civ chest has 6 rows. Row 1 is open as soon as the chest is unlocked (3 members). Rows 2 to 6 are bought once each, in order, in `/civ upgrades` ("Chest rows", chest icon, shows the next row's price). The leader or an officer buys, members can look. No daily upkeep for chest rows.
+- Default prices (config `civChestRowCosts`, one list of item:count entries per row 2 to 6): row 2 32 iron ingots, row 3 32 gold ingots, row 4 64 redstone and 32 lapis lazuli, row 5 16 diamonds, row 6 2 netherite ingots. Never emeralds (an emerald entry in the config falls back to that row's default). Paid like the other upgrades: taken from the buyer's inventory, all or nothing, with a clear "Not enough X" message, and the items go to the judges' treasury.
+- Locked rows show as gray stained glass panes named "Locked row, buy it in /civ upgrades". Nothing can be put in, taken out, shift clicked, number keyed, dropped, cloned or dragged into them. Only unlocked slots hold items.
+- Existing civ chests: what is stored stays. If more is stored than the open rows hold, the stacks that do not fit go to the leader's `/donation` box when the server starts (or the next time the chest is opened) and the leader is told. Nothing lost or duplicated.
+- Buying a row while someone has the chest open closes their screen safely so the new row shows next time.
+- Disbanding a civ takes the bought rows with it (chest contents still go to the leader's `/donation` box).
+- `/civ info` shows "Civ chest: N of 6 rows".
+- New config key: `civChestRowCosts`. New data.json fields: `chestRows` on each civ (0 to 5), `civChestOverflowNotices`.
+
 ## 1.6.7
 - `/civ chest` needs a civ with at least 3 members (leader included). A smaller civ gets "Your civ needs 3 members to unlock the civ chest (you have N)."
 - If a civ drops below the minimum (someone leaves or is kicked) the chest locks again but keeps its items. Anyone who has it open at that moment gets it closed safely, nothing lost or duplicated. When the civ is back at 3, the items are still there.

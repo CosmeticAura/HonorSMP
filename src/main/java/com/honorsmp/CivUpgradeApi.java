@@ -71,6 +71,7 @@ public final class CivUpgradeApi {
         civ.upgrades = null;
         civ.upkeepDueAt = 0;
         civ.upkeepWarnedFor = 0;
+        civ.chestRows = 0; // 1.6.8: bought chest rows go with the upgrades
     }
 
     /**
@@ -120,6 +121,24 @@ public final class CivUpgradeApi {
             civ.upkeepWarnedFor = 0;
         }
         return new BuyResult(BuyCheck.OK, next, cost, null);
+    }
+
+    // ---------------------------------------------------------------- chest rows (1.6.8)
+
+    /** Rows bought so far, 0..5. */
+    public static int chestRows(Civ civ) {
+        return civ == null ? 0 : com.honorsmp.logic.CivChestRows.clampBought(civ.chestRows);
+    }
+
+    /**
+     * Buys the next civ chest row: in order only, price from {@code civChestRowCosts}, all or nothing. On OK the civ's
+     * row count is raised and {@code taken} lists what was taken from the wallet. No upkeep starts for rows.
+     */
+    public static com.honorsmp.logic.CivChestRows.BuyResult buyChestRow(Civ civ, HonorConfig c, Wallet w) {
+        int have = chestRows(civ);
+        var res = com.honorsmp.logic.CivChestRows.buy(c.civChestRowCosts, have, com.honorsmp.logic.CivChestRows.nextRow(have), w);
+        if (res.ok()) civ.chestRows = res.bought();
+        return res;
     }
 
     // ---------------------------------------------------------------- upkeep

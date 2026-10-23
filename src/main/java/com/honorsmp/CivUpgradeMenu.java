@@ -1,6 +1,7 @@
 package com.honorsmp;
 
 import com.honorsmp.HonorData.Civ;
+import com.honorsmp.logic.CivChestRows;
 import com.honorsmp.logic.CivEffects;
 import com.honorsmp.logic.CivUpgrades;
 import com.honorsmp.logic.CivUpgrades.BuyCheck;
@@ -122,8 +123,92 @@ public final class CivUpgradeMenu {
             ItemStack icon = Menu.icon(iconOf(u), Text.literal(u.display).formatted(lvl > 0 && !late ? Formatting.GREEN : Formatting.WHITE), lore);
             m.set(CivEffects.slotOf(u), icon, (who, r, s) -> onUpgradeClick(who, u));
         }
+        addRowsIcon(m, civ, manage);
         m.backOrClose(null);
         m.open(p);
+    }
+
+    // ------------------------------------------------------------ chest rows (1.6.8)
+
+    private static void addRowsIcon(Menu m, Civ civ, boolean manage) {
+        Honor h = Honor.I;
+        int bought = CivUpgradeApi.chestRows(civ);
+        int next = CivChestRows.nextRow(bought);
+        List<Text> lore = new ArrayList<>();
+        lore.add(gray(CivChestRows.infoLine(bought)));
+        if (next == 0) {
+            lore.add(Text.literal("All rows bought").formatted(Formatting.GREEN));
+        } else {
+            lore.add(Text.literal("Row " + next + " costs: " + CivUpkeep.describe(CivChestRows.costOf(h.config.civChestRowCosts, next))).formatted(Formatting.YELLOW));
+            lore.add(gray("Bought once, no daily upkeep."));
+            lore.add(manage ? Text.literal("Click to buy").formatted(Formatting.GREEN) : gray("Only the leader or officers can buy rows."));
+        }
+        m.set(CivChestRows.MENU_SLOT, Menu.icon(Items.CHEST, Text.literal("Chest rows").formatted(next == 0 ? Formatting.GREEN : Formatting.WHITE), lore),
+                (who, r, s) -> onRowsClick(who));
+    }
+
+    private static void onRowsClick(ServerPlayerEntity who) {
+        Honor h = Honor.I;
+        if (h == null) return;
+        Civ civ = h.civOf(who.getUuid().toString());
+        if (civ == null) return;
+        if (!CivUpgradeApi.canManage(civ, who.getUuid().toString())) {
+            who.sendMessage(Text.literal("Only the leader or officers can buy chest rows").formatted(Formatting.RED), true);
+            return;
+        }
+        int next = CivChestRows.nextRow(CivUpgradeApi.chestRows(civ));
+        if (next == 0) {
+            who.sendMessage(Text.literal("All 6 chest rows are already bought").formatted(Formatting.RED), true);
+            return;
+        }
+        Menu m = Menu.create(Text.literal("Buy chest row " + next + "?"), 3);
+        m.icon(4, Menu.icon(Items.CHEST, Text.literal("Chest row " + next).formatted(Formatting.GREEN), List.of(
+                gray("Adds 9 slots to the civ chest."),
+                Text.literal("Cost: " + CivUpkeep.describe(CivChestRows.costOf(h.config.civChestRowCosts, next))).formatted(Formatting.YELLOW),
+                gray("Bought once, no daily upkeep."))));
+        m.set(11, Menu.icon(Items.LIME_CONCRETE, "Confirm", Formatting.GREEN, "Take the cost from your inventory"), (w, r, s) -> buyRow(w));
+        m.set(15, Menu.icon(Items.RED_CONCRETE, "Cancel", Formatting.RED), (w, r, s) -> open(w));
+        m.open(who);
+    }
+
+    private static void buyRow(ServerPlayerEntity who) {
+        Honor h = Honor.I;
+        if (h == null) return;
+        Civ civ = h.civOf(who.getUuid().toString());
+        if (civ == null || !CivUpgradeApi.canManage(civ, who.getUuid().toString())) {
+            who.closeHandledScreen();
+            return;
+        }
+        var res = CivUpgradeApi.buyChestRow(civ, h.config, wallet(who));
+        if (res.ok()) {
+            // paid items go to the judges' treasury, in stacks
+            for (var e : res.taken().entrySet()) {
+                var item = Registries.ITEM.get(net.minecraft.util.Identifier.of(e.getKey()));
+                int left = e.getValue();
+                while (left > 0) {
+                    int n = Math.min(left, new ItemStack(item).getMaxCount());
+                    h.treasury.addItem(new ItemStack(item, n));
+                    left -= n;
+                }
+            }
+            h.markDirty();
+            h.civChest.rowsChanged(civ); // anyone with the chest open gets it closed so the new row shows
+            for (String id : civ.members) {
+                ServerPlayerEntity mm = h.online(id);
+                if (mm != null) mm.sendMessage(Text.literal("[" + civ.name + "] " + who.getName().getString() + " bought a civ chest row ("
+                        + CivChestRows.infoLine(res.bought()) + ")").formatted(Formatting.GOLD));
+            }
+            h.saveData();
+        } else {
+            String msg = switch (res.status()) {
+                case NOT_ENOUGH_ITEMS -> "Not enough " + CivUpkeep.pretty(res.missing());
+                case ALL_BOUGHT -> "All 6 chest rows are already bought";
+                default -> "Cannot buy that row yet";
+            };
+            who.sendMessage(Text.literal(msg).formatted(Formatting.RED), true);
+            who.sendMessage(Text.literal(msg + " (only plain, unnamed, unenchanted items count)").formatted(Formatting.RED));
+        }
+        open(who); // refresh
     }
 
     private static void onUpgradeClick(ServerPlayerEntity who, Upgrade u) {

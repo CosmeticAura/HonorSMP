@@ -860,6 +860,7 @@ public final class Cmds {
         boolean chestOk = h.civChest.unlocked(civ);
         say(c, Text.literal(com.honorsmp.logic.CivChestMinMembers.infoLine(CivChest.memberCount(civ), h.config.civChestMinMembers))
                 .formatted(chestOk ? Formatting.GREEN : Formatting.GRAY));
+        say(c, Text.literal(com.honorsmp.logic.CivChestRows.infoLine(CivUpgradeApi.chestRows(civ))).formatted(Formatting.GRAY));
         if (CivUpgradeApi.hasUpgrades(civ)) {
             boolean late = CivUpgradeApi.isLate(civ, System.currentTimeMillis());
             List<String> ups = new ArrayList<>();

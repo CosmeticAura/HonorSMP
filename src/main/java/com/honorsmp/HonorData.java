@@ -42,6 +42,8 @@ public class HonorData {
     public Map<String, List<String>> donateNotices = new LinkedHashMap<>();
     /** Leader uuid to how many chest items from a disbanded civ were moved to their donation box while offline. Added in 1.5.0. */
     public Map<String, Long> civChestNotices = new LinkedHashMap<>();
+    /** Leader uuid to items moved to their donation box because civ chest rows were locked (1.6.8). */
+    public Map<String, Long> civChestOverflowNotices = new LinkedHashMap<>();
     /** Member uuid to the last known respawn point (bed/anchor). Cached so offline members still count for the siege home. Added in 1.5.0. */
     public Map<String, RespawnPoint> respawnPoints = new LinkedHashMap<>();
     public List<LogEntry> logs = new ArrayList<>();
@@ -89,6 +91,7 @@ public class HonorData {
         if (donateRotation != null) donateRotation.clear();
         if (donateNotices != null) donateNotices.clear();
         if (civChestNotices != null) civChestNotices.clear();
+        if (civChestOverflowNotices != null) civChestOverflowNotices.clear();
         logs.clear();
         cases.clear();
         treasuryEmeralds = 0;
@@ -202,6 +205,8 @@ public class HonorData {
         public long upkeepDueAt = 0;
         /** The upkeepDueAt value the "due soon" warning was already sent for (so it is sent once). 0 = none. */
         public long upkeepWarnedFor = 0;
+        /** Civ chest rows bought (1.6.8), 0..5: the chest has 1 + this many open rows. Missing in older data = 0. */
+        public int chestRows = 0;
     }
 
     public static class LogEntry {

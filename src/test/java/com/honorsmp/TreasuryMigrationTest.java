@@ -120,13 +120,13 @@ class TreasuryMigrationTest {
         int count = don.split("h\\.treasury", -1).length - 1;
         assertEquals(1, count);
         assertTrue(don.contains("h.treasury.closedItems()"));
-        // the only code that adds to the treasury is fines and the civ upgrade upkeep
+        // the only code that adds to the treasury is fines, the civ upgrade upkeep and bought civ chest rows
         try (var files = Files.walk(root)) {
             for (Path p : (Iterable<Path>) files.filter(x -> x.toString().endsWith(".java"))::iterator) {
                 String name = p.getFileName().toString();
                 String src = Files.readString(p).replaceAll("(?s)/\\*.*?\\*/|//[^\n]*", "");
                 if (src.contains("treasury.addItem") || src.contains("treasury.addEmeralds") || src.contains("h.treasury::addEmeralds")) {
-                    assertTrue(name.equals("Fines.java") || name.equals("UpkeepPay.java") || name.equals("Cmds.java"), name);
+                    assertTrue(name.equals("Fines.java") || name.equals("UpkeepPay.java") || name.equals("CivUpgradeMenu.java") || name.equals("Cmds.java"), name);
                 }
             }
         }

@@ -64,6 +64,12 @@ public final class CivChestEscrow<T> {
 
     /** Opens the chest for one player. Moves up to {@code capacity} stacks out to the caller. */
     public Opened<T> open(String civId, String user, boolean mayUse) {
+        return open(civId, user, mayUse, capacity);
+    }
+
+    /** Like {@link #open(String, String, boolean)} with the number of open slots (1.6.8: bought rows), at most the capacity. */
+    public Opened<T> open(String civId, String user, boolean mayUse, int slots) {
+        int capacity = Math.max(0, Math.min(this.capacity, slots));
         if (!mayUse) return new Opened<>(Status.NOT_MEMBER, List.of());
         if (viewers.containsKey(civId)) return new Opened<>(Status.BUSY, List.of());
         viewers.put(civId, user);
@@ -89,6 +95,25 @@ public final class CivChestEscrow<T> {
         list.addAll(0, back); // screen contents first, overflow behind them
         if (list.isEmpty()) stored.remove(civId);
         return true;
+    }
+
+    /**
+     * 1.6.8: the chest only has {@code slots} open slots. Stacks beyond that (an old chest with locked rows, or more
+     * than the open rows hold) are removed from the stored list and returned, so the caller can hand them to the
+     * leader's donation box. Does nothing while the chest is open. Every stack ends up in exactly one list.
+     */
+    public List<T> trim(String civId, int slots) {
+        if (viewers.containsKey(civId)) return new ArrayList<>();
+        List<T> all = stored.get(civId);
+        if (all == null) return new ArrayList<>();
+        var fit = CivChestRows.fit(all, slots);
+        List<T> keep = new ArrayList<>();
+        List<T> over = new ArrayList<>();
+        for (T t : fit.keep()) (live(t) ? keep : over).add(t);
+        for (T t : fit.overflow()) if (live(t)) over.add(t);
+        if (keep.isEmpty()) stored.remove(civId);
+        else stored.put(civId, keep);
+        return over;
     }
 
     /** The uuid with the chest open, or null. */
