@@ -36,7 +36,7 @@ class PlayerCommandsTest {
             "bounty set Steve", "bounty claim", "bounty list", "bounty list text",
             "civ create My Civ", "civ invite Steve", "civ join My Civ", "civ leave", "civ kick Steve",
             "civ promote Steve", "civ guard Steve", "civ disband",
-            "civ info", "civ info My Civ", "civ list", "civ top", "civ upgrades", "civ upgrade", "civ upkeep", "civ upkeep pay", "civ upkeep pay haste", "civ upkeep pause", "civ upkeep pause speed",
+            "civ info", "civ info My Civ", "civ list", "civ top", "civ upgrades",
             "cc", "cc hello civ");
 
     /** Commands typed without their argument: allowed, and answer with a Usage line. */
@@ -90,21 +90,23 @@ class PlayerCommandsTest {
         }
     }
 
-    /** 1.7.0: /civ upgrade and the old /civ upkeep forms are hidden aliases that all run the same handler as /civ upgrades. */
+    /** 1.7.1: /civ upgrades is the only upgrades command; /civ upgrade and the /civ upkeep forms are gone from the tree. */
     @Test
-    void upkeepAndUpgradeAliasesOpenTheUpgradesMenu() throws Exception {
+    void onlyCivUpgradesRemains() throws Exception {
         var civ = d.getRoot().getChild("civ");
-        var handler = civ.getChild("upgrades").getCommand();
-        assertNotNull(handler);
-        assertNotNull(civ.getChild("upgrade").getCommand());
-        assertNotNull(civ.getChild("upkeep").getCommand());
-        assertNotNull(civ.getChild("upkeep").getChild("pay").getCommand());
-        assertNotNull(civ.getChild("upkeep").getChild("pause").getCommand()); // no more "Usage:" error
-        // they reach the same place: past permissions, into the handler (no server in a unit test)
-        for (String cmd : List.of("civ upgrades", "civ upgrade", "civ upkeep", "civ upkeep pay", "civ upkeep pay haste", "civ upkeep pause", "civ upkeep pause speed")) {
-            var e = assertThrows(CommandSyntaxException.class, () -> d.execute(cmd, src), cmd);
-            assertTrue(e.getRawMessage().getString().startsWith("HonorSMP is not ready yet."), cmd + " -> " + e.getRawMessage().getString());
+        assertNotNull(civ.getChild("upgrades").getCommand());
+        assertNull(civ.getChild("upgrade"));
+        assertNull(civ.getChild("upkeep"));
+        // tab complete shows exactly one upgrades entry
+        var sugg = d.getCompletionSuggestions(d.parse("civ up", src)).get();
+        assertEquals(List.of("upgrades"), sugg.getList().stream().map(x -> x.getText()).toList());
+        // the removed forms no longer parse
+        for (String cmd : List.of("civ upgrade", "civ upkeep", "civ upkeep pay", "civ upkeep pause speed")) {
+            assertThrows(CommandSyntaxException.class, () -> d.execute(cmd, src), cmd);
         }
+        // the one that stays reaches the handler (no server in a unit test)
+        var e = assertThrows(CommandSyntaxException.class, () -> d.execute("civ upgrades", src));
+        assertTrue(e.getRawMessage().getString().startsWith("HonorSMP is not ready yet."), e.getRawMessage().getString());
     }
 
     @Test

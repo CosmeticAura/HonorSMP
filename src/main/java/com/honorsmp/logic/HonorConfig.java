@@ -35,7 +35,7 @@ public class HonorConfig {
 
     // civ upgrades (1.6.0) and their daily upkeep (1.6.5). Arrays are indexed by level - 1 (level 1, level 2).
     public boolean civUpgradesEnabled = true;
-    /** Upgrade id (resistance, strength, speed, haste, fortitude) to the item its upkeep and purchase are paid in. Never emeralds. */
+    /** Upgrade id (resistance, strength, speed, haste, fortitude) to the item its upkeep and purchase are paid in. */
     public java.util.Map<String, String> civUpgradeItems = defaultUpgradeItems();
     /** Upgrade id to items per day for [level 1, level 2]. */
     public java.util.Map<String, int[]> civUpkeepPerDay = defaultUpkeepPerDay();
@@ -61,6 +61,27 @@ public class HonorConfig {
     public static java.util.Map<String, String> defaultUpgradeItems() {
         java.util.Map<String, String> m = new java.util.LinkedHashMap<>();
         m.put("resistance", "minecraft:iron_ingot");
+        m.put("strength", "minecraft:gold_ingot");
+        m.put("speed", "minecraft:diamond");
+        m.put("haste", "minecraft:emerald");
+        m.put("fortitude", "minecraft:netherite_scrap");
+        return m;
+    }
+
+    public static java.util.Map<String, int[]> defaultUpkeepPerDay() {
+        java.util.Map<String, int[]> m = new java.util.LinkedHashMap<>();
+        m.put("resistance", new int[] {32, 64});
+        m.put("strength", new int[] {16, 32});
+        m.put("speed", new int[] {4, 8});
+        m.put("haste", new int[] {32, 64});
+        m.put("fortitude", new int[] {2, 4});
+        return m;
+    }
+
+    /** The 1.6.5 to 1.7.0 default items, kept only so {@link #migrate()} can tell an untouched value from a hand-edited one. */
+    static java.util.Map<String, String> oldDefaultUpgradeItems() {
+        java.util.Map<String, String> m = new java.util.LinkedHashMap<>();
+        m.put("resistance", "minecraft:iron_ingot");
         m.put("strength", "minecraft:gunpowder");
         m.put("speed", "minecraft:redstone");
         m.put("haste", "minecraft:lapis_lazuli");
@@ -68,7 +89,8 @@ public class HonorConfig {
         return m;
     }
 
-    public static java.util.Map<String, int[]> defaultUpkeepPerDay() {
+    /** The 1.6.5 to 1.7.0 default daily amounts, same purpose. */
+    static java.util.Map<String, int[]> oldDefaultUpkeepPerDay() {
         java.util.Map<String, int[]> m = new java.util.LinkedHashMap<>();
         m.put("resistance", new int[] {16, 32});
         m.put("strength", new int[] {16, 32});
@@ -163,6 +185,8 @@ public class HonorConfig {
 
     /** 0 = file written before 1.6.0: missing default ingots, ores and blocks are added once to donateExtraItems / donateCapTypes. */
     public int donateMaterialsVersion = 0;
+    /** 1.7.1: 0 = the upgrade items and daily amounts have not been moved to the 1.7.1 defaults yet. */
+    public int civUpgradeItemsVersion = 0;
     /**
      * Item id to the cap type its honor counts toward (see donateItemDailyCaps). Checked before the food and
      * bare-id rules. Ore blocks sit under the type of the item they drop.
@@ -267,6 +291,23 @@ public class HonorConfig {
         }
         if (civUpkeepPerDay == null) {
             civUpkeepPerDay = defaultUpkeepPerDay();
+            changed = true;
+        }
+        if (civUpgradeItemsVersion < 1) {
+            // 1.7.1: new upkeep items and amounts. Per upgrade, a value still at the old default becomes the new default; a value an admin changed stays.
+            var newItems = defaultUpgradeItems();
+            for (var e : oldDefaultUpgradeItems().entrySet()) {
+                String cur = civUpgradeItems.get(e.getKey());
+                if (cur == null || cur.isBlank() || cur.trim().equalsIgnoreCase(e.getValue()) || cur.trim().equalsIgnoreCase(e.getValue().substring("minecraft:".length()))) {
+                    civUpgradeItems.put(e.getKey(), newItems.get(e.getKey()));
+                }
+            }
+            var newAmounts = defaultUpkeepPerDay();
+            for (var e : oldDefaultUpkeepPerDay().entrySet()) {
+                int[] cur = civUpkeepPerDay.get(e.getKey());
+                if (cur == null || java.util.Arrays.equals(cur, e.getValue())) civUpkeepPerDay.put(e.getKey(), newAmounts.get(e.getKey()).clone());
+            }
+            civUpgradeItemsVersion = 1;
             changed = true;
         }
         if (tradeCooldownItems == null) {

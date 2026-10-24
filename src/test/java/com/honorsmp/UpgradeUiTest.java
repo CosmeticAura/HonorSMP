@@ -68,7 +68,7 @@ class UpgradeUiTest {
         assertEquals(1, s.level());
         assertEquals("4h 0m left", s.paidUntil());
         assertEquals("1d 4h left", UpgradeUi.paidUntil(Status.ON, T0 + D + 4 * H, T0));
-        assertTrue(s.dailyCost().contains("16"), s.dailyCost());
+        assertTrue(s.dailyCost().contains("32 iron ingot"), s.dailyCost());
         assertEquals(List.of(Action.BUY, Action.PAY, Action.PAUSE), s.actions());
     }
 

@@ -58,7 +58,7 @@ Self defense is free: if they hit you first, you lose nothing.
 
 **Bounties:** `/bounty set <player>` to put items on an outlaw. Kill them, then `/bounty claim`.
 **Civs (teams):** `/civ create <name>` is free. Use `/cc` for team chat and `/civ chest` for a shared chest (needs 3 members in your civ, starts with 1 row, the leader buys more rows in /civ upgrades, locked for 5 minutes after another player hurts you). Teammates can't hurt each other.
-**Civ upgrades:** `/civ upgrades` buys team boosts, paid in iron, gunpowder, redstone, lapis and gold (no emeralds). Each one has its own small daily upkeep, paid in the same menu. Late upkeep turns only that upgrade off until it's paid, and the Pause button stops one costing.
+**Civ upgrades:** `/civ upgrades` buys team boosts, paid in iron, gold, diamonds, emeralds and netherite scrap. Each one has its own small daily upkeep, paid in the same menu. Late upkeep turns only that upgrade off until it's paid, and the Pause button stops one costing.
 **Donor ranks:** donate a lot and you get a tag, then Luck, then healing when you respawn. The top donor each week gets Hero of the Village.
 **Sieges:** every few days pillagers attack a team's home. Defend it for +10 honor and a loot chest.
 **Unfair call?** `/appeal <reason>`

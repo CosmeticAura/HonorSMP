@@ -762,16 +762,6 @@ public final class Cmds {
                     return 1;
                 }))
                 .then(lit("upgrades").executes(c -> openUpgrades(c)))
-                .then(lit("upgrade").executes(c -> openUpgrades(c)))
-                // 1.7.0: hidden aliases. Not in help or docs; they only open the one menu so old habits do not error.
-                .then(lit("upkeep")
-                        .executes(c -> openUpgrades(c))
-                        .then(lit("pay")
-                                .executes(c -> openUpgrades(c))
-                                .then(arg("upgrade", StringArgumentType.word()).suggests(upgradeIds()).executes(c -> openUpgrades(c))))
-                        .then(lit("pause")
-                                .executes(c -> openUpgrades(c))
-                                .then(arg("upgrade", StringArgumentType.word()).suggests(upgradeIds()).executes(c -> openUpgrades(c)))))
                 .then(lit("info")
                         .executes(c -> {
                             info(c, myCiv(c));
@@ -887,7 +877,7 @@ public final class Cmds {
         return u;
     }
 
-    /** /civ upgrades and its aliases (/civ upgrade, /civ upkeep ...): open the one menu. */
+    /** /civ upgrades (1.7.1: the only command for this; the old /civ upgrade and /civ upkeep aliases are gone): open the one menu. */
     private static int openUpgrades(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
         h();
         CivUpgradeMenu.open(player(c));

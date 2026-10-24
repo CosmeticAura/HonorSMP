@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.1
+- Only one upgrades command: `/civ upgrades`. `/civ upgrade` and the old `/civ upkeep`, `/civ upkeep pay` and `/civ upkeep pause` are removed from the command tree, so tab complete and `/civ help` show just one entry. Login and due-soon warnings still say "Open /civ upgrades to pay".
+- New upkeep items and amounts per day (level 1 / level 2): Resistance 32 / 64 iron ingots, Strength 16 / 32 gold ingots, Speed 4 / 8 diamonds, Haste 32 / 64 emeralds, Fortitude 2 / 4 netherite scrap.
+- Buying still costs 4 days of that upgrade's level 1 upkeep (level 2: 4 days of level 2 upkeep plus 8 diamonds). Chest row prices are unchanged. The `/civ upgrades` icons and lore show the new item and amounts.
+- Days already paid stay paid; the next payment uses the new item.
+- Admin notes: on first load of 1.7.1 (`civUpgradeItemsVersion` 0 to 1) each `civUpgradeItems` and `civUpkeepPerDay` entry that is still the old 1.7.0 default is replaced by the new default. An entry someone changed by hand is kept.
+
 ## 1.7.0
 - One menu for everything: `/civ upgrades`. It is the only command a player needs for upgrades, upkeep and chest rows. Members can open it to look; only the leader and officers can click actions (others see "Only the leader or officers can do that").
 - Main page: one icon per upgrade (Resistance, Strength, Speed, Haste, Fortitude) plus Chest rows. The lore shows the level and what it does, the status (On / Paused / Unpaid (off) / Not bought), Paid until (time left like "1d 4h"), the daily cost and what a click does.
