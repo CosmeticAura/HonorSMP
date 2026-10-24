@@ -158,7 +158,7 @@ Bounty Compass: Noble and up get one with `/honor tracker`, or craft it shapeles
 
 `/honor top` lists the top 10 only among players who are honorable right now, and the bottom 10 only among players who are dishonored right now. Someone who went from Marauder back to Neutral drops off the bottom list.
 
-## Civ upgrades and the daily upkeep (1.6.0, upkeep since 1.6.5, per upgrade since 1.6.9)
+## Civ upgrades and the daily upkeep (1.6.0, upkeep since 1.6.5, per upgrade since 1.6.9, one menu since 1.7.0)
 
 `/civ upgrades` opens a chest menu. The leader and officers buy (click, then confirm; the cost is taken from their inventory, plain items only), other members can open it to look. Each upgrade has 2 levels and applies to all online members everywhere. It stacks with rank perks (max health from rank and Fortitude add up). No emeralds are involved anywhere: every upgrade is bought and kept running with its own item.
 
@@ -171,9 +171,9 @@ Bounty Compass: Noble and up get one with `/honor tracker`, or craft it shapeles
 | Fortitude | +2 max health | +4 max health | gold ingot | 8 / 16 |
 
 - **Buying:** level 1 costs 4 days of that level's upkeep (`civBuyDays`), level 2 costs 4 days of the level 2 upkeep plus 8 diamonds (`civLevel2Diamonds`). Example: Speed 1 is 128 redstone, Speed 2 is 256 redstone and 8 diamonds.
-- **Upkeep:** every owned upgrade costs its own item every day, whatever the civ's size, and has its own due date. Due 24 hours after that upgrade was first bought, then 24 hours after each paid day. `/civ upkeep` lists each owned upgrade with its daily cost and paid-until date (or LATE or PAUSED). `/civ upkeep pay` (leader or officer) opens the upkeep menu, one icon per upgrade; click one to open a chest like the fine payment: put the items in and close it, as many whole days as they cover are paid, the rest comes back, and the paid items go to the judges' treasury. `/civ upkeep pay <upgrade>` skips the menu. Each upgrade can be paid up to `civUpkeepMaxAheadDays` (3) days ahead on its own. The leader and officers get a warning that names the upgrade on login and `civUpkeepWarningHours` (2) hours before it is due.
+- **Upkeep:** every owned upgrade costs its own item every day, whatever the civ's size, and has its own due date. Due 24 hours after that upgrade was first bought, then 24 hours after each paid day. In `/civ upgrades` each upgrade icon shows its level, status, paid-until time left and daily cost. Click an upgrade to open its page; **Pay 1 day** (leader or officer) opens a chest like the fine payment: put the items in and close it, as many whole days as they cover are paid, the rest comes back, and the paid items go to the judges' treasury. Each upgrade can be paid up to `civUpkeepMaxAheadDays` (3) days ahead on its own. The leader and officers get a warning that names the upgrade on login and `civUpkeepWarningHours` (2) hours before it is due ("Open /civ upgrades to pay").
 - **Unpaid:** when one upgrade's upkeep is late only that upgrade switches off and cannot be bought further; the others keep working. `[Unpaid]` shows in `/civ info` (naming the upgrades) and `/civ list`. Only one day is ever owed however long it was late. Nobody loses honor. Paying that upgrade turns it back on at once.
-- **Pause:** `/civ upkeep pause <upgrade>` (leader or officer) or the Pause button under the upgrade in the upkeep menu. A paused upgrade is off, costs nothing, keeps its level, never goes late and sends no warnings. Paying its upkeep switches it back on, with the paid time it had left when it was paused. `/civ info` shows it as paused.
+- **Pause:** the Pause button on the upgrade's page in `/civ upgrades` (leader or officer). A paused upgrade is off, costs nothing, keeps its level, never goes late and sends no warnings. Resume (same as paying) switches it back on, with the paid time it had left when it was paused. `/civ info` shows it as paused.
 - **Disband:** upgrades and bought chest rows are lost, no refund.
 - **Config:** `civUpgradesEnabled`, `civUpgradeItems` (upgrade id to item id), `civUpkeepPerDay` (upgrade id to [level 1, level 2]), `civBuyDays`, `civLevel2Diamonds`, `civUpkeepWarningHours`, `civUpkeepMaxAheadDays`, `upgradeResistancePercent`, `upgradeStrengthBonus`, `upgradeSpeedPercent`, `upgradeHasteLevel`, `upgradeFortitudeHp` (arrays: level 1, level 2). The old `upgradeEmeraldCost`, `upgradeDiamondCost` and tax keys are removed from the config on load.
 - **Existing civs** keep the upgrades they own, with the first upkeep due 24 hours after 1.6.5 first loads. The old weekly tax fields in data.json are dropped. 1.6.9: on first load each owned upgrade gets the civ's old shared due date (data.json fields `upgradeDue`, `upgradeWarned`, `upgradePaused`; the old `upkeepDueAt` is left unused).
@@ -192,7 +192,7 @@ Weekly top donor (`topDonorEnabled`): every Monday 00:00 server time the player 
 
 ## Civilization command replies
 
-`/civ upgrades` (1.6.0) opens the civ upgrade menu (leader/officers buy, members can look); `/civ upkeep` shows each upgrade's daily upkeep and paid-until date, `/civ upkeep pay [upgrade]` (leader/officer) pays one upgrade into the judges' treasury, and `/civ upkeep pause <upgrade>` stops one costing. Late upkeep switches off only that upgrade and shows `[Unpaid]` in `/civ info` and `/civ list` until paid.
+`/civ upgrades` (1.6.0, one menu for everything since 1.7.0) opens the civ upgrade menu: one icon per upgrade plus Chest rows; click one for its own page with Buy / Upgrade, Pay 1 day, Pause / Resume and Back. Leader and officers click, members can look ("Only the leader or officers can do that"). Every buy and pause asks for one confirm click (the button reads "Click again to confirm" for 5 seconds). `/civ upgrade` opens it too. The old `/civ upkeep`, `/civ upkeep pay` and `/civ upkeep pause` are hidden aliases that just open the same menu. Late upkeep switches off only that upgrade and shows `[Unpaid]` in `/civ info` and `/civ list` until paid.
 
 
 `/civ promote` on an officer says "Already an officer" and changes nothing. `/civ guard` is a toggle and says whether the player became or stopped being a guard. `/civ invite` on someone already in your civ says they are already a member.
@@ -238,6 +238,7 @@ Admins (ops, no judge powers unless also judges)
 
 ## Notes
 
+- Changes in 1.7.0: one menu. `/civ upgrades` now does everything for upgrades, upkeep and chest rows (status, paid-until, daily cost on each icon; an own page per upgrade; confirm click on every buy and pause). `/civ upkeep ...` is a hidden alias. No game rule changed. See CHANGELOG.
 - Changes in 1.6.9: upgrade upkeep is per upgrade: each upgrade has its own due date, pay-ahead limit and late state, `/civ upkeep pay [upgrade]` and a pause option (`/civ upkeep pause <upgrade>`). See the civ upgrades section.
 - Changes in 1.6.8: the civ chest has 6 rows; row 1 opens with the chest (3 members) and rows 2 to 6 are bought once each, in order, in `/civ upgrades`. New config key `civChestRowCosts`, new data.json fields `chestRows` (per civ) and `civChestOverflowNotices`. Old chests keep their items; what no longer fits goes to the leader's `/donation` box.
 - Changes in 1.6.7: `/civ chest` needs a civ of at least 3 members (new config key `civChestMinMembers`, default 3). Below that it is locked but keeps its items, an open chest is closed safely when the civ drops below, and `/civ info` shows whether the chest is locked or unlocked.

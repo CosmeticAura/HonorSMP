@@ -60,7 +60,7 @@ public final class UpkeepPay {
 
     /** Returns an error message, or null when the chest opened. */
     public String openFor(ServerPlayerEntity p, Civ civ, Upgrade u) {
-        if (open.containsKey(p.getUuid())) return "You already have an upkeep screen open. Press Esc to close it, then run the command again.";
+        if (open.containsKey(p.getUuid())) return "You already have an upkeep screen open. Press Esc to close it, then click Pay again in /civ upgrades.";
         if (!CivUpgradeApi.canManage(civ, p.getUuid().toString())) return "Only the leader or officers can pay the upkeep. Ask one of them.";
         long now = System.currentTimeMillis();
         if (CivUpgradeApi.ownedLevel(civ, u) <= 0) return "Your civ does not own " + u.display + ", so it owes no upkeep for it. See /civ upgrades.";
@@ -74,7 +74,7 @@ public final class UpkeepPay {
         s.handler = ChestUi.open(p, Text.literal(u.display + " upkeep: " + CivUpkeep.describe(perDay) + " a day (close to pay)"), ROWS, inv, who -> close(s));
         if (s.handler == null) {
             open.remove(p.getUuid());
-            return "Could not open the upkeep screen. Press Esc to close any other screen and run /civ upkeep pay again.";
+            return "Could not open the upkeep screen. Press Esc to close any other screen and click Pay again in /civ upgrades.";
         }
         tell(p, "Put the " + u.display + " upkeep items in the chest and close it. Each day needs " + CivUpkeep.describe(perDay) + "; you can pay up to "
                 + room + (room == 1 ? " day" : " days") + " now. Extra items are returned.", Formatting.YELLOW);

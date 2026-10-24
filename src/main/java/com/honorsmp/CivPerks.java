@@ -125,15 +125,14 @@ public final class CivPerks {
                 for (Upgrade u : Upgrade.values()) {
                     int bit = 1 << u.ordinal();
                     if ((last & bit) != 0 && (mask & bit) == 0 && CivUpgradeApi.isLate(civ, u, now)) {
-                        notifyManagers(h, civ, "Your civ's " + u.display + " upkeep is late. " + u.display + " is off until you pay: /civ upkeep pay "
-                                + u.id, true);
+                        notifyManagers(h, civ, "Your civ's " + u.display + " upkeep is late. " + u.display + " is off until you pay. Open /civ upgrades to pay.", true);
                     }
                 }
             }
             for (Upgrade u : Upgrade.values()) {
                 if (CivUpgradeApi.takeWarningOnce(civ, u, h.config, now)) {
                     notifyManagers(h, civ, "Your civ's " + u.display + " upkeep is due in " + CivEffects.duration(CivUpgradeApi.dueAt(civ, u) - now)
-                            + " (" + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, u, h.config)) + "). Pay with /civ upkeep pay " + u.id, false);
+                            + " (" + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, u, h.config)) + "). Open /civ upgrades to pay.", false);
                     h.markDirty();
                 }
             }
@@ -155,11 +154,11 @@ public final class CivPerks {
         long now = System.currentTimeMillis();
         for (Upgrade u : Upgrade.values()) {
             if (CivUpgradeApi.isLate(civ, u, now)) {
-                p.sendMessage(Text.literal("Your civ's " + u.display + " is off until you pay its upkeep: /civ upkeep pay " + u.id + " ("
+                p.sendMessage(Text.literal("Your civ's " + u.display + " is off until you pay its upkeep. Open /civ upgrades to pay ("
                         + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, u, h.config)) + ")").formatted(Formatting.RED));
             } else if (CivUpgradeApi.warningDue(civ, u, h.config, now)) {
                 p.sendMessage(Text.literal("Your civ's " + u.display + " upkeep is due in " + CivEffects.duration(CivUpgradeApi.dueAt(civ, u) - now)
-                        + ": /civ upkeep pay " + u.id + " (" + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, u, h.config)) + ")").formatted(Formatting.GOLD));
+                        + ". Open /civ upgrades to pay (" + CivUpkeep.describe(CivUpgradeApi.owedPerDay(civ, u, h.config)) + ")").formatted(Formatting.GOLD));
             }
         }
     }

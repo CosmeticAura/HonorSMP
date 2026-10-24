@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.7.0
+- One menu for everything: `/civ upgrades`. It is the only command a player needs for upgrades, upkeep and chest rows. Members can open it to look; only the leader and officers can click actions (others see "Only the leader or officers can do that").
+- Main page: one icon per upgrade (Resistance, Strength, Speed, Haste, Fortitude) plus Chest rows. The lore shows the level and what it does, the status (On / Paused / Unpaid (off) / Not bought), Paid until (time left like "1d 4h"), the daily cost and what a click does.
+- Click an upgrade for its own page with only the buttons that apply: Buy level 1 / Upgrade to level 2 (with price), Pay 1 day (opens the same pay chest as before, up to 3 days ahead), Pause or Resume, and Back. Chest rows has its own page: rows owned, Buy next row (with price), Back.
+- Every buy and pause asks for one confirm click: the button turns into "Click again to confirm" for 5 seconds.
+- `/civ upkeep`, `/civ upkeep pay [upgrade]` and `/civ upkeep pause [upgrade]` are gone from help and docs. They still work as hidden aliases that only open `/civ upgrades`, and so does `/civ upgrade`.
+- Login and due-soon warnings now say "Open /civ upgrades to pay".
+- No game rule changed: prices, upkeep amounts, timers, pause behavior and chest rows are exactly as in 1.6.9.
+
 ## 1.6.9
 - Upgrade upkeep is now per upgrade. Each upgrade you own (Resistance, Strength, Speed, Haste, Fortitude) has its own due date and its own days paid. Only an upgrade whose own upkeep is late switches off; the others keep working. Buying more of a late upgrade is blocked until it is paid, other upgrades can still be bought.
 - `/civ upkeep` lists every owned upgrade with its daily cost and paid-until date (or LATE or PAUSED). `/civ upkeep pay` opens a new upkeep menu with one icon per upgrade and a Pause button under it; click an upgrade to open the pay chest for it. `/civ upkeep pay <upgrade>` goes straight to that upgrade's chest. Each upgrade can be paid up to 3 days ahead (`civUpkeepMaxAheadDays`) on its own. The upgrades menu has an upkeep button (clock) too.

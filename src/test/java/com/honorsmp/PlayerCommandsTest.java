@@ -36,12 +36,12 @@ class PlayerCommandsTest {
             "bounty set Steve", "bounty claim", "bounty list", "bounty list text",
             "civ create My Civ", "civ invite Steve", "civ join My Civ", "civ leave", "civ kick Steve",
             "civ promote Steve", "civ guard Steve", "civ disband",
-            "civ info", "civ info My Civ", "civ list", "civ top", "civ upgrades", "civ upkeep", "civ upkeep pay", "civ upkeep pay haste", "civ upkeep pause speed",
+            "civ info", "civ info My Civ", "civ list", "civ top", "civ upgrades", "civ upgrade", "civ upkeep", "civ upkeep pay", "civ upkeep pay haste", "civ upkeep pause", "civ upkeep pause speed",
             "cc", "cc hello civ");
 
     /** Commands typed without their argument: allowed, and answer with a Usage line. */
     static final List<String> BARE = List.of("appeal", "bounty set", "civ create", "civ invite", "civ join",
-            "civ kick", "civ promote", "civ guard", "civ upkeep pause");
+            "civ kick", "civ promote", "civ guard");
 
     CommandDispatcher<ServerCommandSource> d;
     ServerCommandSource src;
@@ -87,6 +87,23 @@ class PlayerCommandsTest {
         for (String cmd : BARE) {
             var e = assertThrows(CommandSyntaxException.class, () -> d.execute(cmd, src), cmd);
             assertTrue(e.getRawMessage().getString().startsWith("Usage: /"), cmd + " -> " + e.getRawMessage().getString());
+        }
+    }
+
+    /** 1.7.0: /civ upgrade and the old /civ upkeep forms are hidden aliases that all run the same handler as /civ upgrades. */
+    @Test
+    void upkeepAndUpgradeAliasesOpenTheUpgradesMenu() throws Exception {
+        var civ = d.getRoot().getChild("civ");
+        var handler = civ.getChild("upgrades").getCommand();
+        assertNotNull(handler);
+        assertNotNull(civ.getChild("upgrade").getCommand());
+        assertNotNull(civ.getChild("upkeep").getCommand());
+        assertNotNull(civ.getChild("upkeep").getChild("pay").getCommand());
+        assertNotNull(civ.getChild("upkeep").getChild("pause").getCommand()); // no more "Usage:" error
+        // they reach the same place: past permissions, into the handler (no server in a unit test)
+        for (String cmd : List.of("civ upgrades", "civ upgrade", "civ upkeep", "civ upkeep pay", "civ upkeep pay haste", "civ upkeep pause", "civ upkeep pause speed")) {
+            var e = assertThrows(CommandSyntaxException.class, () -> d.execute(cmd, src), cmd);
+            assertTrue(e.getRawMessage().getString().startsWith("HonorSMP is not ready yet."), cmd + " -> " + e.getRawMessage().getString());
         }
     }
 

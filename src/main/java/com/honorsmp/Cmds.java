@@ -761,30 +761,17 @@ public final class Cmds {
                     h.server.getPlayerManager().broadcast(Text.literal(civ.name + " has been disbanded.").formatted(Formatting.GOLD), false);
                     return 1;
                 }))
-                .then(lit("upgrades").executes(c -> {
-                    h();
-                    CivUpgradeMenu.open(player(c));
-                    return 1;
-                }))
+                .then(lit("upgrades").executes(c -> openUpgrades(c)))
+                .then(lit("upgrade").executes(c -> openUpgrades(c)))
+                // 1.7.0: hidden aliases. Not in help or docs; they only open the one menu so old habits do not error.
                 .then(lit("upkeep")
-                        .executes(c -> {
-                            civUpkeep(c);
-                            return 1;
-                        })
+                        .executes(c -> openUpgrades(c))
                         .then(lit("pay")
-                                .executes(c -> {
-                                    civUpkeepPay(c, null);
-                                    return 1;
-                                })
-                                .then(arg("upgrade", StringArgumentType.word()).suggests(upgradeIds()).executes(c -> {
-                                    civUpkeepPay(c, upgradeArg(c));
-                                    return 1;
-                                })))
-                        .then(lit("pause").executes(usage("/civ upkeep pause <upgrade>"))
-                                .then(arg("upgrade", StringArgumentType.word()).suggests(upgradeIds()).executes(c -> {
-                                    civUpkeepPause(c, upgradeArg(c));
-                                    return 1;
-                                }))))
+                                .executes(c -> openUpgrades(c))
+                                .then(arg("upgrade", StringArgumentType.word()).suggests(upgradeIds()).executes(c -> openUpgrades(c))))
+                        .then(lit("pause")
+                                .executes(c -> openUpgrades(c))
+                                .then(arg("upgrade", StringArgumentType.word()).suggests(upgradeIds()).executes(c -> openUpgrades(c)))))
                 .then(lit("info")
                         .executes(c -> {
                             info(c, myCiv(c));
@@ -900,54 +887,11 @@ public final class Cmds {
         return u;
     }
 
-    private static void civUpkeep(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
-        Honor h = h();
-        Civ civ = myCiv(c);
-        long now = System.currentTimeMillis();
-        if (!CivUpgradeApi.hasUpgrades(civ)) {
-            say(c, "Your civ owns no upgrades, so it owes no upkeep. See /civ upgrades.");
-            return;
-        }
-        say(c, Text.literal("Upgrade upkeep (each upgrade has its own date):").formatted(Formatting.GOLD));
-        for (CivUpgrades.Upgrade u : CivUpgrades.Upgrade.values()) {
-            var e = CivUpgradeApi.upgradeUpkeep(civ, u, h.config);
-            if (e == null) continue;
-            String head = "  " + u.display + " " + CivUpgradeApi.ownedLevel(civ, u) + ": " + e.getValue() + " " + CivUpkeep.pretty(e.getKey()) + " a day, ";
-            long due = CivUpgradeApi.dueAt(civ, u);
-            if (CivUpgradeApi.isPaused(civ, u)) {
-                say(c, Text.literal(head + "PAUSED (off, no cost). /civ upkeep pay " + u.id + " turns it on again").formatted(Formatting.YELLOW));
-            } else if (CivUpgradeApi.isLate(civ, u, now)) {
-                say(c, Text.literal(head + "LATE since " + CivUpgradeMenu.date(due) + " (" + CivEffects.duration(now - due) + " ago), off until paid: /civ upkeep pay " + u.id)
-                        .formatted(Formatting.RED));
-            } else {
-                int room = CivUpgradeApi.payableDays(civ, u, h.config, now);
-                say(c, head + "paid until " + CivUpgradeMenu.date(due) + " (in " + CivEffects.duration(due - now) + "), "
-                        + (room > 0 ? "can pay " + room + (room == 1 ? " day" : " days") + " more" : "paid the maximum ahead"));
-            }
-        }
-        say(c, "Pay with /civ upkeep pay or /civ upkeep pay <upgrade>; stop one costing with /civ upkeep pause <upgrade> (leader or officer).");
-    }
-
-    private static void civUpkeepPay(CommandContext<ServerCommandSource> c, CivUpgrades.Upgrade u) throws CommandSyntaxException {
-        Honor h = h();
-        ServerPlayerEntity p = player(c);
-        Civ civ = myCiv(c);
-        if (!canManage(civ, p.getUuid().toString())) throw err("Only the leader or officers can pay the upkeep. Ask one of them.");
-        if (!CivUpgradeApi.hasUpgrades(civ)) throw err("Your civ owns no upgrades, so it owes no upkeep. See /civ upgrades.");
-        if (u == null) {
-            CivUpgradeMenu.openUpkeep(p);
-            return;
-        }
-        String e = h.upkeepPay.openFor(p, civ, u);
-        if (e != null) throw err(e);
-    }
-
-    private static void civUpkeepPause(CommandContext<ServerCommandSource> c, CivUpgrades.Upgrade u) throws CommandSyntaxException {
-        Honor h = h();
-        ServerPlayerEntity p = player(c);
-        Civ civ = myCiv(c);
-        String e = CivUpgradeMenu.pauseUpgrade(h, civ, p, u);
-        if (e != null) throw err(e);
+    /** /civ upgrades and its aliases (/civ upgrade, /civ upkeep ...): open the one menu. */
+    private static int openUpgrades(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
+        h();
+        CivUpgradeMenu.open(player(c));
+        return 1;
     }
 
     private static void broadcastCiv(Honor h, Civ civ, String msg) {
